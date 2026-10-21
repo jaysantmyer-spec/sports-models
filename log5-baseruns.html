@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log 5 &amp; BaseRuns</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 13px;line-height:1.55;}
+
+.tabs{display:flex;gap:6px;margin-bottom:13px;}
+.tabs button{
+  flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;
+}
+.tabs button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;} .pane.active{display:block;}
+
+.fbox{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:12px 13px;margin-bottom:12px;}
+.fname{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:5px;}
+.fdesc{font-size:11.5px;color:var(--dim);line-height:1.6;margin-bottom:9px;}
+.fmath{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:11px;font-size:12.5px;text-align:center;line-height:1.9;}
+.frac{display:inline-block;vertical-align:middle;text-align:center;margin:0 3px;}
+.frac .n{display:block;border-bottom:1px solid var(--chalk);padding:0 6px 2px;}
+.frac .d{display:block;padding:2px 6px 0;}
+.comp{font-size:11px;color:var(--dim);line-height:1.8;margin-top:8px;text-align:left;}
+.comp b{color:var(--chalk);}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.mt{margin-top:8px;}
+.btn{
+  width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:10px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:13px;padding:8px;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:9px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.result{
+  background:linear-gradient(160deg, rgba(242,169,59,0.1) 0%, var(--navy) 60%);
+  border:1px solid rgba(242,169,59,0.4);border-radius:10px;padding:16px;margin-top:12px;text-align:center;
+}
+.result .rl{font-size:10px;color:var(--dim);letter-spacing:0.6px;text-transform:uppercase;}
+.result .rv{font-family:'Teko',sans-serif;font-size:40px;line-height:1.1;color:var(--amber);}
+.result .rs{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5;}
+.rsplit{display:flex;gap:9px;margin-top:12px;}
+.rcard{flex:1;background:rgba(0,0,0,0.25);border-radius:7px;padding:10px;}
+.rcard .n{font-size:10px;color:var(--dim);}
+.rcard .v{font-family:'Teko',sans-serif;font-size:22px;color:var(--chalk);line-height:1.25;}
+
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:10px 11px;font-size:11px;color:var(--dim);line-height:1.85;margin-top:10px;}
+.work b{color:var(--chalk);}
+.work .hdr{color:var(--amber);font-family:'Teko',sans-serif;font-size:13px;letter-spacing:0.4px;}
+.verdict{margin-top:11px;padding:11px 12px;border-radius:7px;font-size:12.5px;line-height:1.6;}
+.verdict.go{background:rgba(95,174,122,0.1);border-left:3px solid var(--green);}
+.verdict.no{background:rgba(255,255,255,0.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.verdict b{color:var(--amber);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:10px;}
+td{padding:6px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:56%;}
+.warn{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.4);border-radius:8px;
+  padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;
+}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>LOG 5 &amp; BASERUNS</h1></div>
+  <p class="sub">Deserved runs from sequencing-aware offence, converted into matchup win probability and compared against the market.</p>
+
+  <div class="tabs">
+    <button class="active" data-t="br">BaseRuns</button>
+    <button data-t="l5">Log 5</button>
+    <button data-t="ch">Full Chain</button>
+  </div>
+
+  <!-- ===== BaseRuns ===== -->
+  <div class="pane active" id="pane-br">
+    <div class="fbox">
+      <div class="fname">BASERUNS</div>
+      <div class="fdesc">Mimics a real game by separating an offence into runners reaching base, runners driven home, and home runs that clear the bases automatically. Unlike Runs Created, it does not assume events occur in a perfect order.</div>
+      <div class="fmath">
+        BaseRuns = <span class="frac"><span class="n">A &times; B</span><span class="d">B + C</span></span> + D
+        <div class="comp">
+          <b>A</b> (Baserunners) = Hits + Walks + Hit by Pitch &minus; Home Runs<br>
+          <b>B</b> (Advancement) = (1.4 &times; Total Bases) &minus; (0.6 &times; Hits) &minus; (3 &times; Home Runs) + (0.1 &times; Walks)<br>
+          <b>C</b> (Outs) = At Bats &minus; Hits + Caught Stealing + GIDP<br>
+          <b>D</b> (Guaranteed) = Home Runs
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="plabel">LOAD A TEAM</div>
+      <div class="g3">
+        <div><label>Team</label><select id="brTeam"></select></div>
+        <div><label>Season</label><input type="number" id="brSeason" value="2026"></div>
+        <div><label>Side</label><select id="brSide"><option value="hitting">Offence</option><option value="pitching">Allowed</option></select></div>
+      </div>
+      <button class="btn ghost" id="brLoad">LOAD STATS</button>
+      <div class="status" id="brStatus"></div>
+    </div>
+
+    <div class="panel">
+      <div class="plabel">INPUTS</div>
+      <div class="g4">
+        <div><label>Hits</label><input type="number" id="bH" oninput="calcBR()"></div>
+        <div><label>Walks</label><input type="number" id="bBB" oninput="calcBR()"></div>
+        <div><label>HBP</label><input type="number" id="bHBP" oninput="calcBR()"></div>
+        <div><label>HR</label><input type="number" id="bHR" oninput="calcBR()"></div>
+      </div>
+      <div class="g4 mt">
+        <div><label>Total Bases</label><input type="number" id="bTB" oninput="calcBR()"></div>
+        <div><label>At Bats</label><input type="number" id="bAB" oninput="calcBR()"></div>
+        <div><label>CS</label><input type="number" id="bCS" value="0" oninput="calcBR()"></div>
+        <div><label>GIDP</label><input type="number" id="bGIDP" value="0" oninput="calcBR()"></div>
+      </div>
+      <div class="mt"><label>Actual runs (for comparison)</label><input type="number" id="bActual" oninput="calcBR()"></div>
+      <div id="brOut"></div>
+    </div>
+  </div>
+
+  <!-- ===== Log 5 ===== -->
+  <div class="pane" id="pane-l5">
+    <div class="fbox">
+      <div class="fname">LOG 5</div>
+      <div class="fdesc">Takes two teams' true win percentages and returns the probability of one beating the other in a specific matchup, accounting for the relative strength of both sides.</div>
+      <div class="fmath">
+        P(A beats B) =
+        <span class="frac">
+          <span class="n">A &times; (1 &minus; B)</span>
+          <span class="d">A &times; (1 &minus; B) + (1 &minus; A) &times; B</span>
+        </span>
+      </div>
+      <div class="hint">Use Adjusted Pythagorean win percentage rather than raw win-loss record. The Full Chain tab derives that from BaseRuns automatically.</div>
+    </div>
+
+    <div class="panel">
+      <div class="plabel">INPUTS</div>
+      <div class="g2">
+        <div><label>Team A win %</label><input type="number" step="0.001" id="lA" placeholder="0.620" oninput="calcL5()"></div>
+        <div><label>Team B win %</label><input type="number" step="0.001" id="lB" placeholder="0.410" oninput="calcL5()"></div>
+      </div>
+      <div class="mt"><label>Team A moneyline (optional)</label><input type="number" id="lOdds" placeholder="-120" oninput="calcL5()"></div>
+      <button class="btn ghost" id="l5Ex">LOAD EXAMPLE (.620 vs .410)</button>
+      <div id="l5Out"></div>
+    </div>
+  </div>
+
+  <!-- ===== Full Chain ===== -->
+  <div class="pane" id="pane-ch">
+    <div class="fbox">
+      <div class="fname">FULL CHAIN</div>
+      <div class="fdesc">Runs the complete pipeline: BaseRuns for each team's offence and runs allowed, converted to an Adjusted Pythagorean win percentage, then through Log 5 for the matchup probability.</div>
+      <div class="fmath" style="font-size:11.5px;line-height:1.7;">
+        BaseRuns scored &amp; allowed<br>&darr;<br>
+        Adjusted Pythagorean = <span class="frac"><span class="n">BR scored&sup2;</span><span class="d">BR scored&sup2; + BR allowed&sup2;</span></span><br>&darr;<br>
+        Log 5 &rarr; matchup probability
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="plabel">SELECT TEAMS</div>
+      <div class="g3">
+        <div><label>Team A</label><select id="chA"></select></div>
+        <div><label>Team B</label><select id="chB"></select></div>
+        <div><label>Season</label><input type="number" id="chSeason" value="2026"></div>
+      </div>
+      <div class="mt"><label>Team A moneyline (optional)</label><input type="number" id="chOdds" placeholder="-120"></div>
+      <button class="btn" id="chRun">RUN FULL CHAIN</button>
+      <div class="status" id="chStatus"></div>
+      <div id="chOut"></div>
+    </div>
+  </div>
+
+  <div class="warn">
+    <b>Bankroll note.</b> Even a mathematically sound model loses roughly 40&ndash;45% of the time to variance. Never wager money you cannot afford to lose.
+  </div>
+
+  <p class="footnote">BaseRuns and Log 5 are implemented exactly as specified, with no alteration to their coefficients or structure. Total bases allowed are reconstructed from hits, doubles, triples and home runs surrendered, since the pitching side does not publish the figure directly. Caught stealing and grounded-into-double-play totals default to zero when the source does not return them, which slightly understates the out component and therefore slightly overstates BaseRuns; both fields remain editable. The Adjusted Pythagorean step uses the squared form. A discrepancy between actual and deserved runs is a signal about sequencing luck, not a guarantee of regression, and the sample it rests on matters: a gap of a few runs across a full season is noise. Team statistics come from the MLB Stats API, which requires no key. Every field stays editable after loading, and each result shows its full arithmetic.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('pane-'+b.dataset.t).classList.add('active');
+  });
+});
+
+function v(id){ const x=document.getElementById(id).value.trim(); return x===''?null:Number(x); }
+function setV(id,val){ document.getElementById(id).value=(val==null?'':val); }
+function setS(id,t,err){ const e=document.getElementById(id); e.textContent=t; e.className='status'+(err?' err':''); }
+async function getJSON(u,l){
+  try{ const r=await fetch(u); if(!r.ok){ window.__err=`${l}: HTTP ${r.status}`; return null; } return await r.json(); }
+  catch(e){ window.__err=`${l}: ${e.message}`; return null; }
+}
+function amToImp(p){ return p>0?100/(p+100):(-p)/((-p)+100); }
+function fmtAm(p){ return p>0?`+${p}`:`${p}`; }
+
+// ---- Formulas ----
+function baseRuns(s){
+  const A = s.H + s.BB + s.HBP - s.HR;
+  const B = (1.4*s.TB) - (0.6*s.H) - (3*s.HR) + (0.1*s.BB);
+  const C = s.AB - s.H + s.CS + s.GIDP;
+  const D = s.HR;
+  if(B + C === 0) return null;
+  return { A, B, C, D, runs: (A*B)/(B+C) + D };
+}
+function log5(a,b){
+  const num = a*(1-b);
+  const den = a*(1-b) + (1-a)*b;
+  if(den === 0) return null;
+  return num/den;
+}
+function pyth(rs,ra){
+  const d = rs*rs + ra*ra;
+  return d===0 ? null : (rs*rs)/d;
+}
+
+// ---- Team list ----
+let TEAMS=[];
+(async function(){
+  const d=await getJSON(`${MLB}/teams?sportId=1`,'teams');
+  TEAMS=((d&&d.teams)||[]).sort((a,b)=>a.name.localeCompare(b.name));
+  const opts=TEAMS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  ['brTeam','chA','chB'].forEach(id=>{ document.getElementById(id).innerHTML=opts; });
+  if(TEAMS.length>1) document.getElementById('chB').selectedIndex=1;
+})();
+
+// Total bases are not published on the pitching side, so rebuild from extra-base hits.
+function tbFrom(st){
+  const h=Number(st.hits)||0, d2=Number(st.doubles)||0, t3=Number(st.triples)||0, hr=Number(st.homeRuns)||0;
+  return h + d2 + (2*t3) + (3*hr);
+}
+function pullStats(st, side){
+  return {
+    H:Number(st.hits)||0,
+    BB:Number(st.baseOnBalls)||0,
+    HBP:Number(side==='pitching'?st.hitBatsmen:st.hitByPitch)||0,
+    HR:Number(st.homeRuns)||0,
+    TB:Number(st.totalBases)||tbFrom(st),
+    AB:Number(st.atBats)||0,
+    CS:Number(st.caughtStealing)||0,
+    GIDP:Number(st.groundIntoDoublePlay)||0,
+    runs:Number(st.runs)||0,
+  };
+}
+async function teamStats(tid, season, group){
+  const d=await getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=${group}&season=${season}`,'team stats');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  return st?pullStats(st,group):null;
+}
+
+// ---- BaseRuns tab ----
+document.getElementById('brLoad').addEventListener('click',async()=>{
+  const tid=document.getElementById('brTeam').value;
+  const yr=document.getElementById('brSeason').value.trim();
+  const side=document.getElementById('brSide').value;
+  setS('brStatus','Loading...');
+  const s=await teamStats(tid,yr,side);
+  if(!s){ setS('brStatus',window.__err||`No ${yr} stats found.`,true); return; }
+  setV('bH',s.H); setV('bBB',s.BB); setV('bHBP',s.HBP); setV('bHR',s.HR);
+  setV('bTB',s.TB); setV('bAB',s.AB); setV('bCS',s.CS); setV('bGIDP',s.GIDP);
+  setV('bActual',s.runs);
+  setS('brStatus',`Loaded ${yr} ${side==='pitching'?'runs allowed':'offence'}.`);
+  calcBR();
+});
+
+function calcBR(){
+  const s={H:v('bH'),BB:v('bBB'),HBP:v('bHBP'),HR:v('bHR'),TB:v('bTB'),AB:v('bAB'),CS:v('bCS'),GIDP:v('bGIDP')};
+  const out=document.getElementById('brOut');
+  if(Object.values(s).some(x=>x==null)){ out.innerHTML=''; return; }
+  const r=baseRuns(s);
+  if(!r){ out.innerHTML='<div class="verdict no">Undefined: B + C equals zero.</div>'; return; }
+  const actual=v('bActual');
+  let cmp='';
+  if(actual!=null){
+    const diff=r.runs-actual;
+    const dir=diff>0?'more':'fewer';
+    cmp=`<div class="verdict ${Math.abs(diff)>=25?'go':'no'}">
+      Actual ${actual} runs against <b>${r.runs.toFixed(1)}</b> deserved &mdash; ${Math.abs(diff).toFixed(1)} ${dir} than they scored.
+      ${Math.abs(diff)>=25?` Sequencing has run ${diff>0?'against':'for'} them; the market may not have caught up.`:` That gap is small enough to be noise.`}
+    </div>`;
+  }
+  out.innerHTML=`
+    <div class="result">
+      <div class="rl">BaseRuns</div>
+      <div class="rv">${r.runs.toFixed(1)}</div>
+      <div class="rs">deserved runs</div>
+    </div>
+    ${cmp}
+    <div class="work">
+      <span class="hdr">COMPONENTS</span><br>
+      A = ${s.H} + ${s.BB} + ${s.HBP} &minus; ${s.HR} = <b>${r.A}</b><br>
+      B = (1.4&times;${s.TB}) &minus; (0.6&times;${s.H}) &minus; (3&times;${s.HR}) + (0.1&times;${s.BB}) = <b>${r.B.toFixed(2)}</b><br>
+      C = ${s.AB} &minus; ${s.H} + ${s.CS} + ${s.GIDP} = <b>${r.C}</b><br>
+      D = <b>${r.D}</b>
+    </div>
+    <div class="work">
+      <span class="hdr">RESULT</span><br>
+      (${r.A} &times; ${r.B.toFixed(2)}) &divide; (${r.B.toFixed(2)} + ${r.C}) = <b>${((r.A*r.B)/(r.B+r.C)).toFixed(2)}</b><br>
+      ${((r.A*r.B)/(r.B+r.C)).toFixed(2)} + ${r.D} = <b>${r.runs.toFixed(1)}</b>
+    </div>`;
+}
+
+// ---- Log 5 tab ----
+document.getElementById('l5Ex').addEventListener('click',()=>{
+  setV('lA',0.620); setV('lB',0.410); calcL5();
+});
+function calcL5(){
+  const a=v('lA'), b=v('lB'), odds=v('lOdds');
+  const out=document.getElementById('l5Out');
+  if(a==null||b==null){ out.innerHTML=''; return; }
+  if(a<0||a>1||b<0||b>1){
+    out.innerHTML='<div class="verdict no">Win percentages must be between 0 and 1.</div>'; return;
+  }
+  const p=log5(a,b);
+  if(p==null){ out.innerHTML='<div class="verdict no">Undefined for these inputs.</div>'; return; }
+  let mk='';
+  if(odds!=null){
+    const imp=amToImp(odds), edge=p-imp;
+    mk=`<div class="verdict ${edge>0.02?'go':'no'}">
+      Model <b>${(p*100).toFixed(1)}%</b> against an implied ${(imp*100).toFixed(1)}% at ${fmtAm(odds)} &mdash;
+      ${edge>0?`edge of +${(edge*100).toFixed(1)} points.`:`${(edge*100).toFixed(1)} points, no edge.`}
+    </div>`;
+  }
+  out.innerHTML=`
+    <div class="result">
+      <div class="rl">P(A beats B)</div>
+      <div class="rv">${(p*100).toFixed(1)}%</div>
+      <div class="rs">B wins ${((1-p)*100).toFixed(1)}%</div>
+    </div>
+    ${mk}
+    <div class="work">
+      A &times; (1&minus;B) = ${a} &times; ${(1-b).toFixed(3)} = <b>${(a*(1-b)).toFixed(4)}</b><br>
+      (1&minus;A) &times; B = ${(1-a).toFixed(3)} &times; ${b} = <b>${((1-a)*b).toFixed(4)}</b><br>
+      ${(a*(1-b)).toFixed(4)} &divide; (${(a*(1-b)).toFixed(4)} + ${((1-a)*b).toFixed(4)}) = <b>${p.toFixed(4)}</b>
+    </div>`;
+}
+
+// ---- Full Chain tab ----
+document.getElementById('chRun').addEventListener('click',async()=>{
+  const aId=document.getElementById('chA').value, bId=document.getElementById('chB').value;
+  const yr=document.getElementById('chSeason').value.trim();
+  const odds=v('chOdds');
+  if(aId===bId){ setS('chStatus','Pick two different teams.',true); return; }
+  setS('chStatus','Loading both teams, offence and runs allowed...');
+
+  const [aOff,aDef,bOff,bDef]=await Promise.all([
+    teamStats(aId,yr,'hitting'), teamStats(aId,yr,'pitching'),
+    teamStats(bId,yr,'hitting'), teamStats(bId,yr,'pitching'),
+  ]);
+  if(!aOff||!aDef||!bOff||!bDef){
+    setS('chStatus',window.__err||`No ${yr} stats found for one of these teams.`,true);
+    document.getElementById('chOut').innerHTML=''; return;
+  }
+
+  const aBRs=baseRuns(aOff), aBRa=baseRuns(aDef);
+  const bBRs=baseRuns(bOff), bBRa=baseRuns(bDef);
+  if(!aBRs||!aBRa||!bBRs||!bBRa){ setS('chStatus','Could not compute BaseRuns for one side.',true); return; }
+
+  const aWP=pyth(aBRs.runs,aBRa.runs), bWP=pyth(bBRs.runs,bBRa.runs);
+  const p=log5(aWP,bWP);
+  const aName=TEAMS.find(t=>String(t.id)===String(aId)).name;
+  const bName=TEAMS.find(t=>String(t.id)===String(bId)).name;
+
+  let mk='';
+  if(odds!=null){
+    const imp=amToImp(odds), edge=p-imp;
+    mk=`<div class="verdict ${edge>0.02?'go':'no'}">
+      Model <b>${(p*100).toFixed(1)}%</b> against an implied ${(imp*100).toFixed(1)}% at ${fmtAm(odds)} &mdash;
+      ${edge>0?`edge of +${(edge*100).toFixed(1)} points.`:`${(edge*100).toFixed(1)} points, no edge.`}
+    </div>`;
+  }
+
+  document.getElementById('chOut').innerHTML=`
+    <div class="result">
+      <div class="rl">${aName} beats ${bName}</div>
+      <div class="rv">${(p*100).toFixed(1)}%</div>
+      <div class="rs">${bName} wins ${((1-p)*100).toFixed(1)}%</div>
+      <div class="rsplit">
+        <div class="rcard"><div class="n">${aName} adj. Pyth</div><div class="v">${aWP.toFixed(3)}</div></div>
+        <div class="rcard"><div class="n">${bName} adj. Pyth</div><div class="v">${bWP.toFixed(3)}</div></div>
+      </div>
+    </div>
+    ${mk}
+    <table>
+      <tr><td class="k">${aName} BaseRuns scored</td><td>${aBRs.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${aOff.runs})</span></td></tr>
+      <tr><td class="k">${aName} BaseRuns allowed</td><td>${aBRa.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${aDef.runs})</span></td></tr>
+      <tr><td class="k">${bName} BaseRuns scored</td><td>${bBRs.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${bOff.runs})</span></td></tr>
+      <tr><td class="k">${bName} BaseRuns allowed</td><td>${bBRa.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${bDef.runs})</span></td></tr>
+    </table>
+    <div class="work">
+      <span class="hdr">ADJUSTED PYTHAGOREAN</span><br>
+      ${aName}: ${aBRs.runs.toFixed(1)}&sup2; &divide; (${aBRs.runs.toFixed(1)}&sup2; + ${aBRa.runs.toFixed(1)}&sup2;) = <b>${aWP.toFixed(4)}</b><br>
+      ${bName}: ${bBRs.runs.toFixed(1)}&sup2; &divide; (${bBRs.runs.toFixed(1)}&sup2; + ${bBRa.runs.toFixed(1)}&sup2;) = <b>${bWP.toFixed(4)}</b>
+    </div>
+    <div class="work">
+      <span class="hdr">LOG 5</span><br>
+      ${aWP.toFixed(4)} &times; ${(1-bWP).toFixed(4)} = <b>${(aWP*(1-bWP)).toFixed(4)}</b><br>
+      ${(1-aWP).toFixed(4)} &times; ${bWP.toFixed(4)} = <b>${((1-aWP)*bWP).toFixed(4)}</b><br>
+      Result = <b>${p.toFixed(4)}</b>
+    </div>`;
+  setS('chStatus',`Chain complete for ${yr}.`);
+});
+</script>
+</body>
+</html>

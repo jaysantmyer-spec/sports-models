@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log 5 vs BaseRuns &mdash; Side by Side</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--fd:#1F4C34;--dirt:#B5713F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--blue:#7FB3D9;--dim:#7C93A3;--green:#5FAE7A;--purple:#9A7FD9;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--fd) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}
+.chain b{color:var(--amber);}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+input[type=range]{padding:0;height:26px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.mt{margin-top:8px;}
+.btn{width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:12.5px;padding:7px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button{flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;}
+.tabs button.active{background:rgba(242,169,59,.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;}.pane.active{display:block;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td.num{font-family:'Teko',sans-serif;font-size:16px;}td.good{color:var(--green);}td.bad{color:var(--red);}td.flat{color:var(--dim);}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.scoreboard{display:flex;gap:8px;margin-bottom:12px;}
+.sb{flex:1;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:10px 6px;text-align:center;}
+.sb .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}
+.sb .v{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);line-height:1.15;}
+.sb .r{font-size:9.5px;color:var(--dim);}
+.sb.best{border-color:rgba(95,174,122,.6);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.agree{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;padding:3px 7px;border-radius:4px;flex-shrink:0;}
+.agree.yes{background:rgba(95,174,122,.15);color:var(--green);}
+.agree.no{background:rgba(192,67,58,.12);color:#E8B4AE;}
+/* three-column comparison */
+.cmp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;}
+.col{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:8px 6px;text-align:center;}
+.col.b{border-color:rgba(242,169,59,.4);}
+.col .t{font-size:8.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;min-height:22px;}
+.col .fav{font-size:10.5px;color:var(--chalk);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.col .p{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);line-height:1.1;}
+.col .o{font-size:10px;color:var(--dim);}
+.col .res{font-size:9.5px;margin-top:4px;padding:2px 4px;border-radius:3px;}
+.col .res.hit{background:rgba(95,174,122,.15);color:var(--green);}
+.col .res.miss{background:rgba(192,67,58,.12);color:#E8B4AE;}
+.bars{margin-top:9px;}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.bar .nm{font-size:10.5px;width:88px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:12px;overflow:hidden;}
+.bar .fl{height:100%;opacity:.75;}
+.bar .fl.l5{background:var(--blue);}.bar .fl.br{background:var(--purple);}.bar .fl.bl{background:var(--amber);}
+.bar .pc{font-family:'Teko',sans-serif;font-size:13px;width:42px;text-align:right;flex-shrink:0;}
+.legend{font-size:9.5px;color:var(--dim);margin-top:3px;}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 8px;vertical-align:middle;}
+.ou{margin-top:10px;}
+.ou .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.ou .track{display:flex;height:18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);}
+.ou .over{background:var(--green);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1F12;}
+.ou .under{background:var(--blue);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1A26;}
+.ou .tie{background:var(--dim);opacity:.6;}
+.ou .sub{font-size:10.5px;color:var(--dim);margin-top:4px;}
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.over{background:rgba(154,127,217,.12);color:var(--purple);}
+.flag.est{background:rgba(242,169,59,.08);color:var(--amber);}
+.flag.neutral{background:rgba(255,255,255,.03);color:var(--dim);}
+.odds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px;}
+.odds input{padding:7px 8px;font-size:13px;}.odds label{font-size:9px;}
+.rec{margin-top:8px;padding:9px 11px;border-radius:6px;font-size:11.5px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.ovr{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:10px;margin-top:9px;}
+.ovr h5{font-family:'Teko',sans-serif;font-size:13px;letter-spacing:.4px;margin:0 0 7px;color:var(--amber);}
+.ovr input{padding:6px 7px;font-size:12.5px;}.ovr label{font-size:8.5px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+td{padding:5px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:56%;}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,.1);border:1px solid rgba(192,67,58,.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>LOG 5 vs BASERUNS &mdash; SIDE BY SIDE</h1></div>
+  <p class="sub">Every game today run three ways: Log 5 on actual runs, Log 5 on BaseRuns-deserved runs, and an adjustable blend. Finished games grade all three so the app tells you which is more accurate.</p>
+
+  <div class="chain">
+    <b>Log 5 (actual)</b> &mdash; Pythagorean from real runs scored and allowed &rarr; Log 5<br>
+    <b>BaseRuns (deserved)</b> &mdash; BaseRuns scored and allowed &rarr; Pythagorean &rarr; Log 5<br>
+    <b>Blend</b> &mdash; weighted mix of the two, weight set below. Both sides get the same starter and home-field treatment so the only difference is actual vs deserved runs.
+  </div>
+
+  <div class="tabs">
+    <button class="active" data-t="live">Today's Slate</button>
+    <button data-t="bt">Backtest</button>
+  </div>
+  <div class="pane active" id="pane-live">
+  <div class="panel">
+    <div class="plabel">SETTINGS</div>
+    <div class="g3">
+      <div><label>Date</label><input type="date" id="dt"></div>
+      <div><label>Include finished</label><select id="incFinal"><option value="1" selected>Grade them</option><option value="0">Upcoming only</option></select></div>
+      <div><label>Edge threshold</label><select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select></div>
+    </div>
+    <div class="g3 mt">
+      <div><label>Starters</label><select id="useSP"><option value="1" selected>Include</option><option value="0">Ignore</option></select></div>
+      <div><label>Home field</label><select id="hfa"><option value="0.54" selected>.540</option><option value="0.50">None</option><option value="0.55">.550</option></select></div>
+      <div><label>Default total line</label><input type="number" step="0.5" id="defLine" value="8.5"></div>
+    </div>
+    <div class="g2 mt">
+      <div><label>Pythagorean exponent</label><select id="pyMode"><option value="2">2.0 (as written)</option><option value="pat" selected>1.83 (Pythagenpat)</option></select></div>
+      <div><label>Blend method</label><select id="blMode"><option value="prob" selected>Average probabilities</option><option value="input">Blend runs, then compute</option></select></div>
+    </div>
+    <div class="mt"><label>Blend weight &mdash; <span id="wLbl">50%</span> BaseRuns / <span id="wLbl2">50%</span> actual</label>
+      <input type="range" id="wBlend" min="0" max="100" value="50"></div>
+    <button class="btn" id="run">RUN SLATE</button>
+    <div class="prog"><div id="bar"></div></div>
+    <div class="status" id="st"></div>
+    <div class="hint">No API key needed. Every value can be overridden inside a card. Use the scoreboard after a few graded days to decide where to set the blend weight.</div>
+  </div>
+
+  <div id="score"></div>
+  <div id="out"></div>
+  </div>
+
+  <div class="pane" id="pane-bt">
+    <div class="panel">
+      <div class="plabel">BACKTEST &mdash; PRE-GAME STATS ONLY</div>
+      <div class="g3">
+        <div><label>End date</label><input type="date" id="btEnd"></div>
+        <div><label>Target games</label><select id="btN"><option value="30">30</option><option value="60" selected>60</option><option value="100">100</option><option value="150">150</option></select></div>
+        <div><label>Total line tested</label><input type="number" step="0.5" id="btLine" value="8.5"></div>
+      </div>
+      <button class="btn" id="btRun">RUN BACKTEST</button>
+      <div class="prog"><div id="btBar"></div></div>
+      <div class="status" id="btSt"></div>
+      <div class="hint">Walks back day by day until it has the target count. Each game uses team and starter stats through the <b>day before</b> via date-bounded queries, so nothing leaks. Honours the exponent, blend method, starters and home-field settings from the slate tab. Expect about a minute per 10 games.</div>
+    </div>
+    <div id="btOut"></div>
+  </div>
+
+  <div class="warn"><b>Bankroll note.</b> Even a sound model loses roughly 40&ndash;45% of the time to variance. Never wager money you cannot afford to lose.</div>
+
+  <p class="footnote">Both Log 5 and BaseRuns are implemented exactly as published. The two side-by-side methods differ only in what feeds the Pythagorean step: actual runs scored and allowed versus BaseRuns-deserved runs; starter adjustment and home field are applied identically to both so the comparison isolates the sequencing question. The blend is a straight weighted average of the two win probabilities at the slider weight. The full-game total projection uses BaseRuns per game for each offence against the opponent's BaseRuns-allowed per game and the opposing starter's FIP share, simulated as Poisson draws on a 4.45-run baseline; Poisson slightly under-disperses real innings. Caught stealing and grounded-into-double-play totals absent from the pitching feed are estimated from at-bats so both sides of the ledger stay symmetric; supplied values are never overwritten. Grading is directional only and says nothing about whether a price was beatable. Season stats for a past date include games after it, so grading a historical slate flatters every method equally; the scoreboard is honest only for slates run live.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+const SIMS=20000,LG_FIP=4.10,FIP_C=3.15,LG_RPG=4.45,RUNS_PER_WINPCT=.095;
+const TEAM_ABBR={108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK={COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1,WSH:1,LAA:1,TOR:.99,ATL:.99,HOU:.99,MIN:.99,CHC:.98,KC:.98,STL:.98,DET:.97,LAD:.97,NYM:.97,CLE:.97,PIT:.96,TB:.96,SD:.95,MIA:.95,SF:.94,SEA:.94,ATH:.98};
+
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function mmdd(s){return `${s.slice(5,7)}/${s.slice(8,10)}/${s.slice(0,4)}`;}
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+document.getElementById('dt').value=iso(new Date());
+function v(id){const e=document.getElementById(id);if(!e)return null;const x=e.value.trim();return x===''?null:Number(x);}
+function setS(t,e){const el=document.getElementById('st');el.textContent=t;el.className='status'+(e?' err':'');}
+function setBar(p){document.getElementById('bar').style.width=Math.round(p*100)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function amToImp(p){return p>0?100/(p+100):(-p)/((-p)+100);}
+function fmtAm(p){return p>0?`+${p}`:`${p}`;}
+function probToAm(p){if(p<=0||p>=1)return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`${l}: HTTP ${r.status}`;return null;}return await r.json();}catch(e){window.__err=`${l}: ${e.message}`;return null;}}
+function poisson(l){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+
+// ---- formulas ----
+function baseRuns(s){const A=s.H+s.BB+s.HBP-s.HR;const B=(1.4*s.TB)-(.6*s.H)-(3*s.HR)+(.1*s.BB);const C=s.AB-s.H+s.CS+s.GIDP;if(B+C===0)return null;return {A,B,C,D:s.HR,runs:(A*B)/(B+C)+s.HR};}
+function pythExp(){const m=document.getElementById('pyMode');return m&&m.value==='pat'?1.83:2;}
+function pyth(rs,ra){const e=pythExp();const a=Math.pow(Math.max(rs,0),e),b=Math.pow(Math.max(ra,0),e);const d=a+b;return d===0?null:a/d;}
+function log5(a,b){const den=a*(1-b)+(1-a)*b;return den===0?null:(a*(1-b))/den;}
+function fipFrom(st){const ip=Number(st.inningsPitched)||0;if(ip<10)return null;const hr=Number(st.homeRuns)||0,bb=Number(st.baseOnBalls)||0,hbp=Number(st.hitBatsmen)||0,k=Number(st.strikeOuts)||0;return ((13*hr)+(3*(bb+hbp))-(2*k))/ip+FIP_C;}
+function spShift(sp){if(!sp)return 0;return clamp((LG_FIP-sp.fip)*(sp.ipPerStart/9)*RUNS_PER_WINPCT,-.12,.12);}
+function applyHFA(pH,hfa){if(hfa===.5)return pH;const odds=(pH/(1-pH))*(hfa/(1-hfa));return odds/(1+odds);}
+function tbFrom(st){return (Number(st.hits)||0)+(Number(st.doubles)||0)+2*(Number(st.triples)||0)+3*(Number(st.homeRuns)||0);}
+function pull(st,group){const ab=Number(st.atBats)||0;let cs=Number(st.caughtStealing)||0,gidp=Number(st.groundIntoDoublePlay)||0,estimated=false;
+  if(group==='pitching'&&cs===0&&gidp===0&&ab>500){cs=Math.round(ab*.0055);gidp=Math.round(ab*.02);estimated=true;}
+  return {H:Number(st.hits)||0,BB:Number(st.baseOnBalls)||0,HBP:Number(group==='pitching'?st.hitBatsmen:st.hitByPitch)||0,HR:Number(st.homeRuns)||0,TB:Number(st.totalBases)||tbFrom(st),AB:ab,CS:cs,GIDP:gidp,estimated,runs:Number(st.runs)||0,G:Number(st.gamesPlayed)||0};}
+
+const cache=new Map();
+async function teamStats(tid,season,group,cutoff){const k=`${tid}|${season}|${group}|${cutoff||'now'}`;if(cache.has(k))return cache.get(k);
+  const url=cutoff?`${MLB}/teams/${tid}/stats?stats=byDateRange&group=${group}&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`:`${MLB}/teams/${tid}/stats?stats=season&group=${group}&season=${season}`;
+  const d=await getJSON(url,'team');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;const val=st?pull(st,group):null;cache.set(k,val);return val;}
+async function starter(pid,season,cutoff){if(!pid)return null;const k=`sp|${pid}|${cutoff||'now'}`;if(cache.has(k))return cache.get(k);
+  const url=cutoff?`${MLB}/people/${pid}/stats?stats=byDateRange&group=pitching&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`:`${MLB}/people/${pid}/stats?stats=season&group=pitching&season=${season}`;
+  const d=await getJSON(url,'sp');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;let out=null;
+  if(st){const fip=fipFrom(st);const gs=Number(st.gamesStarted)||1;const ip=Number(st.inningsPitched)||0;if(fip!=null)out={fip,ipPerStart:clamp(gs?ip/gs:5.3,3,7.5)};}
+  cache.set(k,out);return out;}
+
+// ---- the three methods ----
+// Given Pythagorean inputs for both sides, apply identical starter + HFA treatment and return P(home).
+function matchup(aRS,aRA,hRS,hRA,aSP,hSP,hfa){
+  let aW=pyth(aRS,aRA),hW=pyth(hRS,hRA);if(aW==null||hW==null)return null;
+  const aWadj=clamp(aW+spShift(aSP),.05,.95),hWadj=clamp(hW+spShift(hSP),.05,.95);
+  let p=log5(hWadj,aWadj);if(p==null)return null;
+  return {pHome:applyHFA(p,hfa),aW,hW,aWadj,hWadj};
+}
+function totalProj(aOff,aDef,hOff,hDef,aSP,hSP,parkF){
+  const g=x=>x.G||1;
+  const aBRs=baseRuns(aOff),hBRs=baseRuns(hOff),aBRa=baseRuns(aDef),hBRa=baseRuns(hDef);
+  if(!aBRs||!hBRs||!aBRa||!hBRa)return null;
+  const offA=clamp((aBRs.runs/g(aOff))/LG_RPG,.6,1.5),defH=clamp((hBRa.runs/g(hDef))/LG_RPG,.6,1.5);
+  const offH=clamp((hBRs.runs/g(hOff))/LG_RPG,.6,1.5),defA=clamp((aBRa.runs/g(aDef))/LG_RPG,.6,1.5);
+  const spF=sp=>sp?(clamp(sp.ipPerStart/9,0,1)*(sp.fip/LG_FIP)+(1-clamp(sp.ipPerStart/9,0,1))):1;
+  const lamA=clamp(LG_RPG*offA*defH*spF(hSP)*parkF,.5,12),lamH=clamp(LG_RPG*offH*defA*spF(aSP)*parkF,.5,12);
+  const tot=new Array(SIMS);for(let i=0;i<SIMS;i++)tot[i]=poisson(lamA)+poisson(lamH);
+  return {lamA,lamH,tot,mean:(lamA+lamH)};
+}
+function ouSplit(tot,line){let o=0,u=0,p=0;for(const x of tot){if(x>line)o++;else if(x<line)u++;else p++;}return {over:o/tot.length,under:u/tot.length,push:p/tot.length};}
+
+let slate=[];
+const wSl=document.getElementById('wBlend');
+function updW(){document.getElementById('wLbl').textContent=wSl.value+'%';document.getElementById('wLbl2').textContent=(100-wSl.value)+'%';}
+wSl.addEventListener('input',()=>{updW();if(slate.length)render();});updW();
+
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;setBar(0);document.getElementById('out').innerHTML='';document.getElementById('score').innerHTML='';window.__err=null;slate=[];
+  const date=document.getElementById('dt').value,season=Number(date.slice(0,4));
+  const useSP=document.getElementById('useSP').value==='1',incFinal=document.getElementById('incFinal').value==='1';
+  setS('Loading slate...');
+  const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`,'schedule');
+  const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).filter(g=>{const s=g.status&&g.status.abstractGameState;return s==='Preview'||s==='Live'||(incFinal&&s==='Final');});
+  if(!games.length){setS(window.__err?`Could not load. ${window.__err}`:'No games matched.',true);btn.disabled=false;return;}
+  for(let i=0;i<games.length;i++){
+    const g=games[i];setS(`Computing ${i+1} of ${games.length}...`);setBar((i+1)/games.length);
+    const aId=g.teams.away.team.id,hId=g.teams.home.team.id;
+    const [aOff,aDef,hOff,hDef]=await Promise.all([teamStats(aId,season,'hitting'),teamStats(aId,season,'pitching'),teamStats(hId,season,'hitting'),teamStats(hId,season,'pitching')]);
+    if(!aOff||!aDef||!hOff||!hDef)continue;
+    let aSP=null,hSP=null;
+    if(useSP)[aSP,hSP]=await Promise.all([starter(g.teams.away.probablePitcher&&g.teams.away.probablePitcher.id,season),starter(g.teams.home.probablePitcher&&g.teams.home.probablePitcher.id,season)]);
+    const aBRs=baseRuns(aOff),aBRa=baseRuns(aDef),hBRs=baseRuns(hOff),hBRa=baseRuns(hDef);
+    if(!aBRs||!aBRa||!hBRs||!hBRa)continue;
+    let actual=null;
+    if(g.status.abstractGameState==='Final'){const as=Number(g.teams.away.score),hs=Number(g.teams.home.score);if(isFinite(as)&&isFinite(hs))actual={away:as,home:hs,total:as+hs,winner:hs>as?'home':(as>hs?'away':'tie')};}
+    slate.push({id:i,away:g.teams.away.team.name,home:g.teams.home.team.name,
+      awaySP:g.teams.away.probablePitcher?g.teams.away.probablePitcher.fullName:'TBD',homeSP:g.teams.home.probablePitcher?g.teams.home.probablePitcher.fullName:'TBD',
+      aOff,aDef,hOff,hDef,aSP,hSP,aBRs,aBRa,hBRs,hBRa,parkF:(TEAM_ABBR[hId]&&PARK[TEAM_ABBR[hId]])||1,actual,ovr:{}});
+  }
+  if(!slate.length){setS(window.__err?`No games computed. ${window.__err}`:'No usable games.',true);btn.disabled=false;return;}
+  setBar(1);setS(`${slate.length} matchup${slate.length===1?'':'s'} computed three ways.`);render();btn.disabled=false;
+});
+
+function compute(s){
+  const o=s.ovr,hfa=Number(document.getElementById('hfa').value),w=Number(wSl.value)/100;
+  const aSP=o.aFip!=null?{fip:o.aFip,ipPerStart:s.aSP?s.aSP.ipPerStart:5.3}:s.aSP;
+  const hSP=o.hFip!=null?{fip:o.hFip,ipPerStart:s.hSP?s.hSP.ipPerStart:5.3}:s.hSP;
+  // Actual runs
+  const aRS=o.aRS!=null?o.aRS:s.aOff.runs,aRA=o.aRA!=null?o.aRA:s.aDef.runs;
+  const hRS=o.hRS!=null?o.hRS:s.hOff.runs,hRA=o.hRA!=null?o.hRA:s.hDef.runs;
+  // Deserved runs
+  const aBs=o.aBRs!=null?o.aBRs:s.aBRs.runs,aBa=o.aBRa!=null?o.aBRa:s.aBRa.runs;
+  const hBs=o.hBRs!=null?o.hBRs:s.hBRs.runs,hBa=o.hBRa!=null?o.hBRa:s.hBRa.runs;
+  const L5=matchup(aRS,aRA,hRS,hRA,aSP,hSP,hfa),BR=matchup(aBs,aBa,hBs,hBa,aSP,hSP,hfa);
+  if(!L5||!BR)return null;
+  let pBlend;
+  if(document.getElementById('blMode').value==='input'){
+    // Blend the run inputs first, then run one Pythagorean + Log 5.
+    const mix=(x,y)=>w*y+(1-w)*x;
+    const M=matchup(mix(aRS,aBs),mix(aRA,aBa),mix(hRS,hBs),mix(hRA,hBa),aSP,hSP,hfa);
+    pBlend=M?M.pHome:w*BR.pHome+(1-w)*L5.pHome;
+  } else pBlend=w*BR.pHome+(1-w)*L5.pHome;
+  const tp=totalProj(s.aOff,s.aDef,s.hOff,s.hDef,aSP,hSP,s.parkF);
+  const line=o.line!=null?o.line:Number(document.getElementById('defLine').value)||8.5;
+  const ou=tp?ouSplit(tp.tot,line):null;
+  return {L5,BR,pBlend,w,tp,ou,line,aSeq:aBs-aRS,hSeq:hBs-hRS,aFip:aSP?aSP.fip:null,hFip:hSP?hSP.fip:null};
+}
+
+function render(){
+  const saved={};slate.forEach(s=>{['oa','oh','ol'].forEach(k=>{const e=document.getElementById(`${k}-${s.id}`);if(e)saved[`${k}-${s.id}`]=e.value;});});
+  const tally={L5:[0,0],BR:[0,0],BL:[0,0],TOT:[0,0]};
+  slate.forEach(s=>{const c=compute(s);if(!c||!s.actual)return;
+    if(s.actual.winner!=='tie'){[['L5',c.L5.pHome],['BR',c.BR.pHome],['BL',c.pBlend]].forEach(([k,p])=>{tally[k][1]++;if((p>=.5?'home':'away')===s.actual.winner)tally[k][0]++;});}
+    if(c.ou&&s.actual.total!==c.line){tally.TOT[1]++;const pick=c.ou.over>=c.ou.under?'over':'under';if((pick==='over'&&s.actual.total>c.line)||(pick==='under'&&s.actual.total<c.line))tally.TOT[0]++;}
+  });
+  const pct=k=>tally[k][1]?tally[k][0]/tally[k][1]:null;
+  const best=['L5','BR','BL'].reduce((b,k)=>(pct(k)!=null&&(b==null||pct(k)>pct(b)))?k:b,null);
+  document.getElementById('score').innerHTML=tally.L5[1]?`<div class="scoreboard">
+    <div class="sb ${best==='L5'?'best':''}"><div class="l">Log 5 actual</div><div class="v">${(pct('L5')*100).toFixed(0)}%</div><div class="r">${tally.L5[0]}/${tally.L5[1]}</div></div>
+    <div class="sb ${best==='BR'?'best':''}"><div class="l">BaseRuns</div><div class="v">${(pct('BR')*100).toFixed(0)}%</div><div class="r">${tally.BR[0]}/${tally.BR[1]}</div></div>
+    <div class="sb ${best==='BL'?'best':''}"><div class="l">Blend ${wSl.value}%</div><div class="v">${(pct('BL')*100).toFixed(0)}%</div><div class="r">${tally.BL[0]}/${tally.BL[1]}</div></div>
+    <div class="sb"><div class="l">Totals</div><div class="v">${pct('TOT')!=null?(pct('TOT')*100).toFixed(0)+'%':'—'}</div><div class="r">${tally.TOT[0]}/${tally.TOT[1]}</div></div></div>`:'';
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
+  slate.forEach(s=>{if(saved[`oa-${s.id}`]||saved[`oh-${s.id}`]||saved[`ol-${s.id}`])price(s.id);});
+}
+['hfa','defLine','edgeT','pyMode','blMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
+
+function colHTML(title,p,s,cls){
+  const favH=p>=.5,nm=favH?s.home:s.away,fp=Math.max(p,1-p);
+  let res='';
+  if(s.actual&&s.actual.winner!=='tie'){const hit=(favH?'home':'away')===s.actual.winner;res=`<div class="res ${hit?'hit':'miss'}">${hit?'&#10003; hit':'&#10007; miss'}</div>`;}
+  return `<div class="col ${cls}"><div class="t">${title}</div><div class="fav">${nm}</div><div class="p">${(fp*100).toFixed(1)}%</div><div class="o">${fmtAm(probToAm(fp))}</div>${res}</div>`;
+}
+function card(s){
+  const c=compute(s);if(!c)return '';
+  const picks=[c.L5.pHome>=.5,c.BR.pHome>=.5,c.pBlend>=.5];
+  const agree=picks.every(x=>x===picks[0]);
+  const bl=c.pBlend;
+  let flags='';
+  [[s.away,c.aSeq],[s.home,c.hSeq]].forEach(([nm,gap])=>{if(Math.abs(gap)>=25)flags+=gap>0?`<div class="flag over"><b>${nm}</b> have scored ${gap.toFixed(0)} fewer runs than deserved &mdash; team total and overs are where that shows.</div>`:`<div class="flag neutral"><b>${nm}</b> have scored ${Math.abs(gap).toFixed(0)} more than deserved; unders benefit if it corrects.</div>`;});
+  if(s.aDef.estimated||s.hDef.estimated)flags+='<div class="flag est">Defensive CS/GIDP were missing from the feed and estimated. Override below if you have real figures.</div>';
+  const ouBar=c.ou?`<div class="ou"><div class="lbl"><span>FULL-GAME TOTAL ${c.line}</span><span>BaseRuns mean ${c.tp.mean.toFixed(2)}</span></div>
+    <div class="track"><div class="over" style="width:${(c.ou.over*100).toFixed(1)}%">${c.ou.over>=.12?`O ${(c.ou.over*100).toFixed(0)}%`:''}</div><div class="tie" style="width:${(c.ou.push*100).toFixed(1)}%"></div><div class="under" style="width:${(c.ou.under*100).toFixed(1)}%">${c.ou.under>=.12?`U ${(c.ou.under*100).toFixed(0)}%`:''}</div></div>
+    <div class="sub">Over ${(c.ou.over*100).toFixed(1)}% &middot; push ${(c.ou.push*100).toFixed(1)}% &middot; under ${(c.ou.under*100).toFixed(1)}%${s.actual?` &middot; actual total <b>${s.actual.total}</b>`:''}</div></div>`:'';
+  const spLine=`${s.awaySP}${c.aFip!=null?` (FIP ${c.aFip.toFixed(2)})`:''} vs ${s.homeSP}${c.hFip!=null?` (FIP ${c.hFip.toFixed(2)})`:''}`;
+  return `<div class="card" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')">
+      <div><div class="cmatch">${s.away} @ ${s.home}</div><div class="csub">${spLine}${s.actual?` &middot; Final ${s.actual.away}&ndash;${s.actual.home}`:''}</div></div>
+      <div class="agree ${agree?'yes':'no'}">${agree?'All 3 agree':'Methods split'}</div>
+    </div>
+    <div class="cmp">${colHTML('Log 5<br>actual runs',c.L5.pHome,s,'')}${colHTML('BaseRuns<br>deserved runs',c.BR.pHome,s,'')}${colHTML(`Blend<br>${wSl.value}% BaseRuns`,bl,s,'b')}</div>
+    <div class="bars">
+      <div class="bar"><div class="nm">${s.home} win</div><div class="tr"><div class="fl l5" style="width:${(c.L5.pHome*100).toFixed(0)}%"></div></div><div class="pc">${(c.L5.pHome*100).toFixed(1)}%</div></div>
+      <div class="bar"><div class="nm"></div><div class="tr"><div class="fl br" style="width:${(c.BR.pHome*100).toFixed(0)}%"></div></div><div class="pc">${(c.BR.pHome*100).toFixed(1)}%</div></div>
+      <div class="bar"><div class="nm"></div><div class="tr"><div class="fl bl" style="width:${(bl*100).toFixed(0)}%"></div></div><div class="pc">${(bl*100).toFixed(1)}%</div></div>
+      <div class="legend"><i style="background:var(--blue)"></i>Log 5<i style="background:var(--purple)"></i>BaseRuns<i style="background:var(--amber)"></i>Blend</div>
+    </div>
+    ${ouBar}${flags}
+    <div class="odds">
+      <div><label>${s.away} ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(1-bl))}" oninput="price(${s.id})"></div>
+      <div><label>${s.home} ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(bl))}" oninput="price(${s.id})"></div>
+      <div><label>Over ${c.line} price</label><input type="number" id="ol-${s.id}" placeholder="-110" oninput="price(${s.id})"></div>
+    </div>
+    <div id="r-${s.id}"></div>
+    <div class="detail">
+      <div class="ovr"><h5>MANUAL OVERRIDE &mdash; ACTUAL RUNS</h5>
+        <div class="g4">
+          <div><label>${s.away} RS</label><input type="number" placeholder="${s.aOff.runs}" oninput="setOvr(${s.id},'aRS',this.value)"></div>
+          <div><label>${s.away} RA</label><input type="number" placeholder="${s.aDef.runs}" oninput="setOvr(${s.id},'aRA',this.value)"></div>
+          <div><label>${s.home} RS</label><input type="number" placeholder="${s.hOff.runs}" oninput="setOvr(${s.id},'hRS',this.value)"></div>
+          <div><label>${s.home} RA</label><input type="number" placeholder="${s.hDef.runs}" oninput="setOvr(${s.id},'hRA',this.value)"></div>
+        </div>
+        <h5 class="mt">DESERVED RUNS (BASERUNS)</h5>
+        <div class="g4">
+          <div><label>${s.away} BR scored</label><input type="number" step="0.1" placeholder="${s.aBRs.runs.toFixed(1)}" oninput="setOvr(${s.id},'aBRs',this.value)"></div>
+          <div><label>${s.away} BR allowed</label><input type="number" step="0.1" placeholder="${s.aBRa.runs.toFixed(1)}" oninput="setOvr(${s.id},'aBRa',this.value)"></div>
+          <div><label>${s.home} BR scored</label><input type="number" step="0.1" placeholder="${s.hBRs.runs.toFixed(1)}" oninput="setOvr(${s.id},'hBRs',this.value)"></div>
+          <div><label>${s.home} BR allowed</label><input type="number" step="0.1" placeholder="${s.hBRa.runs.toFixed(1)}" oninput="setOvr(${s.id},'hBRa',this.value)"></div>
+        </div>
+        <div class="g3 mt">
+          <div><label>${s.awaySP} FIP</label><input type="number" step="0.01" placeholder="${c.aFip!=null?c.aFip.toFixed(2):'none'}" oninput="setOvr(${s.id},'aFip',this.value)"></div>
+          <div><label>${s.homeSP} FIP</label><input type="number" step="0.01" placeholder="${c.hFip!=null?c.hFip.toFixed(2):'none'}" oninput="setOvr(${s.id},'hFip',this.value)"></div>
+          <div><label>Total line</label><input type="number" step="0.5" placeholder="${c.line}" oninput="setOvr(${s.id},'line',this.value)"></div>
+        </div>
+        <button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button>
+      </div>
+      <table>
+        <tr><td class="k">${s.away} Pythagorean &mdash; actual / deserved</td><td>${c.L5.aW.toFixed(3)} / ${c.BR.aW.toFixed(3)}</td></tr>
+        <tr><td class="k">${s.home} Pythagorean &mdash; actual / deserved</td><td>${c.L5.hW.toFixed(3)} / ${c.BR.hW.toFixed(3)}</td></tr>
+        <tr><td class="k">Sequencing gap (deserved &minus; actual)</td><td>${s.away} ${c.aSeq>=0?'+':''}${c.aSeq.toFixed(0)} &middot; ${s.home} ${c.hSeq>=0?'+':''}${c.hSeq.toFixed(0)}</td></tr>
+        ${c.tp?`<tr><td class="k">Projected runs (${s.away} / ${s.home})</td><td>${c.tp.lamA.toFixed(2)} / ${c.tp.lamH.toFixed(2)}</td></tr>`:''}
+      </table>
+      <div class="work">Blend = ${c.w.toFixed(2)} &times; ${(c.BR.pHome*100).toFixed(1)}% + ${(1-c.w).toFixed(2)} &times; ${(c.L5.pHome*100).toFixed(1)}% = <b>${(bl*100).toFixed(1)}%</b> home</div>
+    </div></div>`;
+}
+function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||isNaN(Number(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
+function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}
+function price(id){
+  const s=slate.find(x=>x.id===id);if(!s)return;const c=compute(s);if(!c)return;const t=Number(document.getElementById('edgeT').value);
+  const oa=v(`oa-${id}`),oh=v(`oh-${id}`),ol=v(`ol-${id}`);const out=[];let any=false;
+  const methods=[['Log 5',c.L5.pHome],['BaseRuns',c.BR.pHome],['Blend',c.pBlend]];
+  [[s.away,oa,false],[s.home,oh,true]].forEach(([nm,pr,isHome])=>{if(pr==null)return;const imp=amToImp(pr);
+    const lines=methods.map(([m,ph])=>{const p=isHome?ph:1-ph;const e=p-imp;return `${m} ${(p*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)})`;});
+    const pB=isHome?c.pBlend:1-c.pBlend,eB=pB-imp;const allAgree=methods.every(([,ph])=>((isHome?ph:1-ph)-imp)>=t);
+    if(eB>=t){any=true;out.push(`<div class="rec go"><b>${allAgree?'Play':'Lean'} ${nm} ML ${fmtAm(pr)}</b> &mdash; implied ${(imp*100).toFixed(1)}%. ${lines.join(' &middot; ')}.${allAgree?' All three methods clear the threshold.':' Only the blend clears it &mdash; lower confidence.'}</div>`);}
+    else out.push(`<div class="rec no">${nm} ${fmtAm(pr)} vs ${(imp*100).toFixed(1)}% implied: ${lines.join(' &middot; ')}. Under threshold.</div>`);});
+  if(ol!=null&&c.ou){const pO=c.ou.over/(c.ou.over+c.ou.under),imp=amToImp(ol),e=pO-imp;
+    if(e>=t){any=true;out.push(`<div class="rec go"><b>Play Over ${c.line} ${fmtAm(ol)}</b> &mdash; BaseRuns ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(e*100).toFixed(1)} pts.</div>`);}
+    else{const eU=(1-pO)-(1-imp);if(eU>=t){any=true;out.push(`<div class="rec go"><b>Lean Under ${c.line}</b> &mdash; BaseRuns ${((1-pO)*100).toFixed(1)}% under; the over price implies ${((1-imp)*100).toFixed(1)}% for the under (assumes symmetric pricing).</div>`);}
+    else out.push(`<div class="rec no">Over ${c.line} ${fmtAm(ol)}: ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);}}
+  const el=document.getElementById(`r-${id}`);if(el)el.innerHTML=out.join('');
+  const cd=document.getElementById(`c-${id}`);if(cd&&!s.actual)cd.classList.toggle('play',any);
+}
+
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('pane-'+b.dataset.t).classList.add('active');}));
+document.getElementById('btEnd').value=addDays(iso(new Date()),-1);
+function setBS(t,e){const el=document.getElementById('btSt');el.textContent=t;el.className='status'+(e?' err':'');}
+function setBB(p){document.getElementById('btBar').style.width=Math.round(p*100)+'%';}
+
+document.getElementById('btRun').addEventListener('click',async()=>{
+  const btn=document.getElementById('btRun');btn.disabled=true;setBB(0);document.getElementById('btOut').innerHTML='';window.__err=null;
+  const end=document.getElementById('btEnd').value,target=Number(document.getElementById('btN').value),line=Number(document.getElementById('btLine').value)||8.5;
+  const season=Number(end.slice(0,4)),hfa=Number(document.getElementById('hfa').value),w=Number(wSl.value)/100;
+  const useSP=document.getElementById('useSP').value==='1',blIn=document.getElementById('blMode').value==='input';
+  const rows=[];let day=end,scanned=0;
+  while(rows.length<target&&scanned<60){
+    setBS(`${day}: ${rows.length}/${target} graded...`);setBB(rows.length/target);
+    const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${day}&hydrate=team,probablePitcher`,'schedule');
+    const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).filter(g=>g.status&&g.status.abstractGameState==='Final');
+    const cutoff=addDays(day,-1);
+    for(const g of games){
+      if(rows.length>=target)break;
+      const aId=g.teams.away.team.id,hId=g.teams.home.team.id;
+      const [aOff,aDef,hOff,hDef]=await Promise.all([teamStats(aId,season,'hitting',cutoff),teamStats(aId,season,'pitching',cutoff),teamStats(hId,season,'hitting',cutoff),teamStats(hId,season,'pitching',cutoff)]);
+      if(!aOff||!aDef||!hOff||!hDef||aOff.G<15||hOff.G<15)continue;
+      let aSP=null,hSP=null;
+      if(useSP)[aSP,hSP]=await Promise.all([starter(g.teams.away.probablePitcher&&g.teams.away.probablePitcher.id,season,cutoff),starter(g.teams.home.probablePitcher&&g.teams.home.probablePitcher.id,season,cutoff)]);
+      const aBRs=baseRuns(aOff),aBRa=baseRuns(aDef),hBRs=baseRuns(hOff),hBRa=baseRuns(hDef);
+      if(!aBRs||!aBRa||!hBRs||!hBRa)continue;
+      const as=Number(g.teams.away.score),hs=Number(g.teams.home.score);if(!isFinite(as)||!isFinite(hs)||as===hs)continue;
+      const L5=matchup(aOff.runs,aDef.runs,hOff.runs,hDef.runs,aSP,hSP,hfa);
+      const BR=matchup(aBRs.runs,aBRa.runs,hBRs.runs,hBRa.runs,aSP,hSP,hfa);
+      if(!L5||!BR)continue;
+      let BL;
+      if(blIn){const mix=(x,y)=>w*y+(1-w)*x;const M=matchup(mix(aOff.runs,aBRs.runs),mix(aDef.runs,aBRa.runs),mix(hOff.runs,hBRs.runs),mix(hDef.runs,hBRa.runs),aSP,hSP,hfa);BL=M?M.pHome:w*BR.pHome+(1-w)*L5.pHome;}
+      else BL=w*BR.pHome+(1-w)*L5.pHome;
+      const parkF=(TEAM_ABBR[hId]&&PARK[TEAM_ABBR[hId]])||1;
+      const tp=totalProj(aOff,aDef,hOff,hDef,aSP,hSP,parkF);
+      const ou=tp?ouSplit(tp.tot,line):null;
+      rows.push({day,L5:L5.pHome,BR:BR.pHome,BL,winner:hs>as?'home':'away',total:as+hs,line,over:ou?ou.over/(ou.over+ou.under):null,mean:tp?tp.mean:null,hasSP:!!(aSP&&hSP)});
+    }
+    day=addDays(day,-1);scanned++;
+  }
+  setBB(1);
+  if(!rows.length){setBS(window.__err?`Nothing graded. ${window.__err}`:'No completed games with enough pre-game data.',true);btn.disabled=false;return;}
+  window.__btRows=rows;setBS(`Graded ${rows.length} completed games ending ${end}.`);analyse(rows);btn.disabled=false;
+});
+
+function analyse(rows){
+  const hit=(p,r)=>(p>=.5?'home':'away')===r.winner;
+  const acc=k=>{const w=rows.filter(r=>hit(r[k],r)).length;return {w,n:rows.length,pct:w/rows.length};};
+  const A={L5:acc('L5'),BR:acc('BR'),BL:acc('BL')};
+  // Brier score: lower is better, 0.25 is a coin flip
+  const brier=k=>rows.reduce((s,r)=>s+Math.pow(r[k]-(r.winner==='home'?1:0),2),0)/rows.length;
+  const B={L5:brier('L5'),BR:brier('BR'),BL:brier('BL')};
+  const best=['L5','BR','BL'].reduce((b,k)=>B[k]<B[b]?k:b,'L5');
+  const names={L5:'Log 5 (actual)',BR:'BaseRuns',BL:'Blend'};
+  // Calibration bands on the best method
+  const bands=[['65%+',.65,1.01],['58–65%',.58,.65],['50–58%',.5,.58]];
+  const cal=bands.map(([lb,lo,hi])=>{const sub=rows.filter(r=>{const c=Math.max(r[best],1-r[best]);return c>=lo&&c<hi;});if(!sub.length)return '';
+    const conf=sub.reduce((s,r)=>s+Math.max(r[best],1-r[best]),0)/sub.length;const w=sub.filter(r=>hit(r[best],r)).length;const p=w/sub.length,gap=p-conf;
+    return `<tr><td>${lb}</td><td class="flat">${(conf*100).toFixed(0)}%</td><td class="num ${sub.length<10?'flat':(gap>=-.04?'good':'bad')}">${(p*100).toFixed(0)}%</td><td class="num ${Math.abs(gap)<=.05?'good':(gap<0?'bad':'flat')}">${gap>=0?'+':''}${(gap*100).toFixed(0)}</td><td class="flat">${sub.length}</td></tr>`;}).join('');
+  // Home rate check
+  const realHome=rows.filter(r=>r.winner==='home').length/rows.length;
+  const modelHome=rows.reduce((s,r)=>s+r[best],0)/rows.length;
+  // Totals
+  const tr=rows.filter(r=>r.over!=null&&r.total!==r.line);
+  const tHit=r=>(r.over>=.5&&r.total>r.line)||(r.over<.5&&r.total<r.line);
+  const tAcc=tr.length?tr.filter(tHit).length/tr.length:null;
+  const realMean=rows.reduce((s,r)=>s+r.total,0)/rows.length;
+  const modelMean=rows.filter(r=>r.mean!=null).reduce((s,r)=>s+r.mean,0)/Math.max(1,rows.filter(r=>r.mean!=null).length);
+  const spCov=rows.filter(r=>r.hasSP).length/rows.length;
+  // Findings
+  const f=[];
+  f.push(`<b>${names[best]}</b> has the best Brier score (${B[best].toFixed(4)}). Set the blend slider toward it.`);
+  if(Math.abs(B.BR-B.L5)<.003)f.push('Log 5 and BaseRuns are statistically indistinguishable on this sample &mdash; sequencing correction is not adding much yet. Widen the sample before choosing.');
+  if(Math.abs(modelHome-realHome)>.03)f.push(`Home-field check: model averages <b>${(modelHome*100).toFixed(1)}%</b> home, reality <b>${(realHome*100).toFixed(1)}%</b>. ${modelHome>realHome?'Lower':'Raise'} the home-field setting by roughly ${(Math.abs(modelHome-realHome)*100).toFixed(0)} points.`);
+  if(modelMean&&Math.abs(modelMean-realMean)>.35)f.push(`Run environment: model mean <b>${modelMean.toFixed(2)}</b> vs real <b>${realMean.toFixed(2)}</b>. Scale the 4.45 baseline by ${(realMean/modelMean).toFixed(3)}.`);
+  if(spCov<.7)f.push(`Only ${(spCov*100).toFixed(0)}% of games had both starters resolved pre-game &mdash; the starter adjustment is doing less work than it should. Many probable pitchers were unposted at the cutoff.`);
+  if(tAcc!=null&&tr.length>=30&&tAcc<.52)f.push(`Totals at ${rows[0].line} are not beating a coin flip (<b>${(tAcc*100).toFixed(0)}%</b>). Fix the run-environment gap above first.`);
+  if(B[best]>.245)f.push(`Best Brier is ${B[best].toFixed(4)}, barely under the 0.25 coin-flip mark. Directional accuracy may be fine, but the stated percentages carry little information &mdash; treat edges under 5 points as noise.`);
+  const n=rows.length,se=Math.sqrt(.25/n);
+  document.getElementById('btOut').innerHTML=`
+    <div class="section-title">RESULTS &mdash; ${n} GAMES</div>
+    <table><tr><th>Method</th><th>Accuracy</th><th>Record</th><th>Brier</th></tr>
+    ${['L5','BR','BL'].map(k=>`<tr><td>${names[k]}${k===best?' &#9733;':''}</td><td class="num ${k===best?'good':'flat'}">${(A[k].pct*100).toFixed(1)}%</td><td class="flat">${A[k].w}/${A[k].n}</td><td class="num ${k===best?'good':'flat'}">${B[k].toFixed(4)}</td></tr>`).join('')}
+    </table>
+    <div class="note">Brier score is mean squared error of the probability; 0.25 is a coin flip, lower is better, and it rewards calibration, not just picking the winner. Accuracy standard error on ${n} games is about &plusmn;${(se*100).toFixed(1)} points &mdash; differences smaller than that are noise.</div>
+    <div class="section-title">CALIBRATION &mdash; ${names[best].toUpperCase()}</div>
+    <table><tr><th>Confidence</th><th>Stated</th><th>Actual</th><th>Gap</th><th>n</th></tr>${cal}</table>
+    <div class="note">A trustworthy model tracks near zero gap in every band. Persistent negative gaps mean it is overconfident.</div>
+    <div class="section-title">DIAGNOSTICS</div>
+    <table>
+      <tr><td class="k">Home win rate &mdash; real / model</td><td>${(realHome*100).toFixed(1)}% / ${(modelHome*100).toFixed(1)}%</td></tr>
+      <tr><td class="k">Full-game total &mdash; real / model mean</td><td>${realMean.toFixed(2)} / ${modelMean?modelMean.toFixed(2):'—'}</td></tr>
+      <tr><td class="k">Totals at ${rows[0].line}</td><td>${tAcc!=null?(tAcc*100).toFixed(0)+'% ('+tr.filter(tHit).length+'/'+tr.length+')':'—'}</td></tr>
+      <tr><td class="k">Games with both starters resolved</td><td>${(spCov*100).toFixed(0)}%</td></tr>
+    </table>
+    <div class="section-title">WHAT TO CHANGE</div>
+    <div class="work">${f.map(x=>'&bull; '+x).join('<br>')}</div>
+    <div class="section-title">EXPORT FOR DEEPER ANALYSIS</div>
+    <button class="btn ghost" onclick="exportRows()">SHOW RAW DATA (copy &amp; paste back to Claude)</button>
+    <textarea id="exportBox" style="display:none;width:100%;height:160px;margin-top:8px;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);font-size:10px;font-family:monospace;padding:8px;border-radius:5px;" readonly></textarea>
+    <div class="note" id="exportNote" style="display:none;">Tap inside the box, select all, copy. Paste it into the chat and every game can be re-analysed offline: calibration curves, optimal blend weight, and which factor is driving misses.</div>`;
+}
+function exportRows(){
+  const rows=window.__btRows||[];
+  const box=document.getElementById('exportBox');const note=document.getElementById('exportNote');
+  const settings={exp:pythExp(),blend:document.getElementById('blMode').value,w:Number(wSl.value)/100,hfa:Number(document.getElementById('hfa').value),sp:document.getElementById('useSP').value==='1'};
+  const compact=rows.map(r=>({d:r.day,l5:+r.L5.toFixed(4),br:+r.BR.toFixed(4),bl:+r.BL.toFixed(4),w:r.winner==='home'?1:0,t:r.total,ln:r.line,ov:r.over!=null?+r.over.toFixed(4):null,m:r.mean!=null?+r.mean.toFixed(2):null,sp:r.hasSP?1:0}));
+  box.value=JSON.stringify({settings,n:rows.length,rows:compact});
+  box.style.display='block';note.style.display='block';box.focus();box.select();
+}
+
+</script>
+</body>
+</html>

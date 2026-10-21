@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F5 Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:29px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+
+.steps{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:12px 13px;margin-bottom:13px;font-size:11.5px;line-height:1.75;color:var(--dim);}
+.steps b{color:var(--amber);}
+.steps .eq{color:var(--chalk);font-size:12px;}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:13px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.mt{margin-top:8px;}
+.btn{
+  width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:10px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:13px;padding:8px;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:9px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.sideblock{background:var(--navy-light);border:1px solid #2A3B48;border-radius:8px;padding:11px;margin-top:9px;}
+.sideblock h4{font-family:'Teko',sans-serif;font-size:14px;letter-spacing:0.4px;margin:0 0 8px;color:var(--chalk);}
+.sideblock .who{font-size:10.5px;color:var(--dim);margin-bottom:8px;line-height:1.5;}
+
+.result{
+  background:linear-gradient(160deg, rgba(242,169,59,0.1) 0%, var(--navy) 60%);
+  border:1px solid rgba(242,169,59,0.4);border-radius:10px;padding:16px;margin-top:13px;
+}
+.rtot{text-align:center;margin-bottom:12px;}
+.rtot .rl{font-size:10px;color:var(--dim);letter-spacing:0.6px;text-transform:uppercase;}
+.rtot .rv{font-family:'Teko',sans-serif;font-size:44px;line-height:1.05;color:var(--amber);}
+.rsplit{display:flex;gap:9px;}
+.rcard{flex:1;background:rgba(0,0,0,0.25);border-radius:7px;padding:10px;text-align:center;}
+.rcard .n{font-size:10.5px;color:var(--dim);}
+.rcard .v{font-family:'Teko',sans-serif;font-size:24px;color:var(--chalk);line-height:1.2;}
+
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:10px 11px;font-size:11px;color:var(--dim);line-height:1.85;margin-top:10px;}
+.work b{color:var(--chalk);}
+.work .hdr{color:var(--amber);font-family:'Teko',sans-serif;font-size:13px;letter-spacing:0.4px;}
+
+.verdict{margin-top:11px;padding:11px 12px;border-radius:7px;font-size:12.5px;line-height:1.6;}
+.verdict.go{background:rgba(95,174,122,0.1);border-left:3px solid var(--green);}
+.verdict.no{background:rgba(255,255,255,0.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.verdict b{color:var(--amber);}
+
+.warn{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.4);border-radius:8px;
+  padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;
+}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>F5 MODEL</h1></div>
+  <p class="sub">Prices First 5 markets from predictive pitching metrics, handedness-split lineup strength, and park conditions.</p>
+
+  <div class="steps">
+    <b>1. PITCHING BASELINE</b> &mdash; last 30 days weighted 60%, full season 40%, then:<br>
+    <span class="eq">Projected P_ERA = (xFIP &times; 0.5) + (SIERA &times; 0.5)</span><br><br>
+    <b>2. LINEUP SPLITS</b> &mdash; wRC+ over last 30 days vs the opposing pitcher's hand. 100 is league average.<br><br>
+    <b>3. PARK &amp; WEATHER</b> &mdash; park factor, plus 2.5% run production per 10&deg;F and wind effects.<br><br>
+    <b>4. CALCULATION</b> &mdash; from a 2.60 run-per-team F5 baseline:<br>
+    <span class="eq">Runs = 2.60 &times; (wRC+ &divide; 100) &times; Park &times; (Opposing P_ERA &divide; 4.00)</span>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">LOAD TODAY'S SLATE</div>
+    <div class="g2">
+      <div><label>Date</label><input type="date" id="gDate"></div>
+      <div><label>Game</label><select id="gameSel"><option value="">Load a date first</option></select></div>
+    </div>
+    <button class="btn ghost" id="loadBtn">LOAD GAMES</button>
+    <div class="status" id="loadStatus"></div>
+    <div class="hint">Auto-fills teams, starters, handedness, park factor and current conditions. xFIP, SIERA and wRC+ come from FanGraphs, which has no public API and blocks browser requests, so those four inputs are entered by hand.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">MATCHUP INPUTS</div>
+
+    <div class="sideblock">
+      <h4>AWAY TEAM</h4>
+      <div class="who" id="awayWho">Away lineup &middot; faces the home starter</div>
+      <div><label>Away lineup wRC+ (30d, vs opposing hand)</label><input type="number" id="awRC" placeholder="90" oninput="calc()"></div>
+      <div class="g2 mt">
+        <div><label>Home SP xFIP (30d)</label><input type="number" step="0.01" id="hx30" placeholder="4.20" oninput="calc()"></div>
+        <div><label>Home SP xFIP (season)</label><input type="number" step="0.01" id="hxS" placeholder="4.20" oninput="calc()"></div>
+      </div>
+      <div class="g2 mt">
+        <div><label>Home SP SIERA (30d)</label><input type="number" step="0.01" id="hs30" placeholder="4.20" oninput="calc()"></div>
+        <div><label>Home SP SIERA (season)</label><input type="number" step="0.01" id="hsS" placeholder="4.20" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <div class="sideblock">
+      <h4>HOME TEAM</h4>
+      <div class="who" id="homeWho">Home lineup &middot; faces the away starter</div>
+      <div><label>Home lineup wRC+ (30d, vs opposing hand)</label><input type="number" id="hwRC" placeholder="115" oninput="calc()"></div>
+      <div class="g2 mt">
+        <div><label>Away SP xFIP (30d)</label><input type="number" step="0.01" id="ax30" placeholder="3.60" oninput="calc()"></div>
+        <div><label>Away SP xFIP (season)</label><input type="number" step="0.01" id="axS" placeholder="3.60" oninput="calc()"></div>
+      </div>
+      <div class="g2 mt">
+        <div><label>Away SP SIERA (30d)</label><input type="number" step="0.01" id="as30" placeholder="3.60" oninput="calc()"></div>
+        <div><label>Away SP SIERA (season)</label><input type="number" step="0.01" id="asS" placeholder="3.60" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <div class="g3 mt">
+      <div><label>Park factor</label><input type="number" step="0.01" id="park" value="1.00" oninput="calc()"></div>
+      <div><label>Temp &deg;F</label><input type="number" id="temp" placeholder="70" oninput="calc()"></div>
+      <div><label>Wind (out, mph)</label><input type="number" id="wind" placeholder="0" oninput="calc()"></div>
+    </div>
+    <div class="g2 mt">
+      <div><label>League avg F5 ERA</label><input type="number" step="0.01" id="lgERA" value="4.00" oninput="calc()"></div>
+      <div><label>League avg F5 runs/team</label><input type="number" step="0.01" id="lgRuns" value="2.60" oninput="calc()"></div>
+    </div>
+    <div class="mt"><label>Apply weather adjustments</label>
+      <select id="useWx" onchange="calc()">
+        <option value="0" selected>No &mdash; park factor only</option>
+        <option value="1">Yes &mdash; include temperature and wind</option>
+      </select>
+    </div>
+    <button class="btn ghost" id="exBtn">LOAD WORKED EXAMPLE</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">MARKET</div>
+    <div><label>Bookmaker F5 total</label><input type="number" step="0.5" id="line" placeholder="4.5" oninput="calc()"></div>
+  </div>
+
+  <div id="out"></div>
+
+  <div class="warn">
+    <b>Bankroll note.</b> Even a mathematically sound model loses roughly 40&ndash;45% of the time to variance &mdash; umpire strike zones, sequencing, and defensive errors are outside any projection. Never wager money you cannot afford to lose.
+  </div>
+
+  <p class="footnote">The pitching baseline, lineup split, park adjustment and run calculation are implemented exactly as specified, including the 60/40 recency weighting, the equal xFIP and SIERA blend, the 2.60 run baseline and the 4.00 league-average ERA denominator. Weather is off by default so results match the specification's own worked example; when enabled, temperature applies 2.5% per 10&deg;F relative to the 70&deg;F reference and wind applies a run-production effect scaled from the stated home-run figure, which is an interpretation since home run probability and total runs are not the same quantity. Park factors shown on load are general reference values rather than Statcast five-inning figures, and remain editable. Schedule, starters, handedness and conditions come from the MLB Stats API and Open-Meteo, neither of which requires a key. Every field stays editable after loading.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+const TEAM_ABBR={108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK={COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const DOME=new Set([141,139,146,109,117,158,136]);
+
+function iso(d){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }
+document.getElementById('gDate').value=iso(new Date());
+
+function v(id){ const x=document.getElementById(id).value.trim(); return x===''?null:Number(x); }
+function setV(id,val){ document.getElementById(id).value=(val==null?'':val); }
+function setS(t,err){ const e=document.getElementById('loadStatus'); e.textContent=t; e.className='status'+(err?' err':''); }
+async function getJSON(u,l){
+  try{ const r=await fetch(u); if(!r.ok){ window.__err=`${l}: HTTP ${r.status}`; return null; } return await r.json(); }
+  catch(e){ window.__err=`${l}: ${e.message}`; return null; }
+}
+
+let games=[];
+
+document.getElementById('loadBtn').addEventListener('click', async ()=>{
+  const d=document.getElementById('gDate').value;
+  if(!d){ setS('Pick a date.',true); return; }
+  setS('Loading slate...');
+  const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${d}&hydrate=team,venue,probablePitcher`,'schedule');
+  const list=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]);
+  if(!list.length){ setS(window.__err?`Could not load. ${window.__err}`:'No games on this date.',true); return; }
+  games=list;
+  document.getElementById('gameSel').innerHTML=list.map((g,i)=>
+    `<option value="${i}">${g.teams.away.team.name} @ ${g.teams.home.team.name}</option>`).join('');
+  document.getElementById('gameSel').onchange=()=>pickGame(Number(document.getElementById('gameSel').value));
+  setS(`Loaded ${list.length} game${list.length===1?'':'s'}. Choose one above.`);
+  pickGame(0);
+});
+
+async function pickGame(i){
+  const g=games[i];
+  if(!g) return;
+  const homeId=g.teams.home.team.id, awayId=g.teams.away.team.id;
+  const hSP=g.teams.home.probablePitcher, aSP=g.teams.away.probablePitcher;
+
+  // Handedness of each starter, which determines the split to look up.
+  let hHand='?', aHand='?';
+  const ids=[hSP&&hSP.id, aSP&&aSP.id].filter(Boolean);
+  if(ids.length){
+    const pe=await getJSON(`${MLB}/people?personIds=${ids.join(',')}`,'people');
+    ((pe&&pe.people)||[]).forEach(p=>{
+      const h=(p.pitchHand&&p.pitchHand.code)||'?';
+      if(hSP&&p.id===hSP.id) hHand=h;
+      if(aSP&&p.id===aSP.id) aHand=h;
+    });
+  }
+
+  document.getElementById('awayWho').innerHTML =
+    `<b style="color:var(--chalk)">${g.teams.away.team.name}</b> lineup vs ${hSP?hSP.fullName:'TBD'} (${hHand}HP) &mdash; look up wRC+ vs ${hHand==='L'?'LHP':hHand==='R'?'RHP':'that hand'}`;
+  document.getElementById('homeWho').innerHTML =
+    `<b style="color:var(--chalk)">${g.teams.home.team.name}</b> lineup vs ${aSP?aSP.fullName:'TBD'} (${aHand}HP) &mdash; look up wRC+ vs ${aHand==='L'?'LHP':aHand==='R'?'RHP':'that hand'}`;
+
+  const ab=TEAM_ABBR[homeId];
+  setV('park',((ab&&PARK[ab])||1.00).toFixed(2));
+
+  // Conditions at the venue, for the optional weather step.
+  if(DOME.has(homeId)){
+    setV('temp',72); setV('wind',0);
+  } else if(g.venue&&g.venue.id){
+    const ve=await getJSON(`${MLB}/venues/${g.venue.id}?hydrate=location`,'venue');
+    const c=ve&&ve.venues&&ve.venues[0]&&ve.venues[0].location&&ve.venues[0].location.defaultCoordinates;
+    if(c){
+      const w=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${c.latitude}&longitude=${c.longitude}&current=temperature_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`,'weather');
+      if(w&&w.current){ setV('temp',Math.round(w.current.temperature_2m)); setV('wind',0); }
+    }
+  }
+  calc();
+}
+
+document.getElementById('exBtn').addEventListener('click',()=>{
+  setV('awRC',90); setV('hwRC',115);
+  setV('hx30',4.20); setV('hxS',4.20); setV('hs30',4.20); setV('hsS',4.20);
+  setV('ax30',3.60); setV('axS',3.60); setV('as30',3.60); setV('asS',3.60);
+  setV('park',1.05); setV('lgERA',4.00); setV('lgRuns',2.60); setV('line',4.5);
+  document.getElementById('useWx').value='0';
+  document.getElementById('awayWho').innerHTML='Worked example &mdash; away lineup 90 wRC+, faces a 4.20 baseline starter';
+  document.getElementById('homeWho').innerHTML='Worked example &mdash; home lineup 115 wRC+, faces a 3.60 baseline starter';
+  calc();
+});
+
+// 60% last 30 days, 40% full season.
+function weight(v30, vS){
+  if(v30==null && vS==null) return null;
+  if(v30==null) return vS;
+  if(vS==null) return v30;
+  return (v30*0.60)+(vS*0.40);
+}
+// Projected P_ERA = (xFIP x 0.5) + (SIERA x 0.5)
+function baseline(x30,xS,s30,sS){
+  const x=weight(x30,xS), s=weight(s30,sS);
+  if(x==null||s==null) return null;
+  return (x*0.5)+(s*0.5);
+}
+function wxMult(){
+  if(document.getElementById('useWx').value!=='1') return {mult:1, temp:null, wind:null};
+  const t=v('temp'), w=v('wind');
+  let m=1, tAdj=0, wAdj=0;
+  if(t!=null){ tAdj=((t-70)/10)*0.025; m*=(1+tAdj); }
+  // Stated as a home-run effect; scaled down here since runs are not home runs.
+  if(w!=null&&w>0){ wAdj=(w/10)*0.125*0.4; m*=(1+wAdj); }
+  return {mult:m, temp:tAdj, wind:wAdj};
+}
+
+function calc(){
+  const awRC=v('awRC'), hwRC=v('hwRC'), park=v('park'), lgERA=v('lgERA'), lgRuns=v('lgRuns');
+  const homeBase=baseline(v('hx30'),v('hxS'),v('hs30'),v('hsS'));
+  const awayBase=baseline(v('ax30'),v('axS'),v('as30'),v('asS'));
+  const out=document.getElementById('out');
+
+  if([awRC,hwRC,park,lgERA,lgRuns].some(x=>x==null)||homeBase==null||awayBase==null){
+    out.innerHTML=''; return;
+  }
+  if(lgERA===0){ out.innerHTML='<div class="verdict no">League average ERA cannot be zero.</div>'; return; }
+
+  const wx=wxMult();
+
+  // Away lineup faces the home starter; home lineup faces the away starter.
+  const awayOffPark = lgRuns*(awRC/100)*park*wx.mult;
+  const awayPF = homeBase/lgERA;
+  const awayRuns = awayOffPark*awayPF;
+
+  const homeOffPark = lgRuns*(hwRC/100)*park*wx.mult;
+  const homePF = awayBase/lgERA;
+  const homeRuns = homeOffPark*homePF;
+
+  const total = awayRuns+homeRuns;
+  const line = v('line');
+
+  let verdict='';
+  if(line!=null){
+    const diff=total-line;
+    const side=diff>0?'Over':'Under';
+    if(Math.abs(diff)>=0.5){
+      verdict=`<div class="verdict go">Model projects <b>${total.toFixed(2)}</b> against a line of ${line}. That is a ${Math.abs(diff).toFixed(2)}-run gap toward the <b>${side}</b>.</div>`;
+    } else {
+      verdict=`<div class="verdict no">Model projects ${total.toFixed(2)} against a line of ${line}. The ${Math.abs(diff).toFixed(2)}-run gap is under half a run, so no edge is claimed.</div>`;
+    }
+  }
+
+  const wxLine = wx.mult!==1
+    ? `<br>Weather multiplier: temp ${(wx.temp*100).toFixed(1)}%, wind ${(wx.wind*100).toFixed(1)}% &rarr; <b>&times;${wx.mult.toFixed(4)}</b>`
+    : '';
+
+  out.innerHTML=`
+    <div class="result">
+      <div class="rtot">
+        <div class="rl">Projected F5 Total</div>
+        <div class="rv">${total.toFixed(2)}</div>
+      </div>
+      <div class="rsplit">
+        <div class="rcard"><div class="n">Away</div><div class="v">${awayRuns.toFixed(2)}</div></div>
+        <div class="rcard"><div class="n">Home</div><div class="v">${homeRuns.toFixed(2)}</div></div>
+      </div>
+    </div>
+    ${verdict}
+    <div class="work">
+      <span class="hdr">PITCHING BASELINES</span><br>
+      Home SP: xFIP ${weight(v('hx30'),v('hxS')).toFixed(3)} &times; 0.5 + SIERA ${weight(v('hs30'),v('hsS')).toFixed(3)} &times; 0.5 = <b>${homeBase.toFixed(3)}</b><br>
+      Away SP: xFIP ${weight(v('ax30'),v('axS')).toFixed(3)} &times; 0.5 + SIERA ${weight(v('as30'),v('asS')).toFixed(3)} &times; 0.5 = <b>${awayBase.toFixed(3)}</b>
+      ${wxLine}
+    </div>
+    <div class="work">
+      <span class="hdr">STEP A &mdash; AWAY RUNS</span><br>
+      Offense &amp; park: ${lgRuns} &times; ${(awRC/100).toFixed(2)} &times; ${park}${wx.mult!==1?` &times; ${wx.mult.toFixed(4)}`:''} = <b>${awayOffPark.toFixed(4)}</b><br>
+      Opposing pitcher factor: ${homeBase.toFixed(2)} &divide; ${lgERA} = <b>${awayPF.toFixed(4)}</b><br>
+      Final: ${awayOffPark.toFixed(4)} &times; ${awayPF.toFixed(4)} = <b>${awayRuns.toFixed(2)} runs</b>
+    </div>
+    <div class="work">
+      <span class="hdr">STEP B &mdash; HOME RUNS</span><br>
+      Offense &amp; park: ${lgRuns} &times; ${(hwRC/100).toFixed(2)} &times; ${park}${wx.mult!==1?` &times; ${wx.mult.toFixed(4)}`:''} = <b>${homeOffPark.toFixed(4)}</b><br>
+      Opposing pitcher factor: ${awayBase.toFixed(2)} &divide; ${lgERA} = <b>${homePF.toFixed(4)}</b><br>
+      Final: ${homeOffPark.toFixed(4)} &times; ${homePF.toFixed(4)} = <b>${homeRuns.toFixed(2)} runs</b>
+    </div>
+    <div class="work">
+      <span class="hdr">STEP C &mdash; TOTAL</span><br>
+      ${awayRuns.toFixed(2)} + ${homeRuns.toFixed(2)} = <b>${total.toFixed(2)} runs</b>
+    </div>`;
+}
+</script>
+</body>
+</html>

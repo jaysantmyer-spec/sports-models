@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Games Props</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass:#3E7A4A; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --gold:#E8C547; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--gold);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:8px;
+}
+.snap-banner{
+  background:rgba(127,179,217,0.08);border:1px solid rgba(127,179,217,0.3);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--blue);line-height:1.5;margin-bottom:18px;
+}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-row button{
+  flex:1;min-width:70px;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;padding:7px 3px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.rank-row{
+  display:flex;align-items:center;gap:12px;background:var(--navy);border:1px solid #263644;
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;
+}
+.rank-num{font-family:'Teko',sans-serif;font-size:20px;color:var(--dim);width:22px;flex-shrink:0;}
+.rank-main{flex:1;min-width:0;}
+.rank-name{font-size:13.5px;font-weight:600;color:var(--chalk);}
+.rank-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.rank-tag{font-size:9px;letter-spacing:0.5px;color:var(--blue);margin-top:2px;text-transform:uppercase;}
+.rank-pct{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);flex-shrink:0;}
+
+.match-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.match-head{font-size:11px;color:var(--dim);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;}
+.matchup-row{display:flex;align-items:center;gap:10px;}
+.p-block{flex:1;text-align:center;}
+.p-name{font-size:14.5px;font-weight:600;}
+.p-name.fav{color:var(--amber);}
+.p-rank{font-size:11px;color:var(--dim);margin-top:1px;}
+.vs{font-family:'Teko',sans-serif;font-size:18px;color:var(--clay);padding:0 4px;}
+
+.prop-card{
+  background:rgba(255,255,255,0.03);border:1px solid #223140;border-radius:8px;
+  padding:10px 12px;margin-top:10px;cursor:pointer;
+}
+.prop-top{display:flex;justify-content:space-between;align-items:center;}
+.prop-name{font-size:13px;font-weight:600;color:var(--chalk);}
+.prop-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.prop-pct{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prop-pct.strong{color:var(--amber);}
+.prop-pct.lean{color:var(--green);}
+.badge{font-size:9px;letter-spacing:0.5px;text-align:right;margin-top:2px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.prop-card.open .reasons{display:block;}
+.reasons ul{margin:0;padding-left:16px;}
+.reasons li{margin-bottom:4px;}
+.reasons b{color:var(--chalk);}
+
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>GAMES PROPS</h1></div>
+  <p class="sub">Today's ATP/WTA matches, focused on number-of-games betting \u2014 total games and games handicaps \u2014 researched from rankings, H2H, current form, and published model data.</p>
+  <div class="warn-banner">Modeled/market-derived probabilities \u2014 not live sportsbook lines, and not betting advice. Gamble responsibly if at all.</div>
+  <div class="snap-banner">Researched Tue Sept 15, 2026, ~10 AM ET, from four different real WTA matches today (Guadalajara Open and SP Open). Times shown are each source's own local tournament time \u2014 cross-checking exact ET conversions across sources produced inconsistent results, so times are reported as-is rather than guessed. This is a one-time snapshot, not a live feed.</div>
+
+  <div class="section-title">RANKED: GAMES PROPS FIRST</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="GAMES">Total games</button>
+    <button data-f="HCAP">Games handicap</button>
+    <button data-f="ML">Match winner</button>
+  </div>
+  <div id="rankList"></div>
+
+  <div class="section-title">MATCH BREAKDOWNS</div>
+
+  <div class="match-card">
+    <div class="match-head">WTA Guadalajara Open Akron \u00b7 2nd Round \u00b7 Hard \u00b7 3:30 PM local</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Sara Bejlek</div><div class="p-rank">Rank 28 (career-high)</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Alycia Parks</div><div class="p-rank">Rank 72</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Match Total Games \u2014 Under 20.5</div><div class="prop-sub">Number of games</div></div>
+        <div style="text-align:right;"><div class="prop-pct" style="color:var(--dim);">53%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Sourced from an independent predictive model (Dimers), based on simulating the matchup thousands of times.</li>
+          <li>Bejlek's ranking/form edge supports a moderately efficient match, though Parks having already played a round here (vs. Bejlek's bye) adds some counter-pressure toward more games.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Sara Bejlek \u2212 4.5 Games Handicap</div><div class="prop-sub">Games handicap</div></div>
+        <div style="text-align:right;"><div class="prop-pct" style="color:var(--dim);">53%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Sourced from the same independent predictive model (Dimers).</li>
+          <li>Worth noting: Bejlek hasn't closed out many recent matches in straight sets and hasn't played in two weeks, per one betting preview \u2014 real reasons this line isn't priced more lopsided despite the ranking gap.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Sara Bejlek to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">76%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Bejlek leads 2-0, including their most recent meeting in Prague 2025.</li>
+          <li><b>Form:</b> Bejlek is having a career year \u2014 won the Abu Dhabi title, beat World No. 2 Sabalenka and Madison Keys at Cincinnati, reached a career-high No. 28.</li>
+          <li><b>Cross-check:</b> two independent sources landed on almost the same number (market-implied ~76%, Dimers model 76%) \u2014 unusually strong agreement for a match at this level.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">WTA Guadalajara Open Akron \u00b7 2nd Round \u00b7 Hard \u00b7 Earlier today</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Cristina Bucsa</div><div class="p-rank">Rank 44</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Panna Udvardy</div><div class="p-rank">Unseeded</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Cristina Bucsa \u2212 4.5 Games Handicap</div><div class="prop-sub">Games handicap</div></div>
+        <div style="text-align:right;"><div class="prop-pct" style="color:var(--dim);">50%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Market-derived from published odds (+100, i.e. even money) for this specific line.</li>
+          <li>Interesting tension: Bucsa leads the H2H 2-0 and just won a title in Merida, yet this specific games-margin line is priced as a true coin flip \u2014 a sign the market expects a competitive match even if Bucsa is favored to win outright.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Cristina Bucsa to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">63%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Bucsa leads 2-0 (1-0 on hard).</li>
+          <li><b>Form:</b> Bucsa just won the title in Merida; both players have been playing reasonably well recently.</li>
+          <li><b>Why not higher:</b> the even-money games handicap line above suggests the market sees this as closer than the H2H record alone implies.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">WTA 250 \u00b7 SP Open, S\u00e3o Paulo \u00b7 1st Round \u00b7 Hard \u00b7 3:30 PM local</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Solana Sierra</div><div class="p-rank">Rank 90</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Cadence Brace</div><div class="p-rank">Rank 249</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Cadence Brace \u2014 Total Games Over 11.5</div><div class="prop-sub">Player game total</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">60%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Market-derived from published odds (-149) for this specific line.</li>
+          <li>Brace is on a 10-match win streak and just won a title, so even as the underdog to win outright, she's a real threat to stay competitive deep into games.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Solana Sierra to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">60%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting.</li>
+          <li><b>Ranking gap:</b> 90 vs 249 favors Sierra, but Brace's current form (10-match streak, recent title) is a real threat.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">Total-games and games-handicap lines/prices are pulled from published predictions and model sources for these specific matches; where a source stated its own model probability directly (e.g. Dimers' simulation output), that number is used as-is rather than re-derived. Match-winner probabilities blend that pricing with ranking, H2H, and recent-form context. Local start times are reported exactly as each source stated them; cross-checking precise ET-equivalent times produced conflicting results across sources, so no conversion is claimed. This is a hobby stats exercise, not financial or betting advice.</p>
+</div>
+
+<script>
+const ranked = [
+  { name:'Sara Bejlek', prop:'Match winner vs Alycia Parks', pct:76, cat:'ML' },
+  { name:'Cristina Bucsa', prop:'Match winner vs Panna Udvardy', pct:63, cat:'ML' },
+  { name:'Cadence Brace', prop:'Total games Over 11.5 vs Sierra', pct:60, cat:'GAMES' },
+  { name:'Solana Sierra', prop:'Match winner vs Cadence Brace', pct:60, cat:'ML' },
+  { name:'Match Total (Bejlek/Parks)', prop:'Under 20.5 games', pct:53, cat:'GAMES' },
+  { name:'Sara Bejlek', prop:'\u22124.5 games handicap vs Parks', pct:53, cat:'HCAP' },
+  { name:'Cristina Bucsa', prop:'\u22124.5 games handicap vs Udvardy', pct:50, cat:'HCAP' },
+].sort((a,b) => b.pct - a.pct);
+
+function renderRank(filter){
+  const rows = ranked.filter(r => filter === 'all' || r.cat === filter);
+  const labels = { ML:'Match Winner', GAMES:'Total Games', HCAP:'Games Handicap' };
+  document.getElementById('rankList').innerHTML = rows.map((r,i) => `
+    <div class="rank-row">
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-main">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-sub">${r.prop}</div>
+        <div class="rank-tag">${labels[r.cat]}</div>
+      </div>
+      <div class="rank-pct">${r.pct}%</div>
+    </div>
+  `).join('');
+}
+renderRank('all');
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRank(btn.dataset.f);
+  });
+});
+</script>
+</body>
+</html>

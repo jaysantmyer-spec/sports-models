@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slate Model v3 &mdash; F5</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--fd:#1F4C34;--dirt:#B5713F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--blue:#7FB3D9;--dim:#7C93A3;--green:#5FAE7A;--purple:#9A7FD9;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--fd) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:28px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}
+.chain b{color:var(--amber);}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.mt{margin-top:8px;}
+.btn{width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:12.5px;padding:7px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button{flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;}
+.tabs button.active{background:rgba(242,169,59,.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;}.pane.active{display:block;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.scoreboard{display:flex;gap:9px;margin-bottom:12px;flex-wrap:wrap;}
+.sb{flex:1;min-width:100px;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px;text-align:center;}
+.sb .l{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+.sb .v{font-family:'Teko',sans-serif;font-size:25px;color:var(--amber);line-height:1.15;}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.hit{border-color:rgba(95,174,122,.45);}.card.miss{border-color:rgba(192,67,58,.4);}.card.play{border-color:rgba(95,174,122,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.cprob{text-align:right;flex-shrink:0;}
+.cprob .v{font-family:'Teko',sans-serif;font-size:25px;line-height:1;color:var(--amber);}
+.cprob .l{font-size:8.5px;color:var(--dim);letter-spacing:.5px;}
+.bars{margin-top:10px;}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar .nm{font-size:11px;width:92px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:14px;overflow:hidden;position:relative;}
+.bar .fl{height:100%;background:var(--amber);opacity:.7;}
+.bar .pc{font-family:'Teko',sans-serif;font-size:14px;width:44px;text-align:right;flex-shrink:0;}
+/* Over/Under split bar */
+.ou{margin-top:10px;}
+.ou .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.ou .track{display:flex;height:18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);}
+.ou .over{background:var(--green);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1F12;}
+.ou .under{background:var(--blue);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1A26;}
+.ou .tie{background:var(--dim);opacity:.6;}
+.ou .sub{font-size:10.5px;color:var(--dim);margin-top:4px;}
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.est{background:rgba(242,169,59,.08);color:var(--amber);}
+.flag.neutral{background:rgba(255,255,255,.03);color:var(--dim);}
+.result-line{font-size:11.5px;border-radius:5px;padding:7px 9px;margin-top:8px;line-height:1.55;}
+.result-line.hit{background:rgba(95,174,122,.12);color:var(--green);}
+.result-line.miss{background:rgba(192,67,58,.1);color:#E8B4AE;}
+.result-line.push{background:rgba(255,255,255,.04);color:var(--dim);}
+.odds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px;}
+.odds input{padding:7px 8px;font-size:13px;}.odds label{font-size:9px;}
+.rec{margin-top:9px;padding:10px 11px;border-radius:6px;font-size:12px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.ovr{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:10px;margin-top:9px;}
+.ovr h5{font-family:'Teko',sans-serif;font-size:13px;letter-spacing:.4px;margin:0 0 7px;color:var(--amber);}
+.ovr input{padding:6px 7px;font-size:12.5px;}.ovr label{font-size:8.5px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td{padding:5px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:56%;}td.num{font-family:'Teko',sans-serif;font-size:16px;}
+td.good{color:var(--green);}td.bad{color:var(--red);}td.flat{color:var(--dim);}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,.1);border:1px solid rgba(192,67,58,.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>SLATE MODEL v3 &mdash; FIRST FIVE</h1></div>
+  <p class="sub">The v2 team model, now projecting first-five-innings runs from BaseRuns and the two starters. Gives an F5 moneyline with push handling, an F5 total with an over/under bar, and a proper backtest that only uses stats available before each game.</p>
+
+  <div class="chain">
+    <b>1.</b> BaseRuns per game (offence) and allowed per game (defence), from stats through the day before<br>
+    <b>2.</b> Each side's F5 run rate = league F5 baseline &times; offence factor &times; opponent-defence factor &times; starter factor (FIP vs league) &times; park<br>
+    <b>3.</b> 20,000 Poisson draws per side &rarr; F5 win / tie / total distribution<br>
+    <b>4.</b> Moneyline is quoted on non-tie outcomes only, since an F5 ML pushes on a tie
+  </div>
+
+  <div class="tabs">
+    <button class="active" data-t="live">Today's Slate</button>
+    <button data-t="bt">Backtest</button>
+  </div>
+
+  <!-- ================= LIVE ================= -->
+  <div class="pane active" id="pane-live">
+    <div class="panel">
+      <div class="plabel">SETTINGS</div>
+      <div class="g3">
+        <div><label>Date</label><input type="date" id="dt"></div>
+        <div><label>Default F5 total</label><input type="number" step="0.5" id="defLine" value="4.5"></div>
+        <div><label>Edge threshold</label>
+          <select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select>
+        </div>
+      </div>
+      <div class="g3 mt">
+        <div><label>Starters</label><select id="useSP"><option value="1" selected>Include</option><option value="0">Ignore</option></select></div>
+        <div><label>Include finished</label><select id="incFinal"><option value="1" selected>Yes, grade them</option><option value="0">Upcoming only</option></select></div>
+        <div><label>Home field (F5)</label><select id="hfa"><option value="0.52" selected>.520</option><option value="0.50">None</option><option value="0.54">.540</option></select></div>
+      </div>
+      <button class="btn" id="run">RUN SLATE</button>
+      <div class="prog"><div id="bar"></div></div>
+      <div class="status" id="st"></div>
+      <div class="hint">No API key needed. Every computed value can be overridden inside a card. F5 uses starters only; bullpens are excluded by design.</div>
+    </div>
+    <div id="score"></div>
+    <div id="out"></div>
+  </div>
+
+  <!-- ================= BACKTEST ================= -->
+  <div class="pane" id="pane-bt">
+    <div class="panel">
+      <div class="plabel">BACKTEST &mdash; PRE-GAME STATS ONLY</div>
+      <div class="g3">
+        <div><label>End date</label><input type="date" id="btEnd"></div>
+        <div><label>Target games</label>
+          <select id="btN"><option value="30" selected>30</option><option value="60">60</option><option value="100">100</option></select>
+        </div>
+        <div><label>Total line tested</label><input type="number" step="0.5" id="btLine" value="4.5"></div>
+      </div>
+      <button class="btn" id="btRun">RUN BACKTEST</button>
+      <div class="prog"><div id="btBar"></div></div>
+      <div class="status" id="btSt"></div>
+      <div class="hint">Walks back day by day until it has the target number of completed games. Each game is projected using team stats through the day before and each starter's stats through the day before, so no result feeds its own prediction. Expect roughly a minute per 10 games.</div>
+    </div>
+    <div id="btOut"></div>
+  </div>
+
+  <div class="warn"><b>Bankroll note.</b> Even a sound model loses roughly 40&ndash;45% of the time to variance. Never wager money you cannot afford to lose.</div>
+
+  <p class="footnote">F5 projection: each team's per-game BaseRuns scored and allowed are converted to factors against the league average, then combined with the opposing starter's FIP relative to league (scaled by their typical start length as a share of five innings) and an approximate park factor, applied to a 2.55-run-per-team F5 baseline. Runs are simulated as Poisson draws, which slightly understate the variance of real innings, so extreme totals are a touch rarer in the model than in life. An F5 moneyline pushes on a tie; the quoted probability is therefore conditional on a decision, and the tie rate is shown separately. The over/under bar shows the model's three-way split at the entered line: over, push (exact), under. Backtest calibration compares stated confidence to realised hit rate in bands, which is the informative check: a well-calibrated 65% band wins about 65% of the time. Caught stealing and grounded-into-double-play totals absent from the pitching feed are estimated from at-bats so both sides of the ledger stay symmetric; supplied values are never overwritten. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+const SIMS=20000, LG_FIP=4.10, FIP_C=3.15;
+const LG_F5_PER_TEAM=2.55;          // league-typical runs per team through five
+const LG_BR_PER_GAME=4.45;          // league-typical BaseRuns per team-game
+const TEAM_ABBR={108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK={COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:.99,ATL:.99,HOU:.99,MIN:.99,CHC:.98,KC:.98,STL:.98,DET:.97,LAD:.97,NYM:.97,CLE:.97,PIT:.96,TB:.96,SD:.95,MIA:.95,SF:.94,SEA:.94,ATH:.98};
+
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function mmdd(s){return `${s.slice(5,7)}/${s.slice(8,10)}/${s.slice(0,4)}`;}
+document.getElementById('dt').value=iso(new Date());
+document.getElementById('btEnd').value=addDays(iso(new Date()),-1);
+
+function v(id){const e=document.getElementById(id);if(!e)return null;const x=e.value.trim();return x===''?null:Number(x);}
+function setS(id,t,e){const el=document.getElementById(id);el.textContent=t;el.className='status'+(e?' err':'');}
+function setBar(id,p){document.getElementById(id).style.width=Math.round(p*100)+'%';}
+function clamp(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
+function amToImp(p){return p>0?100/(p+100):(-p)/((-p)+100);}
+function fmtAm(p){return p>0?`+${p}`:`${p}`;}
+function probToAm(p){if(p<=0||p>=1)return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`${l}: HTTP ${r.status}`;return null;}return await r.json();}catch(e){window.__err=`${l}: ${e.message}`;return null;}}
+function poisson(l){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+
+// ---- formulas ----
+function baseRuns(s){const A=s.H+s.BB+s.HBP-s.HR;const B=(1.4*s.TB)-(.6*s.H)-(3*s.HR)+(.1*s.BB);const C=s.AB-s.H+s.CS+s.GIDP;if(B+C===0)return null;return {A,B,C,D:s.HR,runs:(A*B)/(B+C)+s.HR};}
+function fipFrom(st){const ip=Number(st.inningsPitched)||0;if(ip<10)return null;const hr=Number(st.homeRuns)||0,bb=Number(st.baseOnBalls)||0,hbp=Number(st.hitBatsmen)||0,k=Number(st.strikeOuts)||0;return ((13*hr)+(3*(bb+hbp))-(2*k))/ip+FIP_C;}
+function tbFrom(st){return (Number(st.hits)||0)+(Number(st.doubles)||0)+2*(Number(st.triples)||0)+3*(Number(st.homeRuns)||0);}
+function pull(st,group){
+  const ab=Number(st.atBats)||0;let cs=Number(st.caughtStealing)||0,gidp=Number(st.groundIntoDoublePlay)||0,estimated=false;
+  if(group==='pitching'&&cs===0&&gidp===0&&ab>500){cs=Math.round(ab*.0055);gidp=Math.round(ab*.02);estimated=true;}
+  return {H:Number(st.hits)||0,BB:Number(st.baseOnBalls)||0,HBP:Number(group==='pitching'?st.hitBatsmen:st.hitByPitch)||0,HR:Number(st.homeRuns)||0,TB:Number(st.totalBases)||tbFrom(st),AB:ab,CS:cs,GIDP:gidp,estimated,runs:Number(st.runs)||0,G:Number(st.gamesPlayed)||0};
+}
+
+// ---- data, with optional pre-game cutoff so backtests are honest ----
+const cache=new Map();
+async function teamStats(tid,season,group,cutoff){
+  const k=`${tid}|${season}|${group}|${cutoff||'now'}`;
+  if(cache.has(k))return cache.get(k);
+  const url=cutoff
+    ? `${MLB}/teams/${tid}/stats?stats=byDateRange&group=${group}&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`
+    : `${MLB}/teams/${tid}/stats?stats=season&group=${group}&season=${season}`;
+  const d=await getJSON(url,'team');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  const val=st?pull(st,group):null;cache.set(k,val);return val;
+}
+async function starter(pid,season,cutoff){
+  if(!pid)return null;
+  const k=`sp|${pid}|${cutoff||'now'}`;
+  if(cache.has(k))return cache.get(k);
+  const url=cutoff
+    ? `${MLB}/people/${pid}/stats?stats=byDateRange&group=pitching&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`
+    : `${MLB}/people/${pid}/stats?stats=season&group=pitching&season=${season}`;
+  const d=await getJSON(url,'sp');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  let out=null;
+  if(st){const fip=fipFrom(st);const gs=Number(st.gamesStarted)||1;const ip=Number(st.inningsPitched)||0;if(fip!=null)out={fip,ipPerStart:clamp(gs?ip/gs:5.3,3,7.5)};}
+  cache.set(k,out);return out;
+}
+
+// ---- F5 projection ----
+// Runs a lineup is expected to score in the first five against a given defence and starter.
+function f5Rate(off,def,sp,parkF){
+  const offBR=off.G?baseRuns(off).runs/off.G:LG_BR_PER_GAME;
+  const defBR=def.G?baseRuns(def).runs/def.G:LG_BR_PER_GAME;
+  const offF=clamp(offBR/LG_BR_PER_GAME,.6,1.5);
+  const defF=clamp(defBR/LG_BR_PER_GAME,.6,1.5);
+  // Starter covers ipPerStart of the five; the rest is the team's overall defence.
+  let spF=1;
+  if(sp){const share=clamp(sp.ipPerStart/5,0,1);spF=share*(sp.fip/LG_FIP)+(1-share)*1;}
+  return clamp(LG_F5_PER_TEAM*offF*defF*spF*parkF,.3,8);
+}
+function simF5(lamA,lamH,hfa){
+  let a=0,h=0,t=0;const tot=new Array(SIMS);
+  for(let i=0;i<SIMS;i++){const ra=poisson(lamA),rh=poisson(lamH);tot[i]=ra+rh;if(rh>ra)h++;else if(ra>rh)a++;else t++;}
+  let pHome=h/SIMS,pAway=a/SIMS,pTie=t/SIMS;
+  // Home field as an odds shift on the decided share only.
+  if(hfa!==.5){const dec=pHome+pAway;const ph=pHome/dec;const odds=(ph/(1-ph))*(hfa/(1-hfa));const ph2=odds/(1+odds);pHome=ph2*dec;pAway=(1-ph2)*dec;}
+  return {pHome,pAway,pTie,tot,mean:tot.reduce((x,y)=>x+y,0)/SIMS};
+}
+function ouSplit(tot,line){
+  let o=0,u=0,p=0;for(const x of tot){if(x>line)o++;else if(x<line)u++;else p++;}
+  return {over:o/tot.length,under:u/tot.length,push:p/tot.length};
+}
+
+// ---- LIVE ----
+let slate=[];
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('pane-'+b.dataset.t).classList.add('active');}));
+
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;setBar('bar',0);
+  document.getElementById('out').innerHTML='';document.getElementById('score').innerHTML='';window.__err=null;slate=[];
+  const date=document.getElementById('dt').value,season=Number(date.slice(0,4));
+  const useSP=document.getElementById('useSP').value==='1',incFinal=document.getElementById('incFinal').value==='1';
+  setS('st','Loading slate...');
+  const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher,linescore`,'schedule');
+  const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).filter(g=>{const s=g.status&&g.status.abstractGameState;return s==='Preview'||s==='Live'||(incFinal&&s==='Final');});
+  if(!games.length){setS('st',window.__err?`Could not load. ${window.__err}`:'No games matched.',true);btn.disabled=false;return;}
+  for(let i=0;i<games.length;i++){
+    const g=games[i];setS('st',`Computing ${i+1} of ${games.length}...`);setBar('bar',(i+1)/games.length);
+    const r=await buildGame(g,season,useSP,null);
+    if(r){r.id=i;slate.push(r);}
+  }
+  if(!slate.length){setS('st',window.__err?`No games computed. ${window.__err}`:'No usable games.',true);btn.disabled=false;return;}
+  setBar('bar',1);setS('st',`${slate.length} matchup${slate.length===1?'':'s'} computed.`);render();btn.disabled=false;
+});
+
+async function buildGame(g,season,useSP,cutoff){
+  const aId=g.teams.away.team.id,hId=g.teams.home.team.id;
+  const [aOff,aDef,hOff,hDef]=await Promise.all([teamStats(aId,season,'hitting',cutoff),teamStats(aId,season,'pitching',cutoff),teamStats(hId,season,'hitting',cutoff),teamStats(hId,season,'pitching',cutoff)]);
+  if(!aOff||!aDef||!hOff||!hDef||!aOff.G||!hOff.G)return null;
+  let aSP=null,hSP=null;
+  if(useSP){[aSP,hSP]=await Promise.all([starter(g.teams.away.probablePitcher&&g.teams.away.probablePitcher.id,season,cutoff),starter(g.teams.home.probablePitcher&&g.teams.home.probablePitcher.id,season,cutoff)]);}
+  const parkF=(TEAM_ABBR[hId]&&PARK[TEAM_ABBR[hId]])||1;
+  // Actual F5 from the line score when available.
+  let f5=null;
+  const inn=g.linescore&&g.linescore.innings;
+  if(inn&&inn.length>=5){let a=0,h=0;for(let i=0;i<5;i++){a+=Number(inn[i].away&&inn[i].away.runs)||0;h+=Number(inn[i].home&&inn[i].home.runs)||0;}f5={away:a,home:h,total:a+h,winner:h>a?'home':(a>h?'away':'tie')};}
+  return {state:g.status.abstractGameState,away:g.teams.away.team.name,home:g.teams.home.team.name,
+    awaySP:g.teams.away.probablePitcher?g.teams.away.probablePitcher.fullName:'TBD',homeSP:g.teams.home.probablePitcher?g.teams.home.probablePitcher.fullName:'TBD',
+    aOff,aDef,hOff,hDef,aSP,hSP,parkF,f5,ovr:{}};
+}
+
+function compute(s){
+  const o=s.ovr;const hfa=Number(document.getElementById('hfa').value);
+  const aSP=o.aFip!=null?{fip:o.aFip,ipPerStart:s.aSP?s.aSP.ipPerStart:5.3}:s.aSP;
+  const hSP=o.hFip!=null?{fip:o.hFip,ipPerStart:s.hSP?s.hSP.ipPerStart:5.3}:s.hSP;
+  // Away lineup faces the home starter and the home defence, and vice versa.
+  let lamA=o.lamA!=null?o.lamA:f5Rate(s.aOff,s.hDef,hSP,s.parkF);
+  let lamH=o.lamH!=null?o.lamH:f5Rate(s.hOff,s.aDef,aSP,s.parkF);
+  const sim=simF5(lamA,lamH,hfa);
+  const line=o.line!=null?o.line:Number(document.getElementById('defLine').value)||4.5;
+  const ou=ouSplit(sim.tot,line);
+  const dec=sim.pHome+sim.pAway;
+  return {lamA,lamH,line,ou,...sim,condHome:sim.pHome/dec,condAway:sim.pAway/dec,aFip:aSP?aSP.fip:null,hFip:hSP?hSP.fip:null};
+}
+
+function render(){
+  const saved={};
+  slate.forEach(s=>{['oa','oh','ol'].forEach(k=>{const e=document.getElementById(`${k}-${s.id}`);if(e)saved[`${k}-${s.id}`]=e.value;});});
+  let gML=0,cML=0,gT=0,cT=0;
+  slate.forEach(s=>{const c=compute(s);if(!s.f5)return;
+    if(s.f5.winner!=='tie'){gML++;if((c.condHome>=.5?'home':'away')===s.f5.winner)cML++;}
+    if(s.f5.total!==c.line){gT++;const pick=c.ou.over>=c.ou.under?'over':'under';if((pick==='over'&&s.f5.total>c.line)||(pick==='under'&&s.f5.total<c.line))cT++;}
+  });
+  document.getElementById('score').innerHTML=(gML||gT)?`<div class="scoreboard">
+    <div class="sb"><div class="l">F5 ML graded</div><div class="v">${cML}/${gML}</div></div>
+    <div class="sb"><div class="l">F5 ML accuracy</div><div class="v">${gML?((cML/gML)*100).toFixed(0):'—'}%</div></div>
+    <div class="sb"><div class="l">F5 total graded</div><div class="v">${cT}/${gT}</div></div>
+    <div class="sb"><div class="l">F5 total accuracy</div><div class="v">${gT?((cT/gT)*100).toFixed(0):'—'}%</div></div></div>`:'';
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
+  slate.forEach(s=>{if(saved[`oa-${s.id}`]||saved[`oh-${s.id}`]||saved[`ol-${s.id}`])price(s.id);});
+}
+['hfa','defLine','edgeT'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
+
+function ouBar(c,live){
+  const line=c.line;const o=c.ou;
+  return `<div class="ou"><div class="lbl"><span>F5 TOTAL ${line}</span><span>model mean ${c.mean.toFixed(2)}</span></div>
+    <div class="track"><div class="over" style="width:${(o.over*100).toFixed(1)}%">${o.over>=.12?`O ${(o.over*100).toFixed(0)}%`:''}</div>
+    <div class="tie" style="width:${(o.push*100).toFixed(1)}%"></div>
+    <div class="under" style="width:${(o.under*100).toFixed(1)}%">${o.under>=.12?`U ${(o.under*100).toFixed(0)}%`:''}</div></div>
+    <div class="sub">Over ${(o.over*100).toFixed(1)}% &middot; push ${(o.push*100).toFixed(1)}% &middot; under ${(o.under*100).toFixed(1)}%${live?' &middot; change the line in the override panel':''}</div></div>`;
+}
+
+function card(s){
+  const c=compute(s);if(!c)return '';
+  const favName=c.condHome>=.5?s.home:s.away,favPct=Math.max(c.condHome,c.condAway);
+  let res='',cls='';
+  if(s.f5){
+    const mlPick=c.condHome>=.5?'home':'away';
+    if(s.f5.winner==='tie')res+=`<div class="result-line push">F5 ${s.f5.away}&ndash;${s.f5.home}: tie &mdash; moneyline pushes.</div>`;
+    else{const hit=mlPick===s.f5.winner;cls=hit?'hit':'miss';res+=`<div class="result-line ${hit?'hit':'miss'}">F5 ${s.f5.away}&ndash;${s.f5.home}. ${s.f5.winner==='home'?s.home:s.away} led after five &mdash; model had ${favName} at ${(favPct*100).toFixed(1)}%, <b>${hit?'correct':'incorrect'}</b>.</div>`;}
+    const tPick=c.ou.over>=c.ou.under?'over':'under';
+    if(s.f5.total===c.line)res+=`<div class="result-line push">Total landed exactly ${c.line} &mdash; push.</div>`;
+    else{const th=(tPick==='over'&&s.f5.total>c.line)||(tPick==='under'&&s.f5.total<c.line);res+=`<div class="result-line ${th?'hit':'miss'}">Total ${s.f5.total} vs line ${c.line}: model leaned ${tPick} at ${(Math.max(c.ou.over,c.ou.under)*100).toFixed(0)}%, <b>${th?'correct':'incorrect'}</b>.</div>`;}
+  }
+  const est=(s.aDef.estimated||s.hDef.estimated)?'<div class="flag est">Defensive CS/GIDP were missing from the feed and estimated. Override below if you have real figures.</div>':'';
+  const spLine=`${s.awaySP}${c.aFip!=null?` (FIP ${c.aFip.toFixed(2)})`:''} vs ${s.homeSP}${c.hFip!=null?` (FIP ${c.hFip.toFixed(2)})`:''}`;
+  return `<div class="card ${cls}" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')">
+      <div><div class="cmatch">${s.away} @ ${s.home}</div><div class="csub">${spLine}</div></div>
+      <div class="cprob"><div class="v">${(favPct*100).toFixed(1)}%</div><div class="l">${favName.toUpperCase().slice(0,12)} F5</div></div>
+    </div>
+    <div class="bars">
+      <div class="bar"><div class="nm">${s.away}</div><div class="tr"><div class="fl" style="width:${(c.condAway*100).toFixed(0)}%"></div></div><div class="pc">${(c.condAway*100).toFixed(1)}%</div></div>
+      <div class="bar"><div class="nm">${s.home}</div><div class="tr"><div class="fl" style="width:${(c.condHome*100).toFixed(0)}%"></div></div><div class="pc">${(c.condHome*100).toFixed(1)}%</div></div>
+    </div>
+    <div class="note">Tie after five: ${(c.pTie*100).toFixed(1)}% (ML pushes). Projected F5 runs ${c.lamA.toFixed(2)} / ${c.lamH.toFixed(2)}.</div>
+    ${ouBar(c,true)}
+    ${res}${est}
+    <div class="odds">
+      <div><label>${s.away} F5 ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(c.condAway))}" oninput="price(${s.id})"></div>
+      <div><label>${s.home} F5 ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(c.condHome))}" oninput="price(${s.id})"></div>
+      <div><label>Over ${c.line} price</label><input type="number" id="ol-${s.id}" placeholder="-110" oninput="price(${s.id})"></div>
+    </div>
+    <div id="r-${s.id}"></div>
+    <div class="detail">
+      <div class="ovr"><h5>MANUAL OVERRIDE</h5>
+        <div class="g3">
+          <div><label>${s.away} F5 runs</label><input type="number" step="0.01" placeholder="${c.lamA.toFixed(2)}" oninput="setOvr(${s.id},'lamA',this.value)"></div>
+          <div><label>${s.home} F5 runs</label><input type="number" step="0.01" placeholder="${c.lamH.toFixed(2)}" oninput="setOvr(${s.id},'lamH',this.value)"></div>
+          <div><label>Total line</label><input type="number" step="0.5" placeholder="${c.line}" oninput="setOvr(${s.id},'line',this.value)"></div>
+        </div>
+        <div class="g2 mt">
+          <div><label>${s.awaySP} FIP</label><input type="number" step="0.01" placeholder="${c.aFip!=null?c.aFip.toFixed(2):'none'}" oninput="setOvr(${s.id},'aFip',this.value)"></div>
+          <div><label>${s.homeSP} FIP</label><input type="number" step="0.01" placeholder="${c.hFip!=null?c.hFip.toFixed(2):'none'}" oninput="setOvr(${s.id},'hFip',this.value)"></div>
+        </div>
+        <button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button>
+      </div>
+      <div class="work">Fair F5 ML (non-tie) &mdash; ${s.away} <b>${fmtAm(probToAm(c.condAway))}</b> &middot; ${s.home} <b>${fmtAm(probToAm(c.condHome))}</b><br>Fair over ${c.line} <b>${fmtAm(probToAm(c.ou.over/(c.ou.over+c.ou.under)))}</b> (push excluded) &middot; park ${s.parkF.toFixed(2)}</div>
+    </div></div>`;
+}
+function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||isNaN(Number(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
+function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}
+function price(id){
+  const s=slate.find(x=>x.id===id);if(!s)return;const c=compute(s);const t=Number(document.getElementById('edgeT').value);
+  const oa=v(`oa-${id}`),oh=v(`oh-${id}`),ol=v(`ol-${id}`);const out=[];let any=false;
+  [[`${s.away} F5 ML`,oa,c.condAway],[`${s.home} F5 ML`,oh,c.condHome]].forEach(([nm,pr,p])=>{if(pr==null)return;const imp=amToImp(pr),edge=p-imp;
+    if(edge>=t){any=true;out.push(`<div class="rec go"><b>Play ${nm} ${fmtAm(pr)}</b> &mdash; model ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(edge*100).toFixed(1)} pts. Push chance ${(c.pTie*100).toFixed(1)}%.</div>`);}
+    else out.push(`<div class="rec no">${nm} ${fmtAm(pr)}: ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${edge>=0?'+':''}${(edge*100).toFixed(1)} pts). Under threshold.</div>`);});
+  if(ol!=null){const pO=c.ou.over/(c.ou.over+c.ou.under),imp=amToImp(ol),edge=pO-imp;
+    if(edge>=t){any=true;out.push(`<div class="rec go"><b>Play Over ${c.line} ${fmtAm(ol)}</b> &mdash; model ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(edge*100).toFixed(1)} pts.</div>`);}
+    else{const pU=1-pO,edgeU=pU-(1-imp);if(edgeU>=t){any=true;out.push(`<div class="rec go"><b>Lean Under ${c.line}</b> &mdash; model ${(pU*100).toFixed(1)}% under; the over price implies only ${((1-imp)*100).toFixed(1)}% for the under side (assuming symmetric pricing).</div>`);}
+    else out.push(`<div class="rec no">Over ${c.line} ${fmtAm(ol)}: ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${edge>=0?'+':''}${(edge*100).toFixed(1)} pts). Under threshold.</div>`);}}
+  const el=document.getElementById(`r-${id}`);if(el)el.innerHTML=out.join('');
+  const cd=document.getElementById(`c-${id}`);if(cd&&!s.f5)cd.classList.toggle('play',any);
+}
+
+// ---- BACKTEST ----
+document.getElementById('btRun').addEventListener('click',async()=>{
+  const btn=document.getElementById('btRun');btn.disabled=true;setBar('btBar',0);document.getElementById('btOut').innerHTML='';window.__err=null;
+  const end=document.getElementById('btEnd').value,target=Number(document.getElementById('btN').value),line=Number(document.getElementById('btLine').value)||4.5;
+  const season=Number(end.slice(0,4));const hfa=Number(document.getElementById('hfa').value);
+  const rows=[];let day=end,scanned=0;
+  while(rows.length<target&&scanned<40){
+    setS('btSt',`${day}: ${rows.length}/${target} games graded...`);setBar('btBar',rows.length/target);
+    const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${day}&hydrate=team,probablePitcher,linescore`,'schedule');
+    const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).filter(g=>g.status&&g.status.abstractGameState==='Final');
+    const cutoff=addDays(day,-1);
+    for(const g of games){
+      if(rows.length>=target)break;
+      const s=await buildGame(g,season,true,cutoff);
+      if(!s||!s.f5)continue;
+      const lamA=f5Rate(s.aOff,s.hDef,s.hSP,s.parkF),lamH=f5Rate(s.hOff,s.aDef,s.aSP,s.parkF);
+      const sim=simF5(lamA,lamH,hfa);const dec=sim.pHome+sim.pAway;const ph=sim.pHome/dec;
+      const ou=ouSplit(sim.tot,line);
+      rows.push({date:day,ph,tie:sim.pTie,over:ou.over/(ou.over+ou.under),mean:sim.mean,f5:s.f5,line});
+    }
+    day=addDays(day,-1);scanned++;
+  }
+  setBar('btBar',1);
+  if(!rows.length){setS('btSt',window.__err?`Nothing graded. ${window.__err}`:'No completed games with line scores found.',true);btn.disabled=false;return;}
+  setS('btSt',`Graded ${rows.length} completed games ending ${end}.`);
+  analyse(rows);btn.disabled=false;
+});
+
+function rate(list,f){const n=list.length;if(!n)return null;const w=list.filter(f).length;return {n,w,pct:w/n};}
+function analyse(rows){
+  const ml=rows.filter(r=>r.f5.winner!=='tie');
+  const mlHit=r=>(r.ph>=.5?'home':'away')===r.f5.winner;
+  const tot=rows.filter(r=>r.f5.total!==r.line);
+  const totHit=r=>(r.over>=.5&&r.f5.total>r.line)||(r.over<.5&&r.f5.total<r.line);
+  const rML=rate(ml,mlHit),rT=rate(tot,totHit);
+  const realTie=rows.filter(r=>r.f5.winner==='tie').length/rows.length;
+  const modelTie=rows.reduce((a,r)=>a+r.tie,0)/rows.length;
+  const realMean=rows.reduce((a,r)=>a+r.f5.total,0)/rows.length;
+  const modelMean=rows.reduce((a,r)=>a+r.mean,0)/rows.length;
+  const bands=[['65%+',r=>Math.max(r.ph,1-r.ph)>=.65],['58–65%',r=>{const c=Math.max(r.ph,1-r.ph);return c>=.58&&c<.65;}],['50–58%',r=>Math.max(r.ph,1-r.ph)<.58]];
+  const calRows=bands.map(([lb,f])=>{const sub=ml.filter(f);const r=rate(sub,mlHit);if(!r)return '';const conf=sub.reduce((a,x)=>a+Math.max(x.ph,1-x.ph),0)/sub.length;const gap=r.pct-conf;
+    return `<tr><td>${lb}</td><td class="flat">${(conf*100).toFixed(0)}%</td><td class="num ${r.n<8?'flat':(r.pct>=conf-.04?'good':'bad')}">${(r.pct*100).toFixed(0)}%</td><td class="num ${Math.abs(gap)<=.05?'good':(gap<0?'bad':'flat')}">${gap>=0?'+':''}${(gap*100).toFixed(0)}</td><td class="flat">${r.n}</td></tr>`;}).join('');
+  const oBands=[['Over 60%+',r=>r.over>=.6],['Under 60%+',r=>r.over<=.4],['Coin-flip',r=>r.over>.4&&r.over<.6]];
+  const ouRows=oBands.map(([lb,f])=>{const sub=tot.filter(f);const r=rate(sub,totHit);if(!r)return '';return `<tr><td>${lb}</td><td class="num ${r.n<8?'flat':(r.pct>=.55?'good':(r.pct<=.45?'bad':'flat'))}">${(r.pct*100).toFixed(0)}%</td><td class="flat">${r.w}/${r.n}</td></tr>`;}).join('');
+  const findings=[];
+  if(Math.abs(modelMean-realMean)>.4)findings.push(`Run environment is off: the model averaged <b>${modelMean.toFixed(2)}</b> F5 runs against a real <b>${realMean.toFixed(2)}</b>. Adjust the 2.55 per-team baseline by about ${(realMean/modelMean).toFixed(2)}&times; for this stretch.`);
+  if(Math.abs(modelTie-realTie)>.05)findings.push(`Tie rate: model <b>${(modelTie*100).toFixed(1)}%</b> vs real <b>${(realTie*100).toFixed(1)}%</b>. Poisson under-disperses real innings; this mostly affects moneyline push risk.`);
+  if(rML&&rML.n>=20&&rML.pct<.52)findings.push(`F5 moneyline is not beating a coin flip on this sample (<b>${(rML.pct*100).toFixed(0)}%</b>). Starter quality is the biggest missing lever if starters were unannounced for many games.`);
+  if(rT&&rT.n>=20&&rT.pct<.52)findings.push(`F5 totals at ${rows[0].line} are not beating a coin flip (<b>${(rT.pct*100).toFixed(0)}%</b>). Check the run-environment finding above first; a baseline that is too high or low flips every close call.`);
+  if(!findings.length)findings.push('No systematic bias detected on this sample. Widen to 100 games before drawing conclusions.');
+  document.getElementById('btOut').innerHTML=`
+    <div class="section-title">RESULTS</div>
+    <div class="scoreboard">
+      <div class="sb"><div class="l">F5 ML</div><div class="v">${rML?(rML.pct*100).toFixed(0):'—'}%</div><div class="l">${rML?rML.w+'/'+rML.n:''}</div></div>
+      <div class="sb"><div class="l">F5 total ${rows[0].line}</div><div class="v">${rT?(rT.pct*100).toFixed(0):'—'}%</div><div class="l">${rT?rT.w+'/'+rT.n:''}</div></div>
+      <div class="sb"><div class="l">Real / model F5 runs</div><div class="v">${realMean.toFixed(2)} / ${modelMean.toFixed(2)}</div></div>
+      <div class="sb"><div class="l">Real / model tie</div><div class="v">${(realTie*100).toFixed(0)}% / ${(modelTie*100).toFixed(0)}%</div></div>
+    </div>
+    <div class="section-title">MONEYLINE CALIBRATION</div>
+    <table><tr><th>Confidence</th><th>Stated</th><th>Actual</th><th>Gap</th><th>n</th></tr>${calRows}</table>
+    <div class="note">A trustworthy model tracks near zero gap in every band. Rows under eight games are shown grey because they are unreadable.</div>
+    <div class="section-title">TOTALS BY LEAN</div>
+    <table><tr><th>Model lean</th><th>Hit rate</th><th>Record</th></tr>${ouRows}</table>
+    <div class="section-title">WHAT TO CHANGE</div>
+    <div class="work">${findings.map(f=>'&bull; '+f).join('<br>')}</div>
+    <div class="note">Thirty games is a small sample: a 60% hit rate on 30 games has a standard error of about nine points. Treat these as directional until the count is in the hundreds.</div>`;
+}
+</script>
+</body>
+</html>

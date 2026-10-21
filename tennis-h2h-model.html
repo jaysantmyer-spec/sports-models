@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis H2H Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --gold:#E8C547; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--gold);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:16px;
+}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pcol{background:var(--navy-light);border:1px solid #2A3B48;border-radius:8px;padding:11px;}
+.pcol h3{font-family:'Teko',sans-serif;font-size:15px;letter-spacing:0.5px;margin:0 0 8px;color:var(--chalk);}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;margin-top:8px;}
+label:first-of-type{margin-top:0;}
+input, select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus, select:focus{border-color:var(--amber);}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:18px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:14px;padding:8px;}
+.btn.small{width:auto;margin-top:0;padding:8px 14px;font-size:15px;}
+
+.h2h-add{display:flex;gap:8px;align-items:flex-end;}
+.h2h-add > div{flex:1;}
+.meeting{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(255,255,255,0.03);border:1px solid #223140;border-radius:6px;
+  padding:7px 10px;margin-top:6px;font-size:12px;
+}
+.meeting .del{color:var(--red);cursor:pointer;font-size:11px;}
+.h2h-summary{
+  background:rgba(127,179,217,0.07);border:1px solid rgba(127,179,217,0.28);
+  border-radius:7px;padding:10px 12px;margin-top:10px;font-size:11.5px;color:var(--blue);line-height:1.6;
+}
+.sample-tag{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;margin-top:4px;}
+.sample-tag.strong{color:var(--amber);}
+.sample-tag.weak{color:var(--dim);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.headline{display:flex;gap:10px;margin-bottom:12px;}
+.head-card{
+  flex:1;background:var(--navy);border:1px solid #263644;border-radius:9px;
+  padding:12px;text-align:center;
+}
+.head-card .nm{font-size:12.5px;font-weight:600;color:var(--chalk);}
+.head-card .pc{font-family:'Teko',sans-serif;font-size:32px;line-height:1.1;}
+.head-card .pc.fav{color:var(--amber);}
+.head-card .pc.dog{color:var(--dim);}
+.head-card .sub2{font-size:10px;color:var(--dim);}
+
+.bar-row{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+.bar-label{font-size:11.5px;color:var(--chalk);width:62px;flex-shrink:0;}
+.bar-track{flex:1;background:rgba(255,255,255,0.06);border-radius:4px;height:16px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--amber);opacity:0.75;}
+.bar-pct{font-family:'Teko',sans-serif;font-size:15px;color:var(--chalk);width:40px;text-align:right;flex-shrink:0;}
+
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{
+  text-align:left;font-family:'Teko',sans-serif;font-size:13px;letter-spacing:0.5px;
+  color:var(--dim);font-weight:500;padding:6px 4px;border-bottom:1px solid #263644;
+}
+td{padding:7px 4px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.pct{font-family:'Teko',sans-serif;font-size:16px;}
+td.pct.strong{color:var(--amber);}
+td.pct.lean{color:var(--green);}
+td.pct.soft{color:var(--dim);}
+tr.keyline td{background:rgba(242,169,59,0.07);}
+
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5;}
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>TENNIS H2H MODEL</h1></div>
+  <p class="sub">Built around players who've met before. Log their past meetings, and the model blends that repeat history with current form to project sets won, total games over/under, and the full matchup simulation.</p>
+  <div class="warn-banner">Model output from the data you enter \u2014 not sportsbook odds, and not betting advice. H2H on a small sample is noisy: two or three meetings tell you much less than eight. The app flags sample strength so you know how much to trust it. Gamble responsibly if at all.</div>
+
+  <div class="panel">
+    <div class="panel-label">PLAYERS</div>
+    <div class="row3" style="margin-bottom:10px;">
+      <div>
+        <label>Tour</label>
+        <select id="tour"><option value="atp">ATP</option><option value="wta">WTA</option></select>
+      </div>
+      <div>
+        <label>Surface</label>
+        <select id="surface">
+          <option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option>
+        </select>
+      </div>
+      <div>
+        <label>Format</label>
+        <select id="format"><option value="3">Best of 3</option><option value="5">Best of 5</option></select>
+      </div>
+    </div>
+
+    <div class="pgrid">
+      <div class="pcol">
+        <h3>PLAYER A</h3>
+        <label>Name</label><input type="text" id="n1" placeholder="Player A">
+        <label>World ranking</label><input type="number" id="r1" placeholder="e.g. 45" min="1">
+        <label>Wins in last 10</label><input type="number" id="f1" placeholder="e.g. 6" min="0" max="10">
+        <label>Hold % (optional)</label><input type="number" id="h1" placeholder="from rank if blank" min="1" max="99">
+      </div>
+      <div class="pcol">
+        <h3>PLAYER B</h3>
+        <label>Name</label><input type="text" id="n2" placeholder="Player B">
+        <label>World ranking</label><input type="number" id="r2" placeholder="e.g. 120" min="1">
+        <label>Wins in last 10</label><input type="number" id="f2" placeholder="e.g. 4" min="0" max="10">
+        <label>Hold % (optional)</label><input type="number" id="h2" placeholder="from rank if blank" min="1" max="99">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">HEAD-TO-HEAD MEETINGS</div>
+    <div class="h2h-add">
+      <div>
+        <label>Winner</label>
+        <select id="mWinner"><option value="1">Player A</option><option value="2">Player B</option></select>
+      </div>
+      <div>
+        <label>Score (games per set)</label>
+        <input type="text" id="mScore" placeholder="6-4 3-6 7-5">
+      </div>
+      <button class="btn small" id="addMeetingBtn">ADD</button>
+    </div>
+    <div class="hint">Enter each past meeting's set scores. This is what powers the repeat-data side of the model \u2014 real total-games history between these two is far better signal than a generic estimate.</div>
+    <div id="meetingList"></div>
+    <div id="h2hSummary"></div>
+  </div>
+
+  <button class="btn" id="runBtn">RUN SIMULATION</button>
+  <div id="results"></div>
+
+  <p class="footnote">Each player's serve-hold probability comes from what you enter, or is derived from world ranking on a log-scaled strength difference around a tour-typical baseline (about 80% hold on the ATP side, 65% on the WTA side), then adjusted for recent form and surface. Head-to-head shifts that hold gap, weighted by how many times they've actually met \u2014 one meeting barely moves it, five or more carries close to full weight, so a fluke result doesn't dominate. The match is then simulated 20,000 times game by game under real scoring rules, including two-game set margins and tiebreaks at 6-6, and every figure below is counted from those simulated outcomes rather than estimated separately \u2014 so the set and games numbers stay consistent with the match-winner number by construction. Where past meetings are logged, their actual average total games is blended into the games projection, with the same sample weighting. This is a hobby model for research, not financial or betting advice.</p>
+</div>
+
+<script>
+const SIMS = 20000;
+let meetings = [];   // {winner:1|2, sets:[[g1,g2],...], totalGames, straight}
+
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function num(id){ const v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); }
+function str(id){ return document.getElementById(id).value.trim(); }
+function names(){
+  return { n1: str('n1') || 'Player A', n2: str('n2') || 'Player B' };
+}
+
+// --- H2H meeting log ------------------------------------------------------
+function parseScore(raw){
+  // Accepts "6-4 3-6 7-5" / "6-4,3-6" / "64 36" style separators.
+  const sets = [];
+  (raw || '').split(/[,\s]+/).filter(Boolean).forEach(part => {
+    const m = part.match(/^(\d{1,2})[-–:](\d{1,2})$/);
+    if(!m) return;
+    const a = Number(m[1]), b = Number(m[2]);
+    if(a > 30 || b > 30) return;
+    sets.push([a,b]);
+  });
+  return sets;
+}
+
+document.getElementById('addMeetingBtn').addEventListener('click', () => {
+  const winner = Number(document.getElementById('mWinner').value);
+  const sets = parseScore(document.getElementById('mScore').value);
+  if(!sets.length){
+    alert('Enter the score as games per set, e.g. "6-4 3-6 7-5".');
+    return;
+  }
+  const totalGames = sets.reduce((s,[a,b]) => s + a + b, 0);
+  meetings.push({ winner, sets, totalGames, straight: sets.length <= 2 });
+  document.getElementById('mScore').value = '';
+  renderMeetings();
+});
+
+function removeMeeting(i){ meetings.splice(i,1); renderMeetings(); }
+
+function h2hStats(){
+  const n = meetings.length;
+  if(!n) return null;
+  const w1 = meetings.filter(m => m.winner === 1).length;
+  const avgGames = meetings.reduce((s,m) => s + m.totalGames, 0) / n;
+  const straightRate = meetings.filter(m => m.straight).length / n;
+  // Weight grows with sample then caps — five meetings counts as a full sample.
+  const weight = Math.min(n, 5) / 5;
+  return { n, w1, w2: n - w1, share1: w1 / n, avgGames, straightRate, weight };
+}
+
+function renderMeetings(){
+  const { n1, n2 } = names();
+  document.getElementById('meetingList').innerHTML = meetings.map((m,i) => `
+    <div class="meeting">
+      <span><b>${m.winner === 1 ? n1 : n2}</b> won \u2014 ${m.sets.map(s => s[0]+'-'+s[1]).join(', ')} \u00b7 ${m.totalGames} games</span>
+      <span class="del" onclick="removeMeeting(${i})">remove</span>
+    </div>`).join('');
+
+  const h = h2hStats();
+  const box = document.getElementById('h2hSummary');
+  if(!h){ box.innerHTML = ''; return; }
+  const strong = h.n >= 4;
+  box.innerHTML = `
+    <div class="h2h-summary">
+      <b>${n1} ${h.w1}\u2013${h.w2} ${n2}</b> across ${h.n} meeting${h.n===1?'':'s'}<br>
+      Average total games in those meetings: <b>${h.avgGames.toFixed(1)}</b><br>
+      Straight-sets rate: <b>${Math.round(h.straightRate*100)}%</b>
+      <div class="sample-tag ${strong ? 'strong' : 'weak'}">
+        ${strong ? 'Solid repeat sample \u2014 H2H carries real weight' : 'Thin sample \u2014 H2H nudges the model only slightly'}
+      </div>
+    </div>`;
+}
+
+// --- Hold derivation ------------------------------------------------------
+function strengthFromRank(rank){ return -Math.log10(Math.max(1, rank || 500)); }
+
+function deriveHolds(cfg, h){
+  const base = cfg.tour === 'wta' ? 0.65 : 0.80;
+  let diff = strengthFromRank(cfg.r1) - strengthFromRank(cfg.r2);
+
+  const f1 = cfg.f1 == null ? 5 : clamp(cfg.f1, 0, 10);
+  const f2 = cfg.f2 == null ? 5 : clamp(cfg.f2, 0, 10);
+  diff += ((f1 - f2) / 10) * 0.35;
+
+  // H2H shifts the gap, scaled by how established the sample is.
+  if(h) diff += (h.share1 - 0.5) * 0.6 * h.weight;
+
+  let h1 = base + 0.055 * diff;
+  let h2 = base - 0.055 * diff;
+  const surf = cfg.surface === 'grass' ? 0.035 : (cfg.surface === 'clay' ? -0.035 : 0);
+  h1 += surf; h2 += surf;
+  return { h1: clamp(h1, 0.35, 0.95), h2: clamp(h2, 0.35, 0.95) };
+}
+
+// --- Simulation -----------------------------------------------------------
+function simulateSet(h1, h2, tb1, firstServer){
+  let g1 = 0, g2 = 0, server = firstServer;
+  while(true){
+    const holds = Math.random() < (server === 1 ? h1 : h2);
+    if((server === 1) === holds) g1++; else g2++;
+    server = server === 1 ? 2 : 1;
+    if(g1 >= 6 && g1 - g2 >= 2) return { g1, g2, winner:1 };
+    if(g2 >= 6 && g2 - g1 >= 2) return { g1, g2, winner:2 };
+    if(g1 === 6 && g2 === 6){
+      return Math.random() < tb1 ? { g1:7, g2:6, winner:1 } : { g1:6, g2:7, winner:2 };
+    }
+  }
+}
+
+function runSim(cfg, h){
+  const holds = (cfg.h1Manual != null && cfg.h2Manual != null)
+    ? { h1: cfg.h1Manual/100, h2: cfg.h2Manual/100, manual:true }
+    : Object.assign(deriveHolds(cfg, h), { manual:false });
+  const tb1 = clamp(0.5 + (holds.h1 - holds.h2) * 1.1, 0.15, 0.85);
+  const need = cfg.format === 5 ? 3 : 2;
+
+  let p1Match = 0, sets1Sum = 0, sets2Sum = 0;
+  const scoreCount = {};
+  const totals = new Array(SIMS);
+  const p1Games = new Array(SIMS);
+
+  for(let i = 0; i < SIMS; i++){
+    let s1 = 0, s2 = 0, tg = 0, pg = 0;
+    let server = Math.random() < 0.5 ? 1 : 2;
+    while(s1 < need && s2 < need){
+      const set = simulateSet(holds.h1, holds.h2, tb1, server);
+      if(set.winner === 1) s1++; else s2++;
+      tg += set.g1 + set.g2; pg += set.g1;
+      server = server === 1 ? 2 : 1;
+    }
+    if(s1 > s2) p1Match++;
+    sets1Sum += s1; sets2Sum += s2;
+    scoreCount[`${s1}-${s2}`] = (scoreCount[`${s1}-${s2}`] || 0) + 1;
+    totals[i] = tg; p1Games[i] = pg;
+  }
+
+  const avgTotal = totals.reduce((a,b)=>a+b,0) / SIMS;
+  // Blend in real H2H games history where a sample exists.
+  const blendedTotal = h ? (avgTotal * (1 - h.weight*0.4) + h.avgGames * (h.weight*0.4)) : avgTotal;
+  const shift = blendedTotal - avgTotal;
+
+  function pOver(arr, line, offset){
+    let c = 0;
+    for(let i = 0; i < arr.length; i++) if(arr[i] + (offset||0) > line) c++;
+    return c / arr.length;
+  }
+
+  return {
+    holds, tb1,
+    p1Win: p1Match/SIMS, p2Win: 1 - p1Match/SIMS,
+    avgSets1: sets1Sum/SIMS, avgSets2: sets2Sum/SIMS,
+    setScores: Object.entries(scoreCount).map(([score,v]) => ({ score, pct:v/SIMS }))
+                 .sort((a,b) => b.pct - a.pct),
+    avgTotal, blendedTotal, shift,
+    totalsArr: totals, p1GamesArr: p1Games,
+    pOverTotal: (line) => pOver(totals, line, shift),
+    pOverP1: (line) => pOver(p1Games, line, shift/2),
+    avgP1Games: p1Games.reduce((a,b)=>a+b,0)/SIMS,
+  };
+}
+
+// --- Rendering ------------------------------------------------------------
+function pctClass(p){ return p >= 0.65 ? 'strong' : (p >= 0.55 ? 'lean' : 'soft'); }
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  const { n1, n2 } = names();
+  const cfg = {
+    tour: document.getElementById('tour').value,
+    surface: document.getElementById('surface').value,
+    format: Number(document.getElementById('format').value),
+    n1, n2,
+    r1: num('r1'), r2: num('r2'),
+    f1: num('f1'), f2: num('f2'),
+    h1Manual: num('h1'), h2Manual: num('h2'),
+  };
+  if((cfg.r1 == null && cfg.h1Manual == null) || (cfg.r2 == null && cfg.h2Manual == null)){
+    alert('Give each player a world ranking (or a hold %) so the model has something real to work from.');
+    return;
+  }
+
+  const h = h2hStats();
+  const m = runSim(cfg, h);
+  renderResults(cfg, m, h);
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+
+function renderResults(cfg, m, h){
+  const p1Fav = m.p1Win >= m.p2Win;
+
+  // Sets-won distribution
+  const setRows = m.setScores.map(s => `
+    <div class="bar-row">
+      <div class="bar-label">${s.score}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, s.pct*100)}%"></div></div>
+      <div class="bar-pct">${Math.round(s.pct*100)}%</div>
+    </div>`).join('');
+
+  // Total games ladder
+  const centre = Math.round(m.blendedTotal);
+  const lines = [];
+  for(let L = centre - 3.5; L <= centre + 3.5; L += 1) lines.push(L);
+  const gameRows = lines.map(L => {
+    const over = m.pOverTotal(L);
+    const under = 1 - over;
+    const key = Math.abs(L - m.blendedTotal) < 1;
+    const best = over >= under ? over : under;
+    return `
+      <tr class="${key ? 'keyline' : ''}">
+        <td>${L.toFixed(1)}</td>
+        <td class="pct ${pctClass(over)}">${Math.round(over*100)}%</td>
+        <td class="pct ${pctClass(under)}">${Math.round(under*100)}%</td>
+        <td style="color:var(--dim);font-size:11px;">${over >= under ? 'Over' : 'Under'} \u00b7 ${Math.round(best*100)}%</td>
+      </tr>`;
+  }).join('');
+
+  // Player games ladder
+  const pCentre = Math.round(m.avgP1Games + m.shift/2);
+  const pLines = [];
+  for(let L = pCentre - 2.5; L <= pCentre + 2.5; L += 1) pLines.push(L);
+  const pRows = pLines.map(L => {
+    const over = m.pOverP1(L);
+    return `
+      <tr>
+        <td>${L.toFixed(1)}</td>
+        <td class="pct ${pctClass(over)}">${Math.round(over*100)}%</td>
+        <td class="pct ${pctClass(1-over)}">${Math.round((1-over)*100)}%</td>
+      </tr>`;
+  }).join('');
+
+  const h2hBlock = h ? `
+    <div class="h2h-summary" style="margin-top:0;">
+      Past meetings averaged <b>${h.avgGames.toFixed(1)}</b> total games; the raw simulation projected
+      <b>${m.avgTotal.toFixed(1)}</b>. Blended at this sample size, the model settles on
+      <b>${m.blendedTotal.toFixed(1)}</b> ${m.shift >= 0 ? '(nudged up' : '(nudged down'} by ${Math.abs(m.shift).toFixed(1)} games).
+      <div class="sample-tag ${h.n >= 4 ? 'strong' : 'weak'}">
+        ${h.n} meeting${h.n===1?'':'s'} logged \u00b7 ${Math.round(h.weight*100)}% of full H2H weight applied
+      </div>
+    </div>` : `
+    <div class="note">No past meetings logged \u2014 projections come from ranking, form and surface alone.
+    Adding their H2H history is the single biggest accuracy upgrade available here.</div>`;
+
+  document.getElementById('results').innerHTML = `
+    <div class="section-title">MATCH WINNER</div>
+    <div class="headline">
+      <div class="head-card">
+        <div class="nm">${cfg.n1}</div>
+        <div class="pc ${p1Fav ? 'fav' : 'dog'}">${Math.round(m.p1Win*100)}%</div>
+        <div class="sub2">avg ${m.avgSets1.toFixed(2)} sets</div>
+      </div>
+      <div class="head-card">
+        <div class="nm">${cfg.n2}</div>
+        <div class="pc ${!p1Fav ? 'fav' : 'dog'}">${Math.round(m.p2Win*100)}%</div>
+        <div class="sub2">avg ${m.avgSets2.toFixed(2)} sets</div>
+      </div>
+    </div>
+    <div class="note">Serve hold used: <b>${Math.round(m.holds.h1*100)}%</b> / <b>${Math.round(m.holds.h2*100)}%</b>
+      ${m.holds.manual ? '(entered)' : '(derived from ranking, form, surface and H2H)'}.</div>
+
+    <div class="section-title">SETS WON \u2014 EXACT SCORE</div>
+    ${setRows}
+    <div class="note">Read as ${cfg.n1}\u2013${cfg.n2} sets. Straight-sets and deciding-set chances both fall out of the same simulation.</div>
+
+    <div class="section-title">TOTAL GAMES \u2014 OVER / UNDER</div>
+    ${h2hBlock}
+    <table style="margin-top:10px;">
+      <tr><th>Line</th><th>Over</th><th>Under</th><th>Stronger side</th></tr>
+      ${gameRows}
+    </table>
+    <div class="note">Highlighted row sits closest to the model's projected total of ${m.blendedTotal.toFixed(1)} games.</div>
+
+    <div class="section-title">${cfg.n1.toUpperCase()} \u2014 GAMES WON</div>
+    <table>
+      <tr><th>Line</th><th>Over</th><th>Under</th></tr>
+      ${pRows}
+    </table>
+    <div class="note">Projected at ${(m.avgP1Games + m.shift/2).toFixed(1)} games won.</div>
+  `;
+}
+
+renderMeetings();
+</script>
+</body>
+</html>

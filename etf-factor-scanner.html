@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF Factor Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --forest:#2F6E4D; --forest-dark:#1F4C34; --gold:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--forest-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.mark{width:14px;height:14px;background:var(--amber);display:inline-block;clip-path:polygon(0 100%, 30% 60%, 55% 80%, 100% 0%, 100% 20%, 55% 100%, 30% 80%, 0 100%);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:16px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.key-row input{
+  flex:1;min-width:140px;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);line-height:1.4;}
+
+.ticker-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.ticker-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.ticker-row{display:flex;gap:8px;}
+.ticker-row input{
+  flex:1;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.ticker-card button.scan{
+  width:100%;margin-top:10px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:18px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:11px;cursor:pointer;
+}
+.ticker-card button.scan:disabled{background:#3A3A2E;color:#6B6B5E;}
+.default-note{font-size:10.5px;color:var(--dim);margin-top:6px;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:32px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.macro-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.macro-chip{
+  flex:1;min-width:140px;background:var(--navy);border:1px solid #263644;border-radius:8px;padding:9px 11px;
+}
+.macro-chip-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;}
+.macro-chip-val{font-family:'Teko',sans-serif;font-size:20px;margin-top:2px;}
+.macro-chip-val.up{color:var(--green);}
+.macro-chip-val.down{color:var(--red);}
+.macro-chip-val.flat{color:var(--dim);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.card-main{flex:1;min-width:0;}
+.card-ticker{font-size:15px;font-weight:700;color:var(--chalk);}
+.card-name{font-size:11px;color:var(--dim);margin-top:1px;}
+.card-price{font-size:11.5px;color:var(--dim);margin-top:2px;}
+.card-price b{color:var(--chalk);}
+.card-right{text-align:right;flex-shrink:0;}
+.score{font-family:'Teko',sans-serif;font-size:28px;line-height:1;}
+.score.bull{color:var(--green);}
+.score.bear{color:var(--red);}
+.score.neutral{color:var(--dim);}
+.score-label{font-size:9px;letter-spacing:0.5px;margin-top:2px;}
+.score-label.bull{color:var(--green);}
+.score-label.bear{color:var(--red);}
+.score-label.neutral{color:var(--dim);}
+
+.detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11px;color:var(--dim);}
+.card.open .detail{display:block;}
+.factor-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.factor-chip{font-size:10px;background:rgba(255,255,255,0.05);border-radius:4px;padding:3px 7px;color:var(--dim);}
+.factor-chip.up{color:var(--green);}
+.factor-chip.down{color:var(--red);}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="mark"></span><h1>ETF FACTOR SCANNER</h1></div>
+  <p class="sub">A composite bullish/bearish score for major ETFs, built from price momentum, sector business health, macro conditions (rates, inflation, jobs, GDP), and market psychology (VIX).</p>
+  <div class="warn-banner">This produces a composite technical/fundamental <b>score</b>, not a predicted price target or guarantee \u2014 it reflects current conditions and momentum, which can change quickly. Not financial advice; I'm not a financial advisor. Always do your own research and consider consulting a licensed professional before investing.</div>
+
+  <div class="key-card">
+    <div class="key-label">API KEYS</div>
+    <div class="key-row">
+      <input type="password" id="fmpKeyInput" placeholder="Financial Modeling Prep key (financialmodelingprep.com)">
+      <input type="password" id="fredKeyInput" placeholder="FRED key (fred.stlouisfed.org)">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Both are free. Stored only in this browser, sent only to their respective APIs. FMP powers prices/sectors (250 free requests/day); FRED powers the macro data (interest rates, inflation, jobs, GDP), essentially unlimited on its free tier.</div>
+  </div>
+
+  <div class="ticker-card">
+    <div class="ticker-label">ETFS TO SCAN</div>
+    <div class="ticker-row">
+      <input type="text" id="tickerInput" placeholder="Add tickers, comma-separated (optional)">
+    </div>
+    <div class="default-note">Defaults to major/sector ETFs (SPY, QQQ, DIA, IWM, and the 11 sector SPDRs, plus GLD and TLT) if left blank.</div>
+    <button id="scanBtn" class="scan" disabled>SCAN ETFS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">MACRO BACKDROP (shared across all ETFs)</div>
+  <div class="macro-strip" id="macroStrip"></div>
+
+  <div class="section-title">RANKED: COMPOSITE SCORES</div>
+  <div id="list"><div class="empty-state">Paste both API keys, then tap Scan.</div></div>
+
+  <p class="footnote">Momentum factor: 50-day vs 200-day moving average trend, 1-month price return, and RSI(14). Sector health factor: that day's performance of the ETF's mapped GICS sector (via FMP), used as a short-term proxy for aggregate earnings/business sentiment \u2014 broad-market and bond/commodity ETFs (SPY, QQQ, DIA, IWM, GLD, TLT) don't map to a single sector and skip this factor. Macro factor: recent trend in the Fed funds rate, CPI inflation, unemployment rate, and real GDP growth (via FRED), shared across all ETFs since these are market-wide conditions, with rate-sensitive ETFs (XLF, XLRE, TLT) weighted more toward the rate-trend sub-factor. Psychology factor: VIX level and its recent trend as a fear/complacency proxy. All factors are combined into a single weighted composite score \u2014 this is a simplified educational model, not a rigorous quant strategy, and it does not account for company-specific news, geopolitical events, or anything not reflected in the data pulled. Past patterns do not guarantee future results.</p>
+</div>
+
+<script>
+const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
+const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
+let fmpKey = localStorage.getItem('fmpApiKey') || '';
+let fredKey = localStorage.getItem('fredApiKey') || '';
+if(fmpKey) document.getElementById('fmpKeyInput').value = fmpKey;
+if(fredKey) document.getElementById('fredKeyInput').value = fredKey;
+updateScanButton();
+
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  fmpKey = document.getElementById('fmpKeyInput').value.trim();
+  fredKey = document.getElementById('fredKeyInput').value.trim();
+  localStorage.setItem('fmpApiKey', fmpKey);
+  localStorage.setItem('fredApiKey', fredKey);
+  updateScanButton();
+});
+function updateScanButton(){ document.getElementById('scanBtn').disabled = !(fmpKey && fredKey); }
+
+const DEFAULT_TICKERS = ['SPY','QQQ','DIA','IWM','XLF','XLE','XLK','XLV','XLY','XLP','XLI','XLU','XLB','XLRE','GLD','TLT'];
+const SECTOR_MAP = {
+  XLF:'Financial Services', XLE:'Energy', XLK:'Technology', XLV:'Healthcare',
+  XLY:'Consumer Cyclical', XLP:'Consumer Defensive', XLI:'Industrials',
+  XLU:'Utilities', XLB:'Basic Materials', XLRE:'Real Estate',
+};
+const RATE_SENSITIVE = new Set(['XLF','XLRE','TLT']);
+
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+async function safeJSON(url, label){
+  try{
+    const res = await fetch(url);
+    if(!res.ok){
+      console.error(`${label||url}: HTTP ${res.status}`);
+      window.__lastFetchError = `${label||'Request'} failed (HTTP ${res.status}).`;
+      return null;
+    }
+    return await res.json();
+  }catch(e){
+    console.error(`${label||url}: ${e.message}`);
+    window.__lastFetchError = `${label||'Request'} failed \u2014 likely a network or CORS block (${e.message}).`;
+    return null;
+  }
+}
+function setStatus(text, isErr){ const el = document.getElementById('statusLine'); el.textContent = text; el.className = 'status' + (isErr ? ' err' : ''); }
+
+async function fetchFred(seriesId, count){
+  const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${fredKey}&file_type=json&sort_order=desc&limit=${count}`;
+  const data = await safeJSON(url, `FRED (${seriesId})`);
+  const obs = (data && data.observations) || [];
+  return obs.map(o => ({ date:o.date, value: parseFloat(o.value) })).filter(o => !isNaN(o.value));
+}
+
+function trendDirection(recent, older){
+  if(recent == null || older == null) return 'flat';
+  const diff = recent - older;
+  if(Math.abs(diff) < 0.05) return 'flat';
+  return diff > 0 ? 'up' : 'down';
+}
+
+async function loadMacro(){
+  setStatus('Loading macro data from FRED (rates, inflation, jobs, GDP)...');
+  const [fedFunds, cpi, unrate, gdp] = await Promise.all([
+    fetchFred('FEDFUNDS', 8),
+    fetchFred('CPIAUCSL', 14),
+    fetchFred('UNRATE', 8),
+    fetchFred('A191RL1Q225SBEA', 4),
+  ]);
+
+  const macro = {};
+  if(fedFunds.length >= 2){
+    macro.fedFunds = { current: fedFunds[0].value, dir: trendDirection(fedFunds[0].value, fedFunds[Math.min(5,fedFunds.length-1)].value) };
+  }
+  if(cpi.length >= 13){
+    const yoy = ((cpi[0].value / cpi[12].value) - 1) * 100;
+    const yoyPrior = ((cpi[1].value / cpi[13] ? cpi[13].value : cpi[12].value) ? (cpi[1].value/(cpi[13]?cpi[13].value:cpi[12].value)-1)*100 : yoy);
+    macro.cpi = { yoy, dir: trendDirection(yoy, yoyPrior) };
+  }
+  if(unrate.length >= 2){
+    macro.unrate = { current: unrate[0].value, dir: trendDirection(unrate[0].value, unrate[Math.min(5,unrate.length-1)].value) };
+  }
+  if(gdp.length >= 1){
+    macro.gdp = { current: gdp[0].value, dir: gdp[0].value > 1.5 ? 'up' : (gdp[0].value < 0 ? 'down' : 'flat') };
+  }
+
+  // Composite macro score (0-100, 50=neutral). Falling rates/inflation = bullish; rising = bearish.
+  // Improving jobs (falling unemployment) = bullish; positive/accelerating GDP = bullish.
+  let score = 50;
+  if(macro.fedFunds) score += (macro.fedFunds.dir === 'down' ? 10 : macro.fedFunds.dir === 'up' ? -10 : 0);
+  if(macro.cpi) score += (macro.cpi.dir === 'down' ? 8 : macro.cpi.dir === 'up' ? -8 : 0);
+  if(macro.unrate) score += (macro.unrate.dir === 'down' ? 7 : macro.unrate.dir === 'up' ? -7 : 0);
+  if(macro.gdp) score += (macro.gdp.dir === 'up' ? 10 : macro.gdp.dir === 'down' ? -10 : 0);
+  macro.score = clamp(score, 0, 100);
+
+  // Rate-focused sub-score, used to weight rate-sensitive ETFs more heavily on the rate factor specifically
+  macro.rateScore = macro.fedFunds ? clamp(50 + (macro.fedFunds.dir === 'down' ? 25 : macro.fedFunds.dir === 'up' ? -25 : 0), 0, 100) : 50;
+
+  return macro;
+}
+
+async function loadPsychology(){
+  const q = await safeJSON(`${FMP_BASE}/quote/%5EVIX?apikey=${fmpKey}`, 'FMP (VIX)');
+  const vix = q && q[0];
+  if(!vix) return { score: 50, level: null, dir: 'flat' };
+  const level = vix.price;
+  const changePct = vix.changesPercentage || 0;
+  // Lower VIX / falling VIX = more bullish (less fear); high/rising VIX = bearish
+  let score = 50;
+  if(level < 15) score += 15; else if(level > 25) score -= 20; else if(level > 20) score -= 8;
+  score += changePct < -3 ? 8 : changePct > 3 ? -8 : 0;
+  return { score: clamp(score,0,100), level, dir: changePct > 1 ? 'up' : (changePct < -1 ? 'down' : 'flat') };
+}
+
+async function loadSectorPerformance(){
+  const data = await safeJSON(`${FMP_BASE}/stock/sectors-performance?apikey=${fmpKey}`, 'FMP (sectors)');
+  const list = (data && (data.sectorPerformance || data)) || [];
+  const map = {};
+  list.forEach(s => {
+    const name = s.sector;
+    const pct = parseFloat((s.changesPercentage||'0').toString().replace('%',''));
+    if(name && !isNaN(pct)) map[name] = pct;
+  });
+  return map;
+}
+
+function computeRSI(closes){
+  if(closes.length < 15) return null;
+  let gains=0, losses=0;
+  for(let i=1;i<=14;i++){
+    const diff = closes[i-1]-closes[i]; // closes[0] is most recent if array is desc
+    if(diff > 0) gains += diff; else losses -= diff;
+  }
+  const avgGain = gains/14, avgLoss = losses/14;
+  if(avgLoss === 0) return 100;
+  const rs = avgGain/avgLoss;
+  return 100 - (100/(1+rs));
+}
+
+async function loadTickerData(ticker){
+  const [quoteData, histData] = await Promise.all([
+    safeJSON(`${FMP_BASE}/quote/${ticker}?apikey=${fmpKey}`, `FMP quote (${ticker})`),
+    safeJSON(`${FMP_BASE}/historical-price-full/${ticker}?timeseries=210&apikey=${fmpKey}`, `FMP history (${ticker})`),
+  ]);
+  const quote = quoteData && quoteData[0];
+  const history = (histData && histData.historical) || []; // most recent first
+  if(!quote || !history.length) return null;
+
+  const closes = history.map(h => h.close);
+  const ma50 = closes.slice(0,50).reduce((a,b)=>a+b,0) / Math.min(50, closes.length);
+  const ma200 = closes.length >= 200 ? closes.slice(0,200).reduce((a,b)=>a+b,0)/200 : null;
+  const oneMonthAgo = closes[Math.min(21, closes.length-1)];
+  const oneMonthReturn = oneMonthAgo ? ((closes[0]/oneMonthAgo)-1)*100 : 0;
+  const rsi = computeRSI(closes);
+
+  let momentumScore = 50;
+  if(ma200 != null) momentumScore += (ma50 > ma200 ? 12 : -12);
+  momentumScore += clamp(oneMonthReturn * 2, -15, 15);
+  if(rsi != null){
+    if(rsi > 70) momentumScore -= 8;
+    else if(rsi < 30) momentumScore += 8;
+    else if(rsi > 50) momentumScore += 4;
+    else momentumScore -= 4;
+  }
+  momentumScore = clamp(momentumScore, 0, 100);
+
+  return {
+    ticker, name: quote.name || ticker, price: quote.price,
+    changesPercentage: quote.changesPercentage,
+    ma50, ma200, oneMonthReturn, rsi, momentumScore,
+  };
+}
+
+async function scan(){
+  if(!fmpKey || !fredKey) return;
+  window.__lastFetchError = null;
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  document.getElementById('macroStrip').innerHTML = '';
+
+  const customInput = document.getElementById('tickerInput').value.trim();
+  const tickers = customInput
+    ? [...new Set(customInput.split(',').map(t => t.trim().toUpperCase()).filter(Boolean))]
+    : DEFAULT_TICKERS;
+
+  const [macro, psych, sectorPerf] = await Promise.all([loadMacro(), loadPsychology(), loadSectorPerformance()]);
+  renderMacroStrip(macro, psych);
+
+  setStatus(`Loading price data for ${tickers.length} ETF(s)...`);
+  const results = [];
+  await Promise.all(tickers.map(async t => {
+    const data = await loadTickerData(t);
+    if(!data) return;
+    const sectorName = SECTOR_MAP[t];
+    const sectorPct = sectorName ? sectorPerf[sectorName] : null;
+    const sectorScore = sectorPct != null ? clamp(50 + sectorPct*15, 0, 100) : null;
+
+    const macroForThis = RATE_SENSITIVE.has(t)
+      ? clamp((macro.score*0.5 + macro.rateScore*0.5), 0, 100)
+      : macro.score;
+
+    const weights = sectorScore != null
+      ? { momentum:0.35, sector:0.2, macro:0.25, psych:0.2 }
+      : { momentum:0.45, sector:0, macro:0.3, psych:0.25 };
+
+    const composite =
+      data.momentumScore * weights.momentum +
+      (sectorScore != null ? sectorScore * weights.sector : 0) +
+      macroForThis * weights.macro +
+      psych.score * weights.psych;
+
+    results.push({ ...data, sectorName, sectorPct, sectorScore, macroForThis, composite: clamp(composite,0,100) });
+  }));
+
+  results.sort((a,b) => b.composite - a.composite);
+  window.__etfResults = results;
+  renderList(results);
+  if(results.length === 0 && window.__lastFetchError){
+    setStatus(`No data came back. Last error seen: ${window.__lastFetchError}`, true);
+  } else {
+    setStatus(`Scanned ${results.length} of ${tickers.length} ETF(s) requested.` + (results.length < tickers.length ? ' Some tickers may be invalid or unavailable.' : ''));
+  }
+  document.getElementById('scanBtn').disabled = false;
+}
+
+function renderMacroStrip(macro, psych){
+  const chips = [];
+  if(macro.fedFunds) chips.push(['Fed Funds Rate', `${macro.fedFunds.current.toFixed(2)}%`, macro.fedFunds.dir === 'down' ? 'up' : macro.fedFunds.dir === 'up' ? 'down' : 'flat']);
+  if(macro.cpi) chips.push(['CPI Inflation (YoY)', `${macro.cpi.yoy.toFixed(1)}%`, macro.cpi.dir === 'down' ? 'up' : macro.cpi.dir === 'up' ? 'down' : 'flat']);
+  if(macro.unrate) chips.push(['Unemployment', `${macro.unrate.current.toFixed(1)}%`, macro.unrate.dir === 'down' ? 'up' : macro.unrate.dir === 'up' ? 'down' : 'flat']);
+  if(macro.gdp) chips.push(['Real GDP Growth', `${macro.gdp.current.toFixed(1)}%`, macro.gdp.dir]);
+  chips.push(['VIX (Fear Gauge)', psych.level ? psych.level.toFixed(1) : '\u2014', psych.dir === 'down' ? 'up' : psych.dir === 'up' ? 'down' : 'flat']);
+
+  document.getElementById('macroStrip').innerHTML = chips.map(([label,val,cls]) => `
+    <div class="macro-chip">
+      <div class="macro-chip-label">${label}</div>
+      <div class="macro-chip-val ${cls}">${val}</div>
+    </div>
+  `).join('');
+}
+
+function scoreClass(s){ return s >= 58 ? 'bull' : (s <= 42 ? 'bear' : 'neutral'); }
+function scoreLabel(s){ return s >= 65 ? 'BULLISH LEAN' : (s >= 58 ? 'MILD BULLISH' : (s <= 35 ? 'BEARISH LEAN' : (s <= 42 ? 'MILD BEARISH' : 'NEUTRAL'))); }
+
+function chip(label, val, dir){
+  const cls = dir === 'up' ? 'up' : (dir === 'down' ? 'down' : '');
+  return `<div class="factor-chip ${cls}">${label}: <b>${val}</b></div>`;
+}
+
+function cardHTML(r, idx){
+  const cls = scoreClass(r.composite);
+  return `
+    <div class="card" id="etf-${idx}" onclick="document.getElementById('etf-${idx}').classList.toggle('open')">
+      <div class="card-top">
+        <div class="card-main">
+          <div class="card-ticker">${r.ticker}</div>
+          <div class="card-name">${r.name}</div>
+          <div class="card-price">$${r.price != null ? r.price.toFixed(2) : '\u2014'} <b>${r.changesPercentage != null ? (r.changesPercentage>=0?'+':'')+r.changesPercentage.toFixed(2)+'%' : ''}</b> today</div>
+        </div>
+        <div class="card-right">
+          <div class="score ${cls}">${Math.round(r.composite)}%</div>
+          <div class="score-label ${cls}">${scoreLabel(r.composite)}</div>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="factor-strip">
+          ${chip('Momentum', Math.round(r.momentumScore)+'%', r.momentumScore>=55?'up':r.momentumScore<=45?'down':'')}
+          ${r.sectorScore != null ? chip('Sector ('+r.sectorName+')', (r.sectorPct>=0?'+':'')+r.sectorPct.toFixed(2)+'%', r.sectorPct>=0?'up':'down') : chip('Sector', 'n/a', '')}
+          ${chip('Macro backdrop', Math.round(r.macroForThis)+'%', r.macroForThis>=55?'up':r.macroForThis<=45?'down':'')}
+          ${chip('1-mo return', (r.oneMonthReturn>=0?'+':'')+r.oneMonthReturn.toFixed(1)+'%', r.oneMonthReturn>=0?'up':'down')}
+          ${r.rsi != null ? chip('RSI(14)', r.rsi.toFixed(0), '') : ''}
+          ${r.ma200 != null ? chip('MA50 vs MA200', r.ma50>r.ma200?'above':'below', r.ma50>r.ma200?'up':'down') : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderList(results){
+  const list = document.getElementById('list');
+  list.innerHTML = results.length ? results.map((r,i) => cardHTML(r,i)).join('') : '<div class="empty-state">No data returned \u2014 check your tickers and API keys.</div>';
+}
+
+document.getElementById('scanBtn').addEventListener('click', scan);
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Prop Edges</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass:#3E7A4A; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --gold:#E8C547; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--gold);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:34px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:8px;
+}
+.snap-banner{
+  background:rgba(127,179,217,0.08);border:1px solid rgba(127,179,217,0.3);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--blue);line-height:1.5;margin-bottom:18px;
+}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:8px;margin-bottom:10px;}
+.filter-row button{
+  flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.rank-row{
+  display:flex;align-items:center;gap:12px;background:var(--navy);border:1px solid #263644;
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;
+}
+.rank-num{font-family:'Teko',sans-serif;font-size:20px;color:var(--dim);width:22px;flex-shrink:0;}
+.rank-main{flex:1;min-width:0;}
+.rank-name{font-size:13.5px;font-weight:600;color:var(--chalk);}
+.rank-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.rank-tag{font-size:9px;letter-spacing:0.5px;color:var(--blue);margin-top:2px;text-transform:uppercase;}
+.rank-pct{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);flex-shrink:0;}
+
+.match-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.match-head{font-size:11px;color:var(--dim);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;}
+.matchup-row{display:flex;align-items:center;gap:10px;}
+.p-block{flex:1;text-align:center;}
+.p-name{font-size:14.5px;font-weight:600;}
+.p-name.fav{color:var(--amber);}
+.p-rank{font-size:11px;color:var(--dim);margin-top:1px;}
+.vs{font-family:'Teko',sans-serif;font-size:18px;color:var(--clay);padding:0 4px;}
+
+.prop-card{
+  background:rgba(255,255,255,0.03);border:1px solid #223140;border-radius:8px;
+  padding:10px 12px;margin-top:10px;cursor:pointer;
+}
+.prop-top{display:flex;justify-content:space-between;align-items:center;}
+.prop-name{font-size:13px;font-weight:600;color:var(--chalk);}
+.prop-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.prop-pct{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prop-pct.strong{color:var(--amber);}
+.prop-pct.lean{color:var(--green);}
+.prop-pct.soft{color:var(--dim);}
+.badge{font-size:9px;letter-spacing:0.5px;text-align:right;margin-top:2px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.prop-card.open .reasons{display:block;}
+.reasons ul{margin:0;padding-left:16px;}
+.reasons li{margin-bottom:4px;}
+.reasons b{color:var(--chalk);}
+
+.parlay-card{
+  background:linear-gradient(160deg, rgba(242,169,59,0.12) 0%, var(--navy) 55%);
+  border:1px solid rgba(242,169,59,0.4);border-radius:12px;padding:18px 16px;margin-top:10px;
+}
+.parlay-title{font-family:'Teko',sans-serif;font-size:22px;letter-spacing:0.5px;color:var(--amber);margin-bottom:4px;}
+.parlay-note{font-size:11px;color:var(--dim);margin-bottom:10px;}
+.leg{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.leg:last-child{border-bottom:none;}
+.leg-name{color:var(--chalk);}
+.leg-prop{color:var(--dim);font-size:11px;display:block;}
+.leg-pct{font-family:'Teko',sans-serif;font-size:18px;color:var(--amber);}
+.parlay-total{
+  display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;
+  border-top:1px dashed rgba(242,169,59,0.4);
+}
+.parlay-total-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--chalk);}
+.parlay-total-pct{font-family:'Teko',sans-serif;font-size:32px;color:var(--amber);}
+
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>COURT EDGES</h1></div>
+  <p class="sub">A researched snapshot of today's most analyzable ATP/WTA matches \u2014 match-winner AND game/set props, modeled from ranking, H2H, recent form, surface splits, and market pricing.</p>
+  <div class="warn-banner">Modeled/market-derived probabilities \u2014 not live sportsbook lines, and not betting advice. Gamble responsibly if at all.</div>
+  <div class="snap-banner">One-time researched snapshot (Sept 14, 2026), not a live-refreshing feed \u2014 tennis has no free public live-stats API the way MLB does. Ask again on a future day for a fresh read.</div>
+
+  <div class="section-title">RANKED: ALL FAVORABLE PROPS</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="ML">Match winner</button>
+    <button data-f="GAME">Game/set props</button>
+  </div>
+  <div id="rankList"></div>
+
+  <div class="section-title">MATCH BREAKDOWNS</div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Tiburon, USA \u00b7 1st Round \u00b7 Hard</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Michael Mmoh</div><div class="p-rank">Former top-100 ATP, multi-time Challenger champ</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Karue Sell</div><div class="p-rank">Lower-ranked, first meeting</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Michael Mmoh to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">76%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting, no history between them.</li>
+          <li><b>Profile gap:</b> Mmoh is a former top-100 ATP tour player with multiple Challenger titles (Tiburon 2018, Cary 2022); Sell is a lesser-established player at this level.</li>
+          <li><b>Market context:</b> pre-match pricing treated Mmoh as a heavy favorite, consistent with the experience/level gap.</li>
+          <li><b>No game/set props found</b> for this match from public sources \u2014 only the match-winner market was available.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Tiburon, USA \u00b7 1st Round \u00b7 Hard</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Alastair Gray</div><div class="p-rank">Established Challenger-level</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Patrick Maloney</div><div class="p-rank">Rank 864</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Alastair Gray to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">67%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Gray leads 1-0 (M25 Loughborough, 2024), though not on hard.</li>
+          <li><b>Ranking gap:</b> Gray is the clearly higher-level player; Maloney sits at rank 864 (career-best 319).</li>
+          <li><b>Recent form:</b> Maloney is a modest 5-5 over his last 10 matches, 3-4 on hard this season.</li>
+          <li><b>Serve:</b> Gray has a small 2nd-serve edge (44.1% vs 43.6%) over the past six months.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Patrick Maloney +5.5 games</div><div class="prop-sub">Handicap (games won, incl. this margin)</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">76%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Maloney has covered a +5.5 games handicap in 9 of his last 10 matches \u2014 even in losses, he's been staying within range.</li>
+          <li>Market-implied probability from the quoted odds (-312) is ~76%, independent of who wins the actual match.</li>
+          <li>This is a spread-style bet, not a match-winner pick \u2014 Maloney can lose the match and this can still hit.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Match Total Games Over 19.5</div><div class="prop-sub">Total games, both players combined</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">70%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Gray's matches have trended toward longer total game counts over his last 7 outings.</li>
+          <li>Market-implied probability from the quoted odds (-238) is ~70%.</li>
+          <li>Note: Gray's <i>own</i> games total has separately trended under 12.5 (below) \u2014 these describe different things (his own games won vs. the whole match's total games) and aren't a contradiction.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Alastair Gray Total Games Under 12.5</div><div class="prop-sub">Gray's own games won</div></div>
+        <div style="text-align:right;"><div class="prop-pct soft">53%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Gray has won under 12.5 of his own games in 14 of his last 15 matches \u2014 he tends to close matches out efficiently rather than grinding through long ones.</li>
+          <li>Market-implied probability from the quoted odds (-114) is ~53% \u2014 closer to a coin flip than the historical frequency alone suggests, so treat with caution.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 Qualifying \u00b7 Tiburon, USA \u00b7 Hard</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Timo Legout</div><div class="p-rank">Favorite, first meeting</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Daniil Ostapenkov</div><div class="p-rank">Underdog, first meeting</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Timo Legout to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">64%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting, no history.</li>
+          <li><b>Market context:</b> pre-match pricing favored Legout, though the gap is narrower than the other matches here.</li>
+          <li><b>No game/set props found</b> for this match \u2014 qualifying rounds get thinner coverage.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">WTA Guadalajara Open Akron \u00b7 1st Round \u00b7 Hard</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name">Tatjana Maria</div><div class="p-rank">Rank 83</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name fav">Taylor Townsend</div><div class="p-rank">Rank 96</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Taylor Townsend to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">63%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Townsend leads 1-0, won their only meeting in straight sets (Washington, July 2025), also on hard.</li>
+          <li><b>2026 hard-court form:</b> Townsend 16-8 (67%) vs Maria 6-13 (32%) this season.</li>
+          <li><b>Recent form:</b> both 6-4 over their last 10 \u2014 roughly even, both lost most recently at the US Open.</li>
+          <li><b>Serve/return:</b> Townsend wins more 2nd-serve points (46% vs 40%) and saves more break points (51% vs 47%); Maria is the sharper 2nd-serve returner.</li>
+          <li>An independent predictive model (Dimers) put Townsend closer to 66% \u2014 our estimate leans slightly more conservative.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Taylor Townsend wins 1st set</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">63%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Sourced from an independent predictive model (Dimers), based on simulating the matchup.</li>
+          <li>Consistent with Townsend's stronger recent hard-court serve numbers translating into faster starts.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Match Total Games Over 20.5</div><div class="prop-sub">Total games, both players combined</div></div>
+        <div style="text-align:right;"><div class="prop-pct soft">52%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Sourced from an independent predictive model (Dimers) \u2014 close to a coin flip, so treat as low-confidence.</li>
+          <li>Maria's slice-heavy, disruptive style can drag out rallies and games even when she's not favored to win overall, which supports a longer match.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">HIGHLY FAVORABLE PARLAY</div>
+  <div class="parlay-card">
+    <div class="parlay-title">TOP-3 DIVERSIFIED PARLAY</div>
+    <div class="parlay-note">One leg per match (highest-probability pick from each) \u2014 avoids stacking correlated bets from the same match.</div>
+    <div class="leg">
+      <div><div class="leg-name">Michael Mmoh ML</div><div class="leg-prop">vs Karue Sell &mdash; Tiburon Challenger</div></div>
+      <div class="leg-pct">76%</div>
+    </div>
+    <div class="leg">
+      <div><div class="leg-name">Patrick Maloney +5.5 games</div><div class="leg-prop">vs Alastair Gray &mdash; Tiburon Challenger</div></div>
+      <div class="leg-pct">76%</div>
+    </div>
+    <div class="leg">
+      <div><div class="leg-name">Timo Legout ML</div><div class="leg-prop">vs Daniil Ostapenkov &mdash; Tiburon Qualifying</div></div>
+      <div class="leg-pct">64%</div>
+    </div>
+    <div class="parlay-total">
+      <div class="parlay-total-label">COMBINED HIT PROBABILITY</div>
+      <div class="parlay-total-pct" id="parlayPct">37%</div>
+    </div>
+  </div>
+
+  <p class="footnote">Combined probability multiplies each leg's probability together, assuming independence \u2014 a real book's parlay price would include their own odds and vig, not reflected here. Game/set props were only available (via third-party trend and predictive-model sites) for the Gray/Maloney and Maria/Townsend matches; Mmoh/Sell and Legout/Ostapenkov only had match-winner markets in what we could find. Only matches with enough public data were included; today's slate also had lower-tier developmental events (UTR Pro Tennis Tour, junior/college-adjacent) with no meaningful public stats, left out rather than guessed at. This is a hobby stats exercise, not financial or betting advice.</p>
+</div>
+
+<script>
+const ranked = [
+  { name:'Michael Mmoh', prop:'Match winner vs Karue Sell', pct:76, cat:'ML' },
+  { name:'Patrick Maloney', prop:'+5.5 games handicap vs Gray', pct:76, cat:'GAME' },
+  { name:'Match Total (Gray/Maloney)', prop:'Over 19.5 total games', pct:70, cat:'GAME' },
+  { name:'Alastair Gray', prop:'Match winner vs Patrick Maloney', pct:67, cat:'ML' },
+  { name:'Timo Legout', prop:'Match winner vs Daniil Ostapenkov', pct:64, cat:'ML' },
+  { name:'Taylor Townsend', prop:'Wins 1st set vs Maria', pct:63, cat:'GAME' },
+  { name:'Taylor Townsend', prop:'Match winner vs Tatjana Maria', pct:63, cat:'ML' },
+  { name:'Alastair Gray', prop:'Under 12.5 own games won', pct:53, cat:'GAME' },
+  { name:'Match Total (Maria/Townsend)', prop:'Over 20.5 total games', pct:52, cat:'GAME' },
+];
+
+function renderRank(filter){
+  const rows = ranked.filter(r => filter === 'all' || r.cat === filter);
+  document.getElementById('rankList').innerHTML = rows.map((r,i) => `
+    <div class="rank-row">
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-main">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-sub">${r.prop}</div>
+        <div class="rank-tag">${r.cat === 'ML' ? 'Match Winner' : 'Game / Set Prop'}</div>
+      </div>
+      <div class="rank-pct">${r.pct}%</div>
+    </div>
+  `).join('');
+}
+renderRank('all');
+
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRank(btn.dataset.f);
+  });
+});
+
+const legs = [0.76, 0.76, 0.64];
+const combined = legs.reduce((a,b) => a*b, 1);
+document.getElementById('parlayPct').textContent = Math.round(combined*100) + '%';
+</script>
+</body>
+</html>

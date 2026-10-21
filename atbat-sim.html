@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>At-Bat Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field:#2F6E4D;
+  --field-dark:#1F4C34;
+  --dirt:#B5713F;
+  --chalk:#EDEAE0;
+  --amber:#F2A93B;
+  --navy:#16232E;
+  --navy-light:#1E2F3D;
+  --ink:#0B0F10;
+  --red:#C0433A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  padding:28px 16px 60px;
+}
+.wrap{max-width:680px;margin:0 auto;}
+
+.title-row{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+h1{
+  font-family:'Teko',sans-serif;
+  font-weight:700;
+  font-size:44px;
+  letter-spacing:0.5px;
+  margin:0;
+  color:var(--chalk);
+  line-height:1;
+}
+.sub{
+  font-size:13px;
+  color:#8FA396;
+  margin:0 0 26px;
+}
+
+.diamond{
+  width:14px;height:14px;
+  background:var(--dirt);
+  transform:rotate(45deg);
+  display:inline-block;
+  margin-right:8px;
+  border-radius:2px;
+}
+
+.search-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:18px;
+}
+@media(max-width:520px){.search-grid{grid-template-columns:1fr;}}
+
+.search-box{position:relative;}
+.search-label{
+  font-family:'Teko',sans-serif;
+  font-size:18px;
+  letter-spacing:1px;
+  color:var(--amber);
+  margin-bottom:6px;
+  display:block;
+}
+.search-box input{
+  width:100%;
+  background:var(--navy);
+  border:1px solid #2A3B48;
+  color:var(--chalk);
+  padding:11px 12px;
+  border-radius:6px;
+  font-size:15px;
+  font-family:'Inter',sans-serif;
+  outline:none;
+}
+.search-box input:focus{border-color:var(--amber);}
+.results{
+  position:absolute;
+  top:calc(100% + 4px);
+  left:0;right:0;
+  background:var(--navy-light);
+  border:1px solid #2A3B48;
+  border-radius:6px;
+  max-height:220px;
+  overflow-y:auto;
+  z-index:10;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.result-item{
+  padding:9px 12px;
+  cursor:pointer;
+  font-size:14px;
+  border-bottom:1px solid #223140;
+  display:flex;
+  justify-content:space-between;
+}
+.result-item:last-child{border-bottom:none;}
+.result-item:hover{background:#28394A;}
+.result-item .pos{color:#7C93A3;font-size:12px;}
+
+.status-line{font-size:12px;color:#7C93A3;margin-top:4px;min-height:16px;}
+.status-line.err{color:var(--red);}
+
+.matchup{
+  background:var(--navy);
+  border:1px solid #263644;
+  border-radius:10px;
+  padding:22px 16px;
+  margin:22px 0;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:10px;
+}
+.player-slot{text-align:center;}
+.avatar{
+  width:64px;height:64px;
+  border-radius:50%;
+  margin:0 auto 10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Teko',sans-serif;
+  font-size:26px;
+  font-weight:600;
+  color:#fff;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.player-name{font-size:14px;font-weight:600;color:var(--chalk);}
+.player-meta{font-size:11px;color:#7C93A3;margin-top:2px;}
+.player-slot.empty .player-name{color:#4A5A66;}
+.vs{
+  font-family:'Teko',sans-serif;
+  font-size:22px;
+  color:var(--dirt);
+  letter-spacing:1px;
+}
+
+.stat-strip{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+.stat-chip{
+  font-size:11px;
+  color:#9FB3A9;
+  background:rgba(255,255,255,0.04);
+  border-radius:4px;
+  padding:3px 7px;
+}
+.stat-chip b{color:var(--chalk);font-weight:600;}
+
+.sim-btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:8px;
+  background:var(--amber);
+  color:#1A1400;
+  font-family:'Teko',sans-serif;
+  font-size:22px;
+  letter-spacing:1px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform 0.1s ease, background 0.15s ease;
+}
+.sim-btn:hover:not(:disabled){background:#FFC160;}
+.sim-btn:active:not(:disabled){transform:scale(0.98);}
+.sim-btn:disabled{background:#3A3A2E;color:#6B6B5E;cursor:not-allowed;}
+
+.result-card{
+  margin-top:22px;
+  background:linear-gradient(180deg, var(--navy-light) 0%, var(--navy) 100%);
+  border:1px solid #2A3B48;
+  border-radius:10px;
+  padding:20px;
+  text-align:center;
+  display:none;
+}
+.result-card.show{display:block;animation:pop 0.35s ease;}
+@keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.result-outcome{
+  font-family:'Teko',sans-serif;
+  font-size:38px;
+  letter-spacing:0.5px;
+  font-weight:700;
+}
+.result-outcome.hit{color:var(--amber);}
+.result-outcome.out{color:#9FB3A9;}
+.result-outcome.walk{color:#7FB3D9;}
+.result-flavor{font-size:14px;color:var(--chalk);margin-top:6px;}
+.result-odds{font-size:11px;color:#7C93A3;margin-top:10px;}
+
+.history{margin-top:24px;}
+.history-title{
+  font-family:'Teko',sans-serif;
+  font-size:18px;
+  letter-spacing:1px;
+  color:#7C93A3;
+  margin-bottom:8px;
+}
+.history-item{
+  display:flex;
+  justify-content:space-between;
+  font-size:13px;
+  padding:8px 4px;
+  border-bottom:1px solid #1E2A34;
+}
+.history-item .h-outcome{font-weight:600;}
+
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row">
+    <span class="diamond"></span>
+    <h1>AT-BAT SIMULATOR</h1>
+  </div>
+  <p class="sub">Pick a batter and a pitcher. Live current-season stats decide the odds.</p>
+
+  <div class="search-grid">
+    <div class="search-box">
+      <label class="search-label">BATTER</label>
+      <input type="text" id="batterInput" placeholder="Search a hitter...">
+      <div class="results" id="batterResults" style="display:none;"></div>
+      <div class="status-line" id="batterStatus"></div>
+    </div>
+    <div class="search-box">
+      <label class="search-label">PITCHER</label>
+      <input type="text" id="pitcherInput" placeholder="Search a pitcher...">
+      <div class="results" id="pitcherResults" style="display:none;"></div>
+      <div class="status-line" id="pitcherStatus"></div>
+    </div>
+  </div>
+
+  <div class="matchup">
+    <div class="player-slot empty" id="batterSlot">
+      <div class="avatar" id="batterAvatar" style="background:#2A3B48;">?</div>
+      <div class="player-name" id="batterName">No batter</div>
+      <div class="player-meta" id="batterMeta"></div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="player-slot empty" id="pitcherSlot">
+      <div class="avatar" id="pitcherAvatar" style="background:#2A3B48;">?</div>
+      <div class="player-name" id="pitcherName">No pitcher</div>
+      <div class="player-meta" id="pitcherMeta"></div>
+    </div>
+  </div>
+  <div class="stat-strip" id="statStrip"></div>
+
+  <button class="sim-btn" id="simBtn" disabled>SIMULATE AT-BAT</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-outcome" id="resultOutcome"></div>
+    <div class="result-flavor" id="resultFlavor"></div>
+    <div class="result-odds" id="resultOdds"></div>
+  </div>
+
+  <div class="history" id="historyWrap" style="display:none;">
+    <div class="history-title">THIS SESSION</div>
+    <div id="historyList"></div>
+  </div>
+
+  <p class="footnote">Stats pulled live from the MLB Stats API (current season). Outcome odds are a simplified blend of each player's per-plate-appearance rates — for fun, not for betting.</p>
+</div>
+
+<script>
+const SEASON = new Date().getMonth() >= 2 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+let batter = null, pitcher = null, history = [];
+
+function avatarColor(name){
+  let hash = 0;
+  for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 45%, 38%)`;
+}
+function initials(name){
+  return name.split(' ').filter(Boolean).map(p=>p[0]).join('').slice(0,2).toUpperCase();
+}
+
+function debounce(fn, ms){
+  let t;
+  return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+
+async function searchPlayer(query, statusEl){
+  statusEl.textContent = 'Searching...';
+  statusEl.className = 'status-line';
+  try{
+    const res = await fetch(`https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(query)}`);
+    if(!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    statusEl.textContent = '';
+    return (data.people || []).slice(0, 8);
+  }catch(e){
+    statusEl.textContent = 'Could not reach MLB stats API. Check your connection and try again.';
+    statusEl.className = 'status-line err';
+    return [];
+  }
+}
+
+async function fetchStats(personId, group, statusEl){
+  try{
+    const res = await fetch(`https://statsapi.mlb.com/api/v1/people/${personId}/stats?stats=season&group=${group}&season=${SEASON}`);
+    if(!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    const splits = data.stats && data.stats[0] && data.stats[0].splits;
+    if(!splits || !splits.length){
+      statusEl.textContent = `No ${SEASON} ${group} stats found for this player yet.`;
+      statusEl.className = 'status-line err';
+      return null;
+    }
+    return splits[0].stat;
+  }catch(e){
+    statusEl.textContent = 'Could not load stats for this player.';
+    statusEl.className = 'status-line err';
+    return null;
+  }
+}
+
+function wireSearch(inputId, resultsId, statusId, role){
+  const input = document.getElementById(inputId);
+  const resultsEl = document.getElementById(resultsId);
+  const statusEl = document.getElementById(statusId);
+
+  const doSearch = debounce(async ()=>{
+    const q = input.value.trim();
+    if(q.length < 2){ resultsEl.style.display='none'; return; }
+    const people = await searchPlayer(q, statusEl);
+    if(!people.length){ resultsEl.style.display='none'; return; }
+    resultsEl.innerHTML = people.map(p=>`
+      <div class="result-item" data-id="${p.id}" data-name="${p.fullName}">
+        <span>${p.fullName}</span>
+        <span class="pos">${(p.primaryPosition && p.primaryPosition.abbreviation) || ''}</span>
+      </div>
+    `).join('');
+    resultsEl.style.display = 'block';
+  }, 350);
+
+  input.addEventListener('input', doSearch);
+  input.addEventListener('focus', ()=>{ if(resultsEl.innerHTML) resultsEl.style.display='block'; });
+  document.addEventListener('click', (e)=>{
+    if(!resultsEl.contains(e.target) && e.target !== input) resultsEl.style.display='none';
+  });
+
+  resultsEl.addEventListener('click', async (e)=>{
+    const item = e.target.closest('.result-item');
+    if(!item) return;
+    const id = item.dataset.id;
+    const name = item.dataset.name;
+    resultsEl.style.display = 'none';
+    input.value = name;
+    statusEl.textContent = 'Loading stats...';
+    statusEl.className = 'status-line';
+
+    const group = role === 'batter' ? 'hitting' : 'pitching';
+    const stat = await fetchStats(id, group, statusEl);
+    if(!stat) return;
+    statusEl.textContent = '';
+
+    const playerObj = { id, name, stat };
+    if(role === 'batter'){ batter = playerObj; renderSlot('batter', playerObj); }
+    else{ pitcher = playerObj; renderSlot('pitcher', playerObj); }
+    updateStatStrip();
+    checkReady();
+  });
+}
+
+function renderSlot(role, player){
+  const slot = document.getElementById(role + 'Slot');
+  const avatar = document.getElementById(role + 'Avatar');
+  const nameEl = document.getElementById(role + 'Name');
+  const metaEl = document.getElementById(role + 'Meta');
+  slot.classList.remove('empty');
+  avatar.style.background = avatarColor(player.name);
+  avatar.textContent = initials(player.name);
+  nameEl.textContent = player.name;
+  metaEl.textContent = role === 'batter'
+    ? `AVG .${Math.round((player.stat.avg||0)*1000)} · OPS ${Number(player.stat.ops||0).toFixed(3)}`
+    : `ERA ${Number(player.stat.era||0).toFixed(2)} · WHIP ${Number(player.stat.whip||0).toFixed(2)}`;
+}
+
+function updateStatStrip(){
+  const strip = document.getElementById('statStrip');
+  let chips = [];
+  if(batter){
+    const s = batter.stat;
+    chips.push(`<div class="stat-chip">BB% <b>${pct(s.baseOnBalls, s.plateAppearances)}</b></div>`);
+    chips.push(`<div class="stat-chip">K% <b>${pct(s.strikeOuts, s.plateAppearances)}</b></div>`);
+    chips.push(`<div class="stat-chip">HR <b>${s.homeRuns||0}</b></div>`);
+  }
+  if(pitcher){
+    const s = pitcher.stat;
+    chips.push(`<div class="stat-chip">K/9 <b>${Number(s.strikeoutsPer9Inn||0).toFixed(1)}</b></div>`);
+    chips.push(`<div class="stat-chip">BB/9 <b>${Number(s.walksPer9Inn||0).toFixed(1)}</b></div>`);
+  }
+  strip.innerHTML = chips.join('');
+}
+function pct(n, d){ if(!d) return '0%'; return Math.round((n/d)*100) + '%'; }
+
+function checkReady(){
+  document.getElementById('simBtn').disabled = !(batter && pitcher);
+}
+
+function rate(n, d, fallback){ return d ? (n/d) : fallback; }
+
+function buildOdds(){
+  const bs = batter.stat, ps = pitcher.stat;
+  const bPA = bs.plateAppearances || 1;
+  const pBF = ps.battersFaced || 1;
+
+  // batter per-PA rates
+  const bWalk = rate(bs.baseOnBalls, bPA, 0.08);
+  const bK = rate(bs.strikeOuts, bPA, 0.20);
+  const bHR = rate(bs.homeRuns, bPA, 0.03);
+  const b3B = rate(bs.triples, bPA, 0.005);
+  const b2B = rate(bs.doubles, bPA, 0.045);
+  const bHits = rate(bs.hits, bPA, 0.24);
+  const b1B = Math.max(bHits - bHR - b3B - b2B, 0.02);
+
+  // pitcher per-batter-faced rates
+  const pWalk = rate(ps.baseOnBalls, pBF, 0.08);
+  const pK = rate(ps.strikeOuts, pBF, 0.22);
+  const pHR = rate(ps.homeRuns, pBF, 0.025);
+  const pHits = rate(ps.hits, pBF, 0.23);
+  const p2B = pHits * 0.19;
+  const p3B = pHits * 0.02;
+  const p1B = Math.max(pHits - pHR - p2B - p3B, 0.02);
+
+  // blend batter & pitcher rate 50/50 per category
+  let raw = {
+    walk: (bWalk + pWalk) / 2,
+    k: (bK + pK) / 2,
+    hr: (bHR + pHR) / 2,
+    triple: (b3B + p3B) / 2,
+    double: (b2B + p2B) / 2,
+    single: (b1B + p1B) / 2,
+  };
+  const usedSum = Object.values(raw).reduce((a,b)=>a+b, 0);
+  raw.out = Math.max(1 - usedSum, 0.15); // groundout/flyout/lineout bucket
+
+  const total = Object.values(raw).reduce((a,b)=>a+b, 0);
+  const odds = {};
+  for(const k in raw) odds[k] = raw[k] / total;
+  return odds;
+}
+
+const FLAVOR = {
+  walk: ['Works the count full and draws a walk.', 'Lays off a close one — ball four.', 'Takes first base on a walk.'],
+  k: ['Strikes out swinging.', 'Called third strike — back to the dugout.', 'Whiffs on a nasty breaking ball.'],
+  hr: ['Crushes it — gone! Home run.', 'Deep drive... over the wall! Home run.', 'No doubt about that one. Home run.'],
+  triple: ['Rips one into the gap — triple!', 'Legs out a stand-up triple.'],
+  double: ['Line drive into the corner — stands at second with a double.', 'Rope down the line for a double.'],
+  single: ['Sharp single up the middle.', 'Blooper drops in for a single.', 'Grounder sneaks through for a single.'],
+  out: ['Grounds out to short.', 'Flies out to center.', 'Lines out to third.', 'Pops up to the infield.'],
+};
+const LABELS = { walk:'WALK', k:'STRIKEOUT', hr:'HOME RUN', triple:'TRIPLE', double:'DOUBLE', single:'SINGLE', out:'OUT' };
+const CLASS = { walk:'walk', k:'out', hr:'hit', triple:'hit', double:'hit', single:'hit', out:'out' };
+
+function simulate(){
+  const odds = buildOdds();
+  const roll = Math.random();
+  let cum = 0, chosen = 'out';
+  for(const k of ['walk','k','hr','triple','double','single','out']){
+    cum += odds[k];
+    if(roll <= cum){ chosen = k; break; }
+  }
+  const flavor = FLAVOR[chosen][Math.floor(Math.random()*FLAVOR[chosen].length)];
+
+  const card = document.getElementById('resultCard');
+  const outcomeEl = document.getElementById('resultOutcome');
+  const flavorEl = document.getElementById('resultFlavor');
+  const oddsEl = document.getElementById('resultOdds');
+
+  outcomeEl.textContent = LABELS[chosen];
+  outcomeEl.className = 'result-outcome ' + CLASS[chosen];
+  flavorEl.textContent = `${batter.name} vs ${pitcher.name}: ${flavor}`;
+  oddsEl.textContent = `Odds used — HR ${(odds.hr*100).toFixed(1)}% · K ${(odds.k*100).toFixed(1)}% · BB ${(odds.walk*100).toFixed(1)}% · Hit(1B/2B/3B) ${((odds.single+odds.double+odds.triple)*100).toFixed(1)}% · Out ${(odds.out*100).toFixed(1)}%`;
+  card.classList.add('show');
+
+  history.unshift({ outcome: LABELS[chosen], matchup: `${batter.name} vs ${pitcher.name}`, cls: CLASS[chosen] });
+  renderHistory();
+}
+
+function renderHistory(){
+  const wrap = document.getElementById('historyWrap');
+  const list = document.getElementById('historyList');
+  if(!history.length){ wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = history.slice(0,10).map(h=>`
+    <div class="history-item">
+      <span>${h.matchup}</span>
+      <span class="h-outcome" style="color:${h.cls==='hit'?'var(--amber)':h.cls==='walk'?'#7FB3D9':'#9FB3A9'}">${h.outcome}</span>
+    </div>
+  `).join('');
+}
+
+wireSearch('batterInput','batterResults','batterStatus','batter');
+wireSearch('pitcherInput','pitcherResults','pitcherStatus','pitcher');
+document.getElementById('simBtn').addEventListener('click', simulate);
+</script>
+</body>
+</html>

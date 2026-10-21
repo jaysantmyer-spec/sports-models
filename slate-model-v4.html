@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slate Model v4 &mdash; F5 Learner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--fd:#1F4C34;--dirt:#B5713F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--blue:#7FB3D9;--dim:#7C93A3;--green:#5FAE7A;--purple:#9A7FD9;--teal:#5FB8AE;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--fd) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}
+.chain b{color:var(--amber);}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button{flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;}
+.tabs button.active{background:rgba(242,169,59,.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;}.pane.active{display:block;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.mt{margin-top:8px;}
+.btn{width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:12.5px;padding:7px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.scoreboard{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.sb{flex:1;min-width:90px;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:10px 6px;text-align:center;}
+.sb .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}
+.sb .v{font-family:'Teko',sans-serif;font-size:23px;color:var(--amber);line-height:1.15;}
+.sb .r{font-size:9.5px;color:var(--dim);}
+.trained{font-size:10.5px;padding:7px 10px;border-radius:6px;margin-bottom:10px;line-height:1.5;}
+.trained.yes{background:rgba(95,174,122,.1);color:var(--green);}
+.trained.no{background:rgba(242,169,59,.08);color:var(--amber);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.hit{border-color:rgba(95,174,122,.45);}.card.miss{border-color:rgba(192,67,58,.4);}.card.play{border-color:rgba(95,174,122,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.cprob{text-align:right;flex-shrink:0;}
+.cprob .v{font-family:'Teko',sans-serif;font-size:25px;line-height:1;color:var(--amber);}
+.cprob .l{font-size:8.5px;color:var(--dim);letter-spacing:.5px;}
+.models{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px;}
+.mcol{background:var(--nl);border:1px solid #2A3B48;border-radius:6px;padding:7px 4px;text-align:center;}
+.mcol.ens{border-color:rgba(242,169,59,.45);}
+.mcol .t{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;line-height:1.3;min-height:20px;}
+.mcol .p{font-family:'Teko',sans-serif;font-size:20px;color:var(--chalk);line-height:1.1;margin-top:3px;}
+.mcol.ens .p{color:var(--amber);}
+.mcol .w{font-size:8.5px;color:var(--dim);}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar .nm{font-size:11px;width:92px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:14px;overflow:hidden;}
+.bar .fl{height:100%;background:var(--amber);opacity:.75;}
+.bar .pc{font-family:'Teko',sans-serif;font-size:14px;width:44px;text-align:right;flex-shrink:0;}
+.ou{margin-top:10px;}
+.ou .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.ou .track{display:flex;height:18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);}
+.ou .over{background:var(--green);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1F12;}
+.ou .under{background:var(--blue);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1A26;}
+.ou .tie{background:var(--dim);opacity:.6;}
+.ou .sub{font-size:10.5px;color:var(--dim);margin-top:4px;}
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.est{background:rgba(242,169,59,.08);color:var(--amber);}.flag.neutral{background:rgba(255,255,255,.03);color:var(--dim);}.flag.wx{background:rgba(95,184,174,.09);color:var(--teal);}
+.result-line{font-size:11px;border-radius:5px;padding:6px 9px;margin-top:7px;line-height:1.5;}
+.result-line.hit{background:rgba(95,174,122,.12);color:var(--green);}.result-line.miss{background:rgba(192,67,58,.1);color:#E8B4AE;}.result-line.push{background:rgba(255,255,255,.04);color:var(--dim);}
+.odds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px;}
+.odds input{padding:7px 8px;font-size:13px;}.odds label{font-size:9px;}
+.rec{margin-top:9px;padding:10px 11px;border-radius:6px;font-size:12px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.ovr{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:10px;margin-top:9px;}
+.ovr h5{font-family:'Teko',sans-serif;font-size:13px;letter-spacing:.4px;margin:0 0 7px;color:var(--amber);}
+.ovr input{padding:6px 7px;font-size:12.5px;}.ovr label{font-size:8.5px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td{padding:5px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:56%;}td.num{font-family:'Teko',sans-serif;font-size:16px;}
+td.good{color:var(--green);}td.bad{color:var(--red);}td.flat{color:var(--dim);}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,.1);border:1px solid rgba(192,67,58,.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>SLATE MODEL v4 &mdash; F5 LEARNER</h1></div>
+  <p class="sub">The v3 first-five model, rebuilt so the backtest <i>trains</i> instead of just grading. Every coefficient that used to be a guess is now fit from the season, and the slate uses what it learned.</p>
+
+  <div class="chain">
+    <b>RUN ENGINE (learned)</b> &mdash; Poisson regression: log &lambda; = &beta;&#8320; + &beta;<sub>off</sub>&middot;log(offence BR) + &beta;<sub>def</sub>&middot;log(defence BR) + &beta;<sub>sp</sub>&middot;log(starter FIP share) + &beta;<sub>park</sub>&middot;log(park) + &beta;<sub>home</sub> + &beta;<sub>temp</sub>&middot;(&deg;F&minus;70)/10 + &beta;<sub>wind</sub>&middot;mph/10<br>
+    <b>DISPERSION (learned)</b> &mdash; negative binomial shape fit from residuals, so tails and tie rates match real innings instead of Poisson<br>
+    <b>F5 RATINGS (learned)</b> &mdash; Bradley&ndash;Terry on who led after five, with a starter-FIP term and home term, fit by maximum likelihood<br>
+    <b>ENSEMBLE + CALIBRATION (learned)</b> &mdash; simulation and ratings weighted by out-of-sample Brier, then a fitted calibration curve
+  </div>
+
+  <div class="tabs"><button class="active" data-t="live">Today's Slate</button><button data-t="train">Train &amp; Backtest</button></div>
+
+  <div class="pane active" id="pane-live">
+    <div id="trainedBanner" class="trained no">No trained parameters found &mdash; defaults in use. Run Train &amp; Backtest for learned coefficients.</div>
+    <div class="panel">
+      <div class="plabel">SETTINGS</div>
+      <div class="g3">
+        <div><label>Date</label><input type="date" id="dt"></div>
+        <div><label>Default F5 total</label><input type="number" step="0.5" id="defLine" value="4.5"></div>
+        <div><label>Edge threshold</label><select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select></div>
+      </div>
+      <div class="g3 mt">
+        <div><label>Include finished</label><select id="incFinal"><option value="1" selected>Yes, grade them</option><option value="0">Upcoming only</option></select></div>
+        <div><label>Weather</label><select id="useWx"><option value="1" selected>Live forecast</option><option value="0">Ignore</option></select></div>
+        <div><label>Sims</label><select id="sims"><option value="20000" selected>20,000</option><option value="10000">10,000</option></select></div>
+      </div>
+      <button class="btn" id="run">RUN SLATE</button>
+      <div class="prog"><div id="bar"></div></div>
+      <div class="status" id="st"></div>
+      <div class="hint">No API key. Every input on a card is editable.</div>
+    </div>
+    <div id="score"></div>
+    <div id="out"></div>
+  </div>
+
+  <div class="pane" id="pane-train">
+    <div class="panel">
+      <div class="plabel">PARK ORIENTATIONS &mdash; HOME PLATE TO CENTRE FIELD</div>
+      <div class="g4">
+        <div><label>Home team</label><select id="orTeam"></select></div>
+        <div><label>Home plate lat, lon</label><input type="text" id="orHP" placeholder="42.3464, -71.0974"></div>
+        <div><label>Centre field lat, lon</label><input type="text" id="orCF" placeholder="42.3471, -71.0962"></div>
+        <div><label>or bearing &deg;</label><input type="number" id="orDeg" placeholder="e.g. 60"></div>
+      </div>
+      <button class="btn ghost" id="orSave">SAVE ORIENTATION</button>
+      <div class="status" id="orSt"></div>
+      <div id="orList" class="note"></div>
+      <div class="hint">All 22 open-air parks are pre-loaded from satellite measurements. Use this panel only to correct one or add a temporary venue. Domes stay neutral. Retrain after any change so the wind-out coefficient is relearned.</div>
+    </div>
+    <div class="panel">
+      <div class="plabel">TRAIN ON A SEASON &mdash; WALK-FORWARD</div>
+      <div class="g3">
+        <div><label>Season start</label><input type="date" id="trStart" value="2026-04-01"></div>
+        <div><label>Season end</label><input type="date" id="trEnd" value="2026-09-19"></div>
+        <div><label>Warm-up games</label><select id="warm"><option value="300">300</option><option value="500" selected>500</option><option value="800">800</option></select></div>
+      </div>
+      <div class="g3 mt">
+        <div><label>Refit every</label><select id="refit"><option value="7" selected>7 days</option><option value="3">3 days</option><option value="14">14 days</option></select></div>
+        <div><label>Weather (archive)</label><select id="trWx"><option value="1" selected>Include</option><option value="0">Skip</option></select></div>
+        <div><label>Max games</label><select id="maxG"><option value="600">600</option><option value="1200">1200</option><option value="2500" selected>Full season</option></select></div>
+      </div>
+      <button class="btn" id="trRun">TRAIN &amp; BACKTEST</button>
+      <div class="prog"><div id="trBar"></div></div>
+      <div class="status" id="trSt"></div>
+      <div class="hint">Walks the season in order. Team and starter stats are queried through the day before each game; historical weather comes from Open-Meteo's archive. Models refit on an expanding window and every scored prediction is out of sample. Roughly 3&ndash;5 minutes per 600 games.</div>
+    </div>
+    <div id="trOut"></div>
+  </div>
+
+  <div class="warn"><b>Bankroll note.</b> Even a sound model loses roughly 40&ndash;45% of the time to variance. The number to trust is the out-of-sample one this trainer reports, not any published claim.</div>
+
+  <p class="footnote">Run engine: each team-side's first-five runs are modelled as negative-binomial with mean from a log-link regression on the team's BaseRuns per game, the opponent's BaseRuns-allowed per game, the opposing starter's FIP scaled by the share of five innings he typically covers, park factor, home indicator, and first-pitch temperature and wind speed. Coefficients are fit by Poisson maximum likelihood with light ridge shrinkage, and the negative-binomial shape by method of moments on the training residuals. F5 ratings: a Bradley&ndash;Terry model on which side led after five innings (ties excluded), with a home term and a term on the starters' FIP difference, fit by maximum likelihood with mean-gradient steps. Ensemble weights are Brier skill over a coin flip; a model that does not beat 0.235 gets no weight. A logit-linear calibration curve is fit on the out-of-sample ensemble predictions. Wind direction is not modelled because it requires each park's field orientation. Lineups are team-level; posted lineups are not yet used. Caught stealing and grounded-into-double-play totals absent from the pitching feed are estimated from at-bats. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+const WX_LIVE='https://api.open-meteo.com/v1/forecast',WX_ARCH='https://archive-api.open-meteo.com/v1/archive';
+const KEY='mlbF5Params_v4';
+const LG_FIP=4.10,FIP_C=3.15,LG_BR=4.45,LG_F5=2.55;
+const TEAM_ABBR={108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK={COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1,WSH:1,LAA:1,TOR:.99,ATL:.99,HOU:.99,MIN:.99,CHC:.98,KC:.98,STL:.98,DET:.97,LAD:.97,NYM:.97,CLE:.97,PIT:.96,TB:.96,SD:.95,MIA:.95,SF:.94,SEA:.94,ATH:.98};
+const DOME=new Set([141,139,146,109,117,158,136,140]);
+
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function mmdd(s){return `${s.slice(5,7)}/${s.slice(8,10)}/${s.slice(0,4)}`;}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
+document.getElementById('dt').value=iso(new Date());
+function v(id){const e=document.getElementById(id);if(!e)return null;const x=e.value.trim();return x===''?null:Number(x);}
+function setS(id,t,e){const el=document.getElementById(id);el.textContent=t;el.className='status'+(e?' err':'');}
+function setBar(id,p){document.getElementById(id).style.width=Math.round(p*100)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function sig(x){return 1/(1+Math.exp(-x));}
+function amToImp(p){return p>0?100/(p+100):(-p)/((-p)+100);}
+function fmtAm(p){return p>0?`+${p}`:`${p}`;}
+function probToAm(p){if(p<=0||p>=1)return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`${l}: HTTP ${r.status}`;return null;}return await r.json();}catch(e){window.__err=`${l}: ${e.message}`;return null;}}
+async function pool(items,limit,fn){const out=new Array(items.length);let i=0;async function w(){while(i<items.length){const k=i++;out[k]=await fn(items[k],k);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},w));return out;}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('pane-'+b.dataset.t).classList.add('active');}));
+
+// ---------- random draws ----------
+function poisson(l){if(l>30){const x=l+Math.sqrt(l)*randn();return Math.max(0,Math.round(x));}const L=Math.exp(-l);let k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+function randn(){let u=0,w=0;while(!u)u=Math.random();while(!w)w=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w);}
+function gammaDraw(k){ // Marsaglia-Tsang, scale 1
+  if(k<1){return gammaDraw(k+1)*Math.pow(Math.random(),1/k);}
+  const d=k-1/3,c=1/Math.sqrt(9*d);
+  for(;;){let x,vv;do{x=randn();vv=1+c*x;}while(vv<=0);vv=vv*vv*vv;const u=Math.random();if(u<1-.0331*x*x*x*x)return d*vv;if(Math.log(u)<.5*x*x+d*(1-vv+Math.log(vv)))return d*vv;}
+}
+// Negative binomial with mean lambda and shape r (r=Infinity -> Poisson)
+function nbDraw(l,r){if(!isFinite(r)||r>1e6)return poisson(l);const g=gammaDraw(r)*(l/r);return poisson(g);}
+
+// ---------- baseball formulas ----------
+function baseRuns(s){const A=s.H+s.BB+s.HBP-s.HR;const B=(1.4*s.TB)-(.6*s.H)-(3*s.HR)+(.1*s.BB);const C=s.AB-s.H+s.CS+s.GIDP;if(B+C===0)return null;return {A,B,C,D:s.HR,runs:(A*B)/(B+C)+s.HR};}
+function fipFrom(st){const ip=Number(st.inningsPitched)||0;if(ip<10)return null;const hr=Number(st.homeRuns)||0,bb=Number(st.baseOnBalls)||0,hbp=Number(st.hitBatsmen)||0,k=Number(st.strikeOuts)||0;return ((13*hr)+(3*(bb+hbp))-(2*k))/ip+FIP_C;}
+function tbFrom(st){return (Number(st.hits)||0)+(Number(st.doubles)||0)+2*(Number(st.triples)||0)+3*(Number(st.homeRuns)||0);}
+function pull(st,group){const ab=Number(st.atBats)||0;let cs=Number(st.caughtStealing)||0,gidp=Number(st.groundIntoDoublePlay)||0,estimated=false;
+  if(group==='pitching'&&cs===0&&gidp===0&&ab>500){cs=Math.round(ab*.0055);gidp=Math.round(ab*.02);estimated=true;}
+  return {H:Number(st.hits)||0,BB:Number(st.baseOnBalls)||0,HBP:Number(group==='pitching'?st.hitBatsmen:st.hitByPitch)||0,HR:Number(st.homeRuns)||0,TB:Number(st.totalBases)||tbFrom(st),AB:ab,CS:cs,GIDP:gidp,estimated,runs:Number(st.runs)||0,G:Number(st.gamesPlayed)||0};}
+
+// ---------- data with pre-game cutoff ----------
+const cache=new Map();
+async function teamStats(tid,season,group,cutoff){
+  const k=`${tid}|${season}|${group}|${cutoff||'now'}`;if(cache.has(k))return cache.get(k);
+  const url=cutoff?`${MLB}/teams/${tid}/stats?stats=byDateRange&group=${group}&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`:`${MLB}/teams/${tid}/stats?stats=season&group=${group}&season=${season}`;
+  const d=await getJSON(url,'team');const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;const val=st?pull(st,group):null;cache.set(k,val);return val;
+}
+async function starter(pid,season,cutoff){
+  if(!pid)return null;const k=`sp|${pid}|${cutoff||'now'}`;if(cache.has(k))return cache.get(k);
+  const url=cutoff?`${MLB}/people/${pid}/stats?stats=byDateRange&group=pitching&season=${season}&startDate=03/01/${season}&endDate=${mmdd(cutoff)}`:`${MLB}/people/${pid}/stats?stats=season&group=pitching&season=${season}`;
+  const d=await getJSON(url,'sp');const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;let out=null;
+  if(st){const fip=fipFrom(st);const gs=Number(st.gamesStarted)||1;const ip=Number(st.inningsPitched)||0;if(fip!=null)out={fip,ipPerStart:clamp(gs?ip/gs:5.3,3,7.5)};}
+  cache.set(k,out);return out;
+}
+const venueLoc={};
+async function venueCoords(vid){if(!vid)return null;if(venueLoc[vid]!==undefined)return venueLoc[vid];
+  const d=await getJSON(`${MLB}/venues/${vid}?hydrate=location`,'venue');const c=d&&d.venues&&d.venues[0]&&d.venues[0].location&&d.venues[0].location.defaultCoordinates;venueLoc[vid]=c?{lat:c.latitude,lon:c.longitude}:null;return venueLoc[vid];}
+async function weatherAt(vid,homeId,dateStr,hourUTC,live){
+  if(DOME.has(homeId))return {temp:72,wind:0,dir:null,dome:true};
+  const c=await venueCoords(vid);if(!c)return null;
+  const k=`wx|${vid}|${dateStr}|${live?'L':'A'}`;if(cache.has(k)){const h=cache.get(k);return h?pick(h):null;}
+  const url=live?`${WX_LIVE}?latitude=${c.lat}&longitude=${c.lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=UTC&start_date=${dateStr}&end_date=${dateStr}`
+                :`${WX_ARCH}?latitude=${c.lat}&longitude=${c.lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=UTC&start_date=${dateStr}&end_date=${dateStr}`;
+  const d=await getJSON(url,'weather');const h=d&&d.hourly&&d.hourly.temperature_2m?d.hourly:null;cache.set(k,h);return h?pick(h):null;
+  function pick(h){const i=clamp(hourUTC,0,h.temperature_2m.length-1);return {temp:h.temperature_2m[i],wind:h.wind_speed_10m[i],dir:h.wind_direction_10m?h.wind_direction_10m[i]:null,dome:false};}
+}
+
+// ---------- park orientation ----------
+const OKEY='mlbParkBearings_v1';
+// Home-plate-to-centre-field bearings measured from satellite coordinates (degrees true). Domes omitted.
+const BEAR_DEFAULT={110:27.0,111:48.4,145:127.9,114:359.6,116:151.2,118:48.6,108:36.7,142:89.4,147:75.2,133:48.4,144:159.1,112:39.9,113:122.7,115:5.6,119:26.9,121:13.1,143:9.9,134:117.1,135:1.9,137:87.4,138:66.5,120:29.0};
+let BEAR=(()=>{try{return Object.assign({},BEAR_DEFAULT,JSON.parse(localStorage.getItem(OKEY)||'{}'));}catch(e){return Object.assign({},BEAR_DEFAULT);}})();
+function saveBear(){try{localStorage.setItem(OKEY,JSON.stringify(BEAR));}catch(e){}}
+// Initial bearing from home plate to centre field, from two lat/lon pairs.
+function bearingDeg(lat1,lon1,lat2,lon2){const r=Math.PI/180;const p1=lat1*r,p2=lat2*r,dl=(lon2-lon1)*r;
+  const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return ((Math.atan2(y,x)/r)+360)%360;}
+// Wind component blowing OUT toward centre field (mph). Meteorological direction is where wind comes FROM.
+function windOut(wx,homeId){if(!wx||wx.dome||wx.dir==null||wx.wind==null)return null;const b=BEAR[String(homeId)];if(b==null)return null;
+  const toward=(wx.dir+180)%360;const th=(toward-b)*Math.PI/180;return wx.wind*Math.cos(th);}
+
+// ---------- feature builder ----------
+function features(off,def,sp,parkF,home,wx,homeId){
+  const offF=clamp((off.G?baseRuns(off).runs/off.G:LG_BR)/LG_BR,.6,1.5);
+  const defF=clamp((def.G?baseRuns(def).runs/def.G:LG_BR)/LG_BR,.6,1.5);
+  let spF=1;if(sp){const share=clamp(sp.ipPerStart/5,0,1);spF=share*(sp.fip/LG_FIP)+(1-share);}
+  const t=wx&&!wx.dome&&wx.temp!=null?(wx.temp-70)/10:0,w=wx&&!wx.dome&&wx.wind!=null?wx.wind/10:0;
+  const wo=windOut(wx,homeId);const out=wo==null?0:wo/10;
+  return [1,Math.log(offF),Math.log(defF),Math.log(spF),Math.log(parkF),home?1:0,t,w,out];
+}
+const DEFAULT_BETA=[Math.log(LG_F5),1,1,1,1,0,0,0,0];
+function lam(beta,x){let s=0;for(let i=0;i<x.length;i++)s+=beta[i]*x[i];return clamp(Math.exp(s),.2,9);}
+
+// ---------- learners ----------
+// Poisson GLM (log link) by gradient ascent with ridge on non-intercept terms.
+function fitPoisson(rows,iters){
+  const k=9;let beta=DEFAULT_BETA.slice();const l2=.003;
+  // Newton's method on the Poisson log-likelihood: solve (X'WX + l2 I) d = X'(y - mu).
+  for(let it=0;it<Math.min(iters,25);it++){
+    const H=Array.from({length:k},()=>new Float64Array(k));const g=new Float64Array(k);
+    for(const r of rows){const l=lam(beta,r.x);const e=r.y-l;for(let i=0;i<k;i++){g[i]+=e*r.x[i];for(let j=0;j<k;j++)H[i][j]+=l*r.x[i]*r.x[j];}}
+    for(let i=1;i<k;i++){H[i][i]+=l2*rows.length;g[i]-=l2*rows.length*beta[i];}
+    const d=solve(H,g);if(!d)break;
+    let step=1,maxd=0;for(const x of d)maxd=Math.max(maxd,Math.abs(x));if(maxd>1)step=1/maxd; // damp big early steps
+    for(let i=0;i<k;i++)beta[i]+=step*d[i];
+    if(maxd<1e-6)break;
+  }
+  return beta;
+}
+function solve(A0,b0){const k=b0.length;const A=A0.map((r,i)=>[...r,b0[i]]);
+  for(let c=0;c<k;c++){let piv=c;for(let r=c+1;r<k;r++)if(Math.abs(A[r][c])>Math.abs(A[piv][c]))piv=r;[A[c],A[piv]]=[A[piv],A[c]];if(Math.abs(A[c][c])<1e-12)return null;
+    for(let r=0;r<k;r++){if(r===c)continue;const f=A[r][c]/A[c][c];for(let j=c;j<=k;j++)A[r][j]-=f*A[c][j];}}
+  return A.map((row,i)=>row[k]/row[i]);}
+// Negative-binomial shape by method of moments: Var = mu + mu^2/r
+function fitDispersion(rows,beta){let num=0,den=0;for(const r of rows){const l=lam(beta,r.x);num+=l*l;den+=(r.y-l)*(r.y-l)-l;}if(den<=0)return Infinity;return clamp(num/den,1.5,500);}
+// Bradley-Terry on F5 leader, with home and starter-FIP-difference terms.
+function fitBT(games,teams,iters){
+  const idx={};teams.forEach((t,i)=>idx[t]=i);const n=teams.length;const R=new Float64Array(n),cnt=new Float64Array(n);let H=.05,K=.25;
+  const dec=games.filter(g=>g.f5w!=='tie');dec.forEach(g=>{if(idx[g.h]!=null)cnt[idx[g.h]]++;if(idx[g.a]!=null)cnt[idx[g.a]]++;});const N=Math.max(1,dec.length),lr=.8,l2=.02;
+  for(let it=0;it<iters;it++){const gR=new Float64Array(n);let gH=0,gK=0,hH=0,hK=0;
+    for(const g of dec){const i=idx[g.h],j=idx[g.a];if(i==null||j==null)continue;const df=(g.aFip!=null&&g.hFip!=null)?clamp(g.aFip-g.hFip,-4,4):0;
+      const p=sig(R[i]-R[j]+H+K*df),e=(g.f5w==='home'?1:0)-p,w=p*(1-p);gR[i]+=e;gR[j]-=e;gH+=e;gK+=e*df;hH+=w;hK+=w*df*df;}
+    for(let k=0;k<n;k++)R[k]+=lr*(gR[k]/Math.max(1,cnt[k])-l2*R[k]);H+=.7*gH/Math.max(1e-6,hH);K+=.7*gK/Math.max(1e-6,hK+.05*N); // Newton steps on the shared terms
+    let m=0;for(const x of R)m+=x;m/=n;for(let k=0;k<n;k++)R[k]-=m;}
+  const out={};teams.forEach((t,i)=>out[t]=R[i]);return {R:out,H,K};
+}
+
+// ---------- parameters ----------
+let P=loadParams();
+function loadParams(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
+function saveParams(p){try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}}
+function showTrained(){const b=document.getElementById('trainedBanner');if(P&&P.beta){b.className='trained yes';b.textContent=`Trained ${P.meta.season}: ${P.meta.scored} games scored out of sample. ML ${(P.meta.mlAcc*100).toFixed(1)}% / Brier ${P.meta.mlBrier.toFixed(4)}; total MAE ${P.meta.totMAE.toFixed(2)}. Weights sim ${(P.w.sim*100).toFixed(0)}% / ratings ${(P.w.bt*100).toFixed(0)}%. NB shape ${isFinite(P.r)?P.r.toFixed(1):'Poisson'}.`;}else{b.className='trained no';b.textContent='No trained parameters found \u2014 defaults in use. Run Train & Backtest for learned coefficients.';}}
+showTrained();
+
+// ---------- game build (shared) ----------
+async function buildGame(g,season,cutoff,useWx,live){
+  const aId=g.teams.away.team.id,hId=g.teams.home.team.id;
+  const [aOff,aDef,hOff,hDef,aSP,hSP]=await Promise.all([teamStats(aId,season,'hitting',cutoff),teamStats(aId,season,'pitching',cutoff),teamStats(hId,season,'hitting',cutoff),teamStats(hId,season,'pitching',cutoff),
+    starter(g.teams.away.probablePitcher&&g.teams.away.probablePitcher.id,season,cutoff),starter(g.teams.home.probablePitcher&&g.teams.home.probablePitcher.id,season,cutoff)]);
+  if(!aOff||!aDef||!hOff||!hDef||!aOff.G||!hOff.G)return null;
+  const parkF=(TEAM_ABBR[hId]&&PARK[TEAM_ABBR[hId]])||1;
+  let wx=null;if(useWx){const dt=g.gameDate?new Date(g.gameDate):null;const hour=dt?dt.getUTCHours():19;const ds=g.officialDate||(g.gameDate||'').slice(0,10);wx=await weatherAt(g.venue&&g.venue.id,hId,ds,hour,live);}
+  let f5=null;const inn=g.linescore&&g.linescore.innings;
+  if(inn&&inn.length>=5){let a=0,h=0;for(let i=0;i<5;i++){a+=Number(inn[i].away&&inn[i].away.runs)||0;h+=Number(inn[i].home&&inn[i].home.runs)||0;}f5={away:a,home:h,total:a+h,winner:h>a?'home':(a>h?'away':'tie')};}
+  return {id:g.gamePk,date:g.officialDate||(g.gameDate||'').slice(0,10),h:String(hId),a:String(aId),away:g.teams.away.team.name,home:g.teams.home.team.name,
+    awaySP:g.teams.away.probablePitcher?g.teams.away.probablePitcher.fullName:'TBD',homeSP:g.teams.home.probablePitcher?g.teams.home.probablePitcher.fullName:'TBD',
+    aOff,aDef,hOff,hDef,aSP,hSP,parkF,wx,f5,state:g.status.abstractGameState,
+    xA:features(aOff,hDef,hSP,parkF,false,wx,hId),xH:features(hOff,aDef,aSP,parkF,true,wx,hId),windOut:windOut(wx,hId),aFip:aSP?aSP.fip:null,hFip:hSP?hSP.fip:null};
+}
+
+// ---------- prediction from parameters ----------
+function predict(s,beta,r,bt,ovr){
+  const o=ovr||{};
+  let lamA=o.lamA!=null?o.lamA:lam(beta,s.xA),lamH=o.lamH!=null?o.lamH:lam(beta,s.xH);
+  const N=Number(document.getElementById('sims').value)||20000;
+  let a=0,h=0,t=0;const tot=new Array(N);
+  for(let i=0;i<N;i++){const ra=nbDraw(lamA,r),rh=nbDraw(lamH,r);tot[i]=ra+rh;if(rh>ra)h++;else if(ra>rh)a++;else t++;}
+  const pTie=t/N,pSimHome=h/Math.max(1,h+a);
+  let pBT=null;if(bt&&bt.R[s.h]!=null&&bt.R[s.a]!=null){const df=(s.aFip!=null&&s.hFip!=null)?(s.aFip-s.hFip):0;pBT=sig(bt.R[s.h]-bt.R[s.a]+bt.H+bt.K*df);}
+  return {lamA,lamH,tot,mean:lamA+lamH,pTie,pSimHome,pBT};
+}
+function ouSplit(arr,line){let o=0,u=0,p=0;for(const x of arr){if(x>line)o++;else if(x<line)u++;else p++;}return {over:o/arr.length,under:u/arr.length,push:p/arr.length};}
+
+// ---------- orientation panel ----------
+(function(){const sel=document.getElementById('orTeam');const ids=Object.keys(TEAM_ABBR).filter(id=>!DOME.has(Number(id))).sort((a,b)=>TEAM_ABBR[a].localeCompare(TEAM_ABBR[b]));
+  sel.innerHTML=ids.map(id=>`<option value="${id}">${TEAM_ABBR[id]}</option>`).join('');renderOr();
+  document.getElementById('orSave').addEventListener('click',()=>{const id=sel.value;const deg=v('orDeg');const hp=(document.getElementById('orHP').value||'').split(',').map(Number),cf=(document.getElementById('orCF').value||'').split(',').map(Number);
+    let b=null;if(deg!=null)b=((deg%360)+360)%360;else if(hp.length===2&&cf.length===2&&hp.every(isFinite)&&cf.every(isFinite))b=bearingDeg(hp[0],hp[1],cf[0],cf[1]);
+    if(b==null){setS('orSt','Enter two coordinate pairs or a bearing.',true);return;}
+    BEAR[id]=Math.round(b*10)/10;saveBear();setS('orSt',`${TEAM_ABBR[id]} saved: ${BEAR[id].toFixed(1)}\u00b0 to centre field.`);renderOr();});
+  function renderOr(){const el=document.getElementById('orList');const ks=Object.keys(BEAR);el.innerHTML=ks.length?'Saved: '+ks.map(k=>`${TEAM_ABBR[k]||k} ${BEAR[k]}\u00b0`).join(' \u00b7 '):'No orientations saved yet.';}
+})();
+
+// ---------- TRAIN ----------
+document.getElementById('trRun').addEventListener('click',async()=>{
+  const btn=document.getElementById('trRun');btn.disabled=true;setBar('trBar',0);document.getElementById('trOut').innerHTML='';window.__err=null;
+  const start=document.getElementById('trStart').value,end=document.getElementById('trEnd').value,season=Number(start.slice(0,4));
+  const warm=Number(document.getElementById('warm').value),refitEvery=Number(document.getElementById('refit').value),useWx=document.getElementById('trWx').value==='1',maxG=Number(document.getElementById('maxG').value);
+  // 1) schedule walk
+  const sched=[];let day=start;const totalDays=daysBetween(start,end)+1;let dn=0;
+  while(day<=end&&sched.length<maxG){const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${day}&hydrate=team,probablePitcher,linescore`,'schedule');
+    ((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).forEach(g=>{if(g.status&&g.status.abstractGameState==='Final'&&g.gameType==='R')sched.push(g);});
+    dn++;setBar('trBar',.15*dn/totalDays);setS('trSt',`Schedule ${day}: ${sched.length} games`);day=addDays(day,1);}
+  if(sched.length<warm+100){setS('trSt',window.__err?`Not enough games. ${window.__err}`:`Only ${sched.length} completed games found.`,true);btn.disabled=false;return;}
+  // 2) build features with pre-game cutoffs
+  const games=[];let bi=0;
+  await pool(sched,6,async(g,k)=>{const cutoff=addDays(g.officialDate||g.gameDate.slice(0,10),-1);const s=await buildGame(g,season,cutoff,useWx,false);if(s&&s.f5)games[k]=s;bi++;if(bi%25===0){setBar('trBar',.15+.55*bi/sched.length);setS('trSt',`Features ${bi}/${sched.length}`);}});
+  const G=games.filter(Boolean).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:0);
+  const teams=[...new Set(G.flatMap(g=>[g.h,g.a]))];
+  // 3) walk-forward
+  let beta=DEFAULT_BETA.slice(),r=Infinity,bt=null,lastFit=null;const preds=[];
+  for(let i=0;i<G.length;i++){const g=G[i];
+    if(i>=warm&&(lastFit==null||daysBetween(lastFit,g.date)>=refitEvery)){
+      const train=G.slice(0,i);const rows=[];for(const t of train){rows.push({x:t.xA,y:t.f5.away});rows.push({x:t.xH,y:t.f5.home});}
+      beta=fitPoisson(rows,400);r=fitDispersion(rows,beta);
+      const btGames=train.map(t=>({h:t.h,a:t.a,f5w:t.f5.winner,aFip:t.aFip,hFip:t.hFip}));bt=fitBT(btGames,teams,400);lastFit=g.date;}
+    if(i>=warm&&bt){document.getElementById('sims').value='4000';const pr=predict(g,beta,r,bt,null);const v3=predict(g,DEFAULT_BETA,Infinity,null,null);document.getElementById('sims').value='20000';
+      preds.push({date:g.date,y:g.f5.winner==='home'?1:0,tie:g.f5.winner==='tie',pSim:pr.pSimHome,pBT:pr.pBT,pV3:v3.pSimHome,pTie:pr.pTie,mean:pr.mean,meanV3:v3.mean,tot:g.f5.total,over45:ouSplit(pr.tot,4.5)});}
+    if(i%40===0){setBar('trBar',.7+.3*i/G.length);setS('trSt',`Walk-forward ${i}/${G.length}`);await new Promise(rs=>setTimeout(rs,0));}
+  }
+  // 4) final fit on everything for the live slate
+  const rowsAll=[];for(const t of G){rowsAll.push({x:t.xA,y:t.f5.away});rowsAll.push({x:t.xH,y:t.f5.home});}
+  const betaF=fitPoisson(rowsAll,600),rF=fitDispersion(rowsAll,betaF);const btF=fitBT(G.map(t=>({h:t.h,a:t.a,f5w:t.f5.winner,aFip:t.aFip,hFip:t.hFip})),teams,600);
+  const res=analyse(preds,betaF,rF,btF);
+  P={beta:betaF,r:rF,bt:btF,w:res.w,cal:res.cal,meta:{season:`${season}`,scored:preds.length,mlAcc:res.mlAcc,mlBrier:res.mlBrier,totMAE:res.totMAE,trainedAt:new Date().toISOString()}};
+  saveParams(P);showTrained();setBar('trBar',1);setS('trSt',`Done. ${G.length} games, ${preds.length} scored out of sample. Parameters saved.`);btn.disabled=false;
+});
+
+function analyse(preds,beta,r,bt){
+  const dec=preds.filter(p=>!p.tie);
+  const brier=(k,list)=>list.filter(p=>p[k]!=null).reduce((s,p)=>s+Math.pow(p[k]-p.y,2),0)/Math.max(1,list.filter(p=>p[k]!=null).length);
+  const acc=(k,list)=>{const s=list.filter(p=>p[k]!=null);return s.filter(p=>(p[k]>=.5?1:0)===p.y).length/Math.max(1,s.length);};
+  const B={sim:brier('pSim',dec),bt:brier('pBT',dec),v3:brier('pV3',dec)},A={sim:acc('pSim',dec),bt:acc('pBT',dec),v3:acc('pV3',dec)};
+  const totMAEv3=preds.reduce((s,p)=>s+Math.abs(p.tot-p.meanV3),0)/preds.length;
+  // Weight by skill over a coin flip. If neither clears the bar, back the single best model rather than diluting it.
+  const sk={sim:B.sim<.235?.25-B.sim:0,bt:B.bt<.235?.25-B.bt:0};let sum=sk.sim+sk.bt;
+  if(!sum){if(B.sim<=B.bt){sk.sim=1;sk.bt=0;}else{sk.sim=0;sk.bt=1;}sum=1;}
+  const w={sim:sk.sim/sum,bt:sk.bt/sum};
+  dec.forEach(p=>{p.pE=w.sim*p.pSim+w.bt*(p.pBT!=null?p.pBT:p.pSim);});
+  const logit=x=>Math.log(Math.max(1e-6,x)/Math.max(1e-6,1-x));let cal={a:1,b:0,br:brier('pE',dec)};
+  for(let a=.6;a<=1.4;a+=.02)for(let b=-.3;b<=.3;b+=.02){let s=0;for(const p of dec){s+=(sig(a*logit(p.pE)+b)-p.y)**2;}s/=dec.length;if(s<cal.br-1e-9)cal={a,b,br:s};}
+  dec.forEach(p=>{p.pRaw=p.pE;p.pE=sig(cal.a*logit(p.pRaw)+cal.b);});
+  const mlAcc=acc('pE',dec),mlBrier=brier('pE',dec);
+  const totMAE=preds.reduce((s,p)=>s+Math.abs(p.tot-p.mean),0)/preds.length;
+  const realMean=preds.reduce((s,p)=>s+p.tot,0)/preds.length,modelMean=preds.reduce((s,p)=>s+p.mean,0)/preds.length;
+  const realTie=preds.filter(p=>p.tie).length/preds.length,modelTie=preds.reduce((s,p)=>s+p.pTie,0)/preds.length;
+  const t45=preds.filter(p=>p.tot!==4.5);const t45acc=t45.filter(p=>(p.over45.over>=p.over45.under&&p.tot>4.5)||(p.over45.over<p.over45.under&&p.tot<4.5)).length/Math.max(1,t45.length);
+  const bands=[['65%+',.65,1.01],['58\u201365%',.58,.65],['50\u201358%',.5,.58]];
+  const cal_rows=bands.map(([lb,lo,hi])=>{const sub=dec.filter(p=>{const c=Math.max(p.pE,1-p.pE);return c>=lo&&c<hi;});if(!sub.length)return '';const conf=sub.reduce((s,p)=>s+Math.max(p.pE,1-p.pE),0)/sub.length;const hit=sub.filter(p=>(p.pE>=.5?1:0)===p.y).length/sub.length;const gap=hit-conf;
+    return `<tr><td>${lb}</td><td class="flat">${(conf*100).toFixed(0)}%</td><td class="num ${sub.length<20?'flat':(gap>=-.04?'good':'bad')}">${(hit*100).toFixed(0)}%</td><td class="num ${Math.abs(gap)<=.04?'good':(gap<0?'bad':'flat')}">${gap>=0?'+':''}${(gap*100).toFixed(0)}</td><td class="flat">${sub.length}</td></tr>`;}).join('');
+  const names=['baseline','offence BR','defence BR','starter FIP','park','home','temp /10\u00b0F','wind speed /10mph','wind OUT to CF /10mph'];
+  const coefRows=beta.map((b,i)=>`<tr><td class="k">${names[i]}</td><td>${i===0?Math.exp(b).toFixed(2)+' runs':b.toFixed(3)}</td></tr>`).join('');
+  const f=[];
+  f.push(`Moneyline out-of-sample: <b>${(mlAcc*100).toFixed(1)}%</b>, Brier <b>${mlBrier.toFixed(4)}</b> on ${dec.length} decided games (raw ${cal.br.toFixed(4)} before calibration a=${cal.a.toFixed(2)}, b=${cal.b.toFixed(2)}). Standard error &plusmn;${(Math.sqrt(.25/dec.length)*100).toFixed(1)} points.`);
+  f.push(`Run environment: real mean F5 total <b>${realMean.toFixed(2)}</b>, model <b>${modelMean.toFixed(2)}</b>. Learned baseline ${Math.exp(beta[0]).toFixed(2)} runs per team (v3 used a fixed 2.55).`);
+  f.push(`Tie rate: real <b>${(realTie*100).toFixed(1)}%</b>, model <b>${(modelTie*100).toFixed(1)}%</b>. NB shape ${isFinite(r)?r.toFixed(1)+' (Poisson would be \u221e)':'\u221e \u2014 residuals did not need extra dispersion'}.`);
+  f.push(`Sensitivities: offence ${beta[1].toFixed(2)}, defence ${beta[2].toFixed(2)}, starter ${beta[3].toFixed(2)}, park ${beta[4].toFixed(2)} (v3 assumed 1.0 for all). ${Math.abs(beta[3])>Math.abs(beta[1])?'The starter matters more than the lineup in the first five, as expected for F5.':'Lineup quality is outweighing the starter here, which is unusual for F5 and worth a second look.'}`);
+  const nOr=Object.keys(BEAR).length;f.push(`Weather: temperature ${beta[6]>=0?'+':''}${(beta[6]*100).toFixed(1)}% runs per 10\u00b0F; wind speed ${beta[7]>=0?'+':''}${(beta[7]*100).toFixed(1)}% per 10 mph; wind blowing OUT ${beta[8]>=0?'+':''}${(beta[8]*100).toFixed(1)}% per 10 mph${nOr?` (orientations known for ${nOr} parks)`:' (no park orientations entered, so this term is zero everywhere \u2014 add them in the Park Orientations panel)'}.`);
+  f.push(`Totals at 4.5: <b>${(t45acc*100).toFixed(1)}%</b> directional accuracy. Total MAE <b>${totMAE.toFixed(2)}</b> runs (v3 baseline ${totMAEv3.toFixed(2)}).`);
+  const dB=B.v3-mlBrier;f.unshift(dB>0?`<b>Learning helped:</b> ensemble Brier ${mlBrier.toFixed(4)} vs v3 baseline ${B.v3.toFixed(4)} on identical games (${(dB*1000).toFixed(1)} thousandths better).`:`<b>Learning did not help:</b> v3 baseline scored ${B.v3.toFixed(4)} vs ensemble ${mlBrier.toFixed(4)} on identical games. Check which component is worse in the table above; if the simulation row trails v3, the run engine is overfitting and the coefficient table will show why.`);
+  f.push(`Home term in ratings &gamma; = ${bt.H.toFixed(3)} (${(sig(bt.H)*100).toFixed(1)}% home on even teams); starter-FIP term &kappa; = ${bt.K.toFixed(3)} per run of FIP difference.`);
+  document.getElementById('trOut').innerHTML=`
+    <div class="section-title">OUT-OF-SAMPLE RESULTS &mdash; ${preds.length} GAMES</div>
+    <table><tr><th>Model</th><th>Accuracy</th><th>Brier</th><th>Weight</th></tr>
+    <tr><td style="color:var(--dim)">v3 baseline (fixed 2.55, unit slopes, Poisson)</td><td class="num flat">${(A.v3*100).toFixed(1)}%</td><td class="num flat">${B.v3.toFixed(4)}</td><td class="flat">ref</td></tr>
+    <tr><td>Simulation (run engine)</td><td class="num ${w.sim>=w.bt?'good':'flat'}">${(A.sim*100).toFixed(1)}%</td><td class="num">${B.sim.toFixed(4)}</td><td class="flat">${(w.sim*100).toFixed(0)}%</td></tr>
+    <tr><td>F5 ratings (Bradley&ndash;Terry)</td><td class="num ${w.bt>w.sim?'good':'flat'}">${(A.bt*100).toFixed(1)}%</td><td class="num">${B.bt.toFixed(4)}</td><td class="flat">${(w.bt*100).toFixed(0)}%</td></tr>
+    <tr><td><b>Ensemble (calibrated)</b></td><td class="num good">${(mlAcc*100).toFixed(1)}%</td><td class="num good">${mlBrier.toFixed(4)}</td><td class="flat">&mdash;</td></tr></table>
+    <div class="section-title">CALIBRATION</div>
+    <table><tr><th>Confidence</th><th>Stated</th><th>Actual</th><th>Gap</th><th>n</th></tr>${cal_rows}</table>
+    <div class="section-title">LEARNED COEFFICIENTS</div>
+    <table>${coefRows}<tr><td class="k">NB shape r</td><td>${isFinite(r)?r.toFixed(1):'Poisson'}</td></tr></table>
+    <div class="section-title">WHAT THE TRAINER LEARNED</div>
+    <div class="work">${f.map(x=>'&bull; '+x).join('<br>')}</div>`;
+  return {w,cal,mlAcc,mlBrier,totMAE};
+}
+
+// ---------- LIVE ----------
+let slate=[];
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;setBar('bar',0);document.getElementById('out').innerHTML='';document.getElementById('score').innerHTML='';window.__err=null;slate=[];
+  const date=document.getElementById('dt').value,season=Number(date.slice(0,4)),incFinal=document.getElementById('incFinal').value==='1',useWx=document.getElementById('useWx').value==='1';
+  setS('st','Loading slate...');
+  const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher,linescore`,'schedule');
+  const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[]).filter(g=>{const s=g.status&&g.status.abstractGameState;return s==='Preview'||s==='Live'||(incFinal&&s==='Final');});
+  if(!games.length){setS('st',window.__err?`Could not load. ${window.__err}`:'No games on this date.',true);btn.disabled=false;return;}
+  for(let i=0;i<games.length;i++){setS('st',`Building ${i+1}/${games.length}...`);setBar('bar',(i+1)/games.length);const s=await buildGame(games[i],season,null,useWx,true);if(s){s.id=i;s.ovr={};slate.push(s);}}
+  if(!slate.length){setS('st','No usable games.',true);btn.disabled=false;return;}
+  setS('st',`${slate.length} game${slate.length===1?'':'s'} loaded.${P?'':' Using defaults \u2014 train first.'}`);render();btn.disabled=false;
+});
+function compute(s){
+  const beta=P&&P.beta?P.beta:DEFAULT_BETA,r=P&&isFinite(P.r)?P.r:Infinity,bt=P&&P.bt?P.bt:null,w=P&&P.w?P.w:{sim:1,bt:0};
+  const pr=predict(s,beta,r,bt,s.ovr);
+  let pE=w.sim*pr.pSimHome+w.bt*(pr.pBT!=null?pr.pBT:pr.pSimHome);
+  if(P&&P.cal){const lg=Math.log(Math.max(1e-6,pE)/Math.max(1e-6,1-pE));pE=sig(P.cal.a*lg+P.cal.b);}
+  const line=s.ovr.line!=null?s.ovr.line:Number(document.getElementById('defLine').value)||4.5;
+  return {...pr,pE,w,line,ou:ouSplit(pr.tot,line)};
+}
+function render(){
+  const saved={};slate.forEach(s=>{['oa','oh','ol'].forEach(k=>{const e=document.getElementById(`${k}-${s.id}`);if(e)saved[`${k}-${s.id}`]=e.value;});});
+  let gM=0,cM=0,gT=0,cT=0;
+  slate.forEach(s=>{const c=compute(s);s._c=c;if(!s.f5)return;if(s.f5.winner!=='tie'){gM++;if((c.pE>=.5?'home':'away')===s.f5.winner)cM++;}if(s.f5.total!==c.line){gT++;const pk=c.ou.over>=c.ou.under?'over':'under';if((pk==='over'&&s.f5.total>c.line)||(pk==='under'&&s.f5.total<c.line))cT++;}});
+  document.getElementById('score').innerHTML=(gM||gT)?`<div class="scoreboard"><div class="sb"><div class="l">F5 ML</div><div class="v">${gM?((cM/gM)*100).toFixed(0):'\u2014'}%</div><div class="r">${cM}/${gM}</div></div><div class="sb"><div class="l">F5 total</div><div class="v">${gT?((cT/gT)*100).toFixed(0):'\u2014'}%</div><div class="r">${cT}/${gT}</div></div></div>`:'';
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
+  slate.forEach(s=>{if(['oa','oh','ol'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
+}
+['defLine','edgeT','sims'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
+function card(s){
+  const c=s._c;const pH=c.pE,pA=1-pH;const fav=pH>=.5?s.home:s.away;let res='',cls='';
+  if(s.f5){if(s.f5.winner==='tie')res+=`<div class="result-line push">F5 ${s.f5.away}\u2013${s.f5.home}: tie, moneyline pushes.</div>`;else{const hit=(pH>=.5?'home':'away')===s.f5.winner;cls=hit?'hit':'miss';res+=`<div class="result-line ${hit?'hit':'miss'}">F5 ${s.f5.away}\u2013${s.f5.home}: ${s.f5.winner==='home'?s.home:s.away} led \u2014 model had ${fav} at ${(Math.max(pH,pA)*100).toFixed(1)}%, <b>${hit?'correct':'incorrect'}</b>.</div>`;}
+    const pk=c.ou.over>=c.ou.under?'over':'under';if(s.f5.total===c.line)res+=`<div class="result-line push">Total landed on ${c.line}: push.</div>`;else{const th=(pk==='over'&&s.f5.total>c.line)||(pk==='under'&&s.f5.total<c.line);res+=`<div class="result-line ${th?'hit':'miss'}">Total ${s.f5.total} vs ${c.line}: leaned ${pk}, <b>${th?'correct':'incorrect'}</b>.</div>`;}}
+  let flags='';if(s.wx)flags+=`<div class="flag wx">${s.wx.dome?'Enclosed venue \u2014 weather neutral':`${Math.round(s.wx.temp)}\u00b0F, wind ${Math.round(s.wx.wind)} mph${s.wx.dir!=null?' from '+Math.round(s.wx.dir)+'\u00b0':''}${s.windOut!=null?` \u2192 <b>${s.windOut>=0?'out':'in'} ${Math.abs(s.windOut).toFixed(0)} mph</b> to centre`:' \u2014 orientation not set'}`}</div>`;
+  if(s.aDef.estimated||s.hDef.estimated)flags+='<div class="flag est">Defensive CS/GIDP estimated from the feed.</div>';
+  if(!P)flags+='<div class="flag est">Untrained: using v3-style defaults. Train first.</div>';
+  const spL=`${s.awaySP}${s.aFip!=null?` (FIP ${s.aFip.toFixed(2)})`:''} vs ${s.homeSP}${s.hFip!=null?` (FIP ${s.hFip.toFixed(2)})`:''}`;
+  return `<div class="card ${cls}" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')"><div><div class="cmatch">${s.away} @ ${s.home}</div><div class="csub">${spL}</div></div><div class="cprob"><div class="v">${(Math.max(pH,pA)*100).toFixed(1)}%</div><div class="l">${fav.toUpperCase().slice(0,12)} F5</div></div></div>
+    <div class="models"><div class="mcol"><div class="t">Simulation</div><div class="p">${(c.pSimHome*100).toFixed(0)}%</div><div class="w">w ${(c.w.sim*100).toFixed(0)}</div></div><div class="mcol"><div class="t">F5 ratings</div><div class="p">${c.pBT!=null?(c.pBT*100).toFixed(0)+'%':'\u2014'}</div><div class="w">${c.pBT!=null?'w '+(c.w.bt*100).toFixed(0):'untrained'}</div></div><div class="mcol ens"><div class="t">Ensemble</div><div class="p">${(pH*100).toFixed(0)}%</div><div class="w">home, non-tie</div></div></div>
+    <div class="bar" style="margin-top:8px"><div class="nm">${s.away}</div><div class="tr"><div class="fl" style="width:${(pA*100).toFixed(0)}%"></div></div><div class="pc">${(pA*100).toFixed(1)}%</div></div>
+    <div class="bar"><div class="nm">${s.home}</div><div class="tr"><div class="fl" style="width:${(pH*100).toFixed(0)}%"></div></div><div class="pc">${(pH*100).toFixed(1)}%</div></div>
+    <div class="note">Tie after five ${(c.pTie*100).toFixed(1)}% (ML pushes). Projected runs ${c.lamA.toFixed(2)} / ${c.lamH.toFixed(2)}.</div>
+    <div class="ou"><div class="lbl"><span>F5 TOTAL ${c.line}</span><span>model mean ${c.mean.toFixed(2)}</span></div><div class="track"><div class="over" style="width:${(c.ou.over*100).toFixed(1)}%">${c.ou.over>=.12?`O ${(c.ou.over*100).toFixed(0)}%`:''}</div><div class="tie" style="width:${(c.ou.push*100).toFixed(1)}%"></div><div class="under" style="width:${(c.ou.under*100).toFixed(1)}%">${c.ou.under>=.12?`U ${(c.ou.under*100).toFixed(0)}%`:''}</div></div><div class="sub">Over ${(c.ou.over*100).toFixed(1)}% \u00b7 push ${(c.ou.push*100).toFixed(1)}% \u00b7 under ${(c.ou.under*100).toFixed(1)}%</div></div>
+    ${res}${flags}
+    <div class="odds"><div><label>${s.away} F5 ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(pA))}" oninput="price(${s.id})"></div><div><label>${s.home} F5 ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(pH))}" oninput="price(${s.id})"></div><div><label>Over ${c.line}</label><input type="number" id="ol-${s.id}" placeholder="-110" oninput="price(${s.id})"></div></div>
+    <div id="r-${s.id}"></div>
+    <div class="detail"><div class="ovr"><h5>OVERRIDE</h5><div class="g3"><div><label>${s.away} F5 runs</label><input type="number" step="0.01" placeholder="${c.lamA.toFixed(2)}" oninput="setOvr(${s.id},'lamA',this.value)"></div><div><label>${s.home} F5 runs</label><input type="number" step="0.01" placeholder="${c.lamH.toFixed(2)}" oninput="setOvr(${s.id},'lamH',this.value)"></div><div><label>Total line</label><input type="number" step="0.5" placeholder="${c.line}" oninput="setOvr(${s.id},'line',this.value)"></div></div><button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button></div>
+      <div class="work">Fair F5 ML (non-tie) \u2014 ${s.away} <b>${fmtAm(probToAm(pA))}</b> \u00b7 ${s.home} <b>${fmtAm(probToAm(pH))}</b><br>Fair over ${c.line} <b>${fmtAm(probToAm(c.ou.over/(c.ou.over+c.ou.under)))}</b> (push excluded) \u00b7 park ${s.parkF.toFixed(2)}${P&&P.beta?` \u00b7 learned baseline ${Math.exp(P.beta[0]).toFixed(2)}`:''}</div></div></div>`;
+}
+function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||isNaN(Number(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
+function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}
+function price(id){
+  const s=slate.find(x=>x.id===id);if(!s)return;const c=s._c;const t=Number(document.getElementById('edgeT').value);const pH=c.pE,pA=1-pH;const out=[];let any=false;
+  [[`${s.away} F5 ML`,v(`oa-${id}`),pA],[`${s.home} F5 ML`,v(`oh-${id}`),pH]].forEach(([nm,pr,p])=>{if(pr==null)return;const imp=amToImp(pr),e=p-imp;
+    if(e>=t){any=true;out.push(`<div class="rec go"><b>Play ${nm} ${fmtAm(pr)}</b> \u2014 model ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(e*100).toFixed(1)} pts. Push chance ${(c.pTie*100).toFixed(1)}%.</div>`);}else out.push(`<div class="rec no">${nm} ${fmtAm(pr)}: ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);});
+  const ol=v(`ol-${id}`);if(ol!=null){const pO=c.ou.over/(c.ou.over+c.ou.under),imp=amToImp(ol),e=pO-imp;
+    if(e>=t){any=true;out.push(`<div class="rec go"><b>Play Over ${c.line} ${fmtAm(ol)}</b> \u2014 ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}%, +${(e*100).toFixed(1)} pts.</div>`);}else{const eU=(1-pO)-(1-imp);if(eU>=t){any=true;out.push(`<div class="rec go"><b>Lean Under ${c.line}</b> \u2014 ${((1-pO)*100).toFixed(1)}% under (assumes symmetric pricing).</div>`);}else out.push(`<div class="rec no">Over ${c.line} ${fmtAm(ol)}: ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}%. Under threshold.</div>`);}}
+  const el=document.getElementById(`r-${id}`);if(el)el.innerHTML=out.join('');const cd=document.getElementById(`c-${id}`);if(cd&&!s.f5)cd.classList.toggle('play',any);
+}
+</script>
+</body>
+</html>

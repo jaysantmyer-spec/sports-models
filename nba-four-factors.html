@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Four Factors Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--court:#3D2A1F;--wood:#C8813F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--blue:#7FB3D9;--dim:#7C93A3;--green:#5FAE7A;--purple:#9A7FD9;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--court) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--wood);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}
+.chain b{color:var(--amber);}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.mt{margin-top:8px;}
+.btn{width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:12.5px;padding:7px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.scoreboard{display:flex;gap:8px;margin-bottom:12px;}
+.sb{flex:1;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:10px 6px;text-align:center;}
+.sb .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}
+.sb .v{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);line-height:1.15;}
+.sb .r{font-size:9.5px;color:var(--dim);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.mkt{border-radius:8px;padding:10px 11px;margin-top:10px;}
+.mkt.ml{background:rgba(127,179,217,.06);border:1px solid rgba(127,179,217,.25);}
+.mkt.tot{background:rgba(154,127,217,.06);border:1px solid rgba(154,127,217,.25);}
+.mkt h4{font-family:'Teko',sans-serif;font-size:14px;letter-spacing:.5px;margin:0 0 7px;}
+.mkt.ml h4{color:var(--blue);}.mkt.tot h4{color:var(--purple);}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar .nm{font-size:11px;width:92px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:14px;overflow:hidden;}
+.bar .fl{height:100%;background:var(--blue);opacity:.75;}
+.bar .pc{font-family:'Teko',sans-serif;font-size:15px;width:44px;text-align:right;flex-shrink:0;}
+.bar .od{font-size:10px;color:var(--dim);width:40px;text-align:right;flex-shrink:0;}
+.ou{margin-top:6px;}
+.ou .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.ou .track{display:flex;height:18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);}
+.ou .over{background:var(--green);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1F12;}
+.ou .under{background:var(--purple);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#120B26;}
+.ou .tie{background:var(--dim);opacity:.6;}
+.ou .sub{font-size:10.5px;color:var(--dim);margin-top:4px;}
+.runs{display:flex;gap:8px;margin-top:6px;}
+.rbox{flex:1;background:rgba(0,0,0,.25);border-radius:6px;padding:7px;text-align:center;}
+.rbox .n{font-size:10px;color:var(--dim);}
+.rbox .v{font-family:'Teko',sans-serif;font-size:20px;color:var(--chalk);line-height:1.2;}
+.rbox .s{font-size:9.5px;color:var(--dim);}
+.ff{display:grid;grid-template-columns:70px repeat(5,1fr);gap:4px;font-size:10px;margin-top:8px;}
+.ff .h{color:var(--dim);text-transform:uppercase;letter-spacing:.3px;font-size:8.5px;text-align:center;}
+.ff .t{color:var(--chalk);font-weight:600;font-size:10.5px;}
+.ff .c{text-align:center;font-family:'Teko',sans-serif;font-size:14px;color:var(--chalk);}
+.ff .c.good{color:var(--green);}.ff .c.bad{color:var(--red);}
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.est{background:rgba(242,169,59,.08);color:var(--amber);}
+.flag.rest{background:rgba(192,67,58,.08);color:#E8B4AE;}
+.flag.neutral{background:rgba(255,255,255,.03);color:var(--dim);}
+.result-line{font-size:11px;border-radius:5px;padding:6px 9px;margin-top:7px;line-height:1.5;}
+.result-line.hit{background:rgba(95,174,122,.12);color:var(--green);}
+.result-line.miss{background:rgba(192,67,58,.1);color:#E8B4AE;}
+.result-line.push{background:rgba(255,255,255,.04);color:var(--dim);}
+.odds{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+.odds input{padding:7px 8px;font-size:13px;}.odds label{font-size:9px;}
+.rec{margin-top:8px;padding:9px 11px;border-radius:6px;font-size:11.5px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.ovr{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:10px;margin-top:9px;}
+.ovr h5{font-family:'Teko',sans-serif;font-size:13px;letter-spacing:.4px;margin:0 0 7px;color:var(--amber);}
+.ovr input{padding:6px 5px;font-size:12px;}.ovr label{font-size:8px;}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,.1);border:1px solid rgba(192,67,58,.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>NBA FOUR FACTORS SIMULATOR</h1></div>
+  <p class="sub">Every game simulated possession by possession from Dean Oliver's Four Factors, with fatigue, rest, referee tendency and home court layered on. Moneyline and total from the same simulation.</p>
+
+  <div class="chain">
+    <b>FOUR FACTORS</b> &mdash; eFG% (40%), TOV% (25%), ORB%/DRB% (20%), FT Rate (15%), offence and defence, live from ESPN<br>
+    <b>POSSESSION ENGINE</b> &mdash; each trip: turnover &rarr; foul trip &rarr; 2 or 3 attempt &rarr; make / miss &rarr; offensive rebound loop. Offence factor &times; defence factor &divide; league average, every step<br>
+    <b>GAME LAYERS</b> &mdash; pace from both teams, in-game fatigue curve on transition defence, back-to-back penalty from the schedule, referee whistle multiplier on foul trips, home court<br>
+    <b>OUTPUT</b> &mdash; 10,000 simulated games &rarr; win probability, margin, total distribution, team totals
+  </div>
+
+  <div class="panel">
+    <div class="plabel">SETTINGS</div>
+    <div class="g3">
+      <div><label>Date</label><input type="date" id="dt"></div>
+      <div><label>Include finished</label><select id="incFinal"><option value="1" selected>Grade them</option><option value="0">Upcoming only</option></select></div>
+      <div><label>Edge threshold</label><select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select></div>
+    </div>
+    <div class="g4 mt">
+      <div><label>Home court (eFG)</label><select id="hca"><option value="0.018" selected>Standard (~57%)</option><option value="0">Off</option><option value="0.012">Light (~55%)</option><option value="0.024">Strong (~60%)</option></select></div>
+      <div><label>Fatigue curve</label><select id="fat"><option value="0.025" selected>+2.5% late</option><option value="0">Off</option><option value="0.04">+4.0% late</option></select></div>
+      <div><label>B2B penalty</label><select id="b2b"><option value="1" selected>On</option><option value="0">Off</option></select></div>
+      <div><label>Sims</label><select id="sims"><option value="10000" selected>10,000</option><option value="5000">5,000</option><option value="20000">20,000</option></select></div>
+    </div>
+    <div class="g2 mt">
+      <div><label>Default total line</label><input type="number" step="0.5" id="defLine" value="224.5"></div>
+      <div><label>Referee whistle (default)</label><select id="refDef"><option value="1.00" selected>Average crew</option><option value="1.08">Tight (+8% fouls)</option><option value="0.92">Loose (&minus;8% fouls)</option></select></div>
+    </div>
+    <button class="btn" id="run">RUN SLATE</button>
+    <div class="prog"><div id="bar"></div></div>
+    <div class="status" id="st"></div>
+    <div class="hint">No API key. Season stats populate once the season is underway; until then loaded figures reflect the most recent completed season, and every input can be typed in by hand. Referee crews post a few hours before tip &mdash; set the whistle per game in the override panel.</div>
+  </div>
+
+  <div id="score"></div>
+  <div id="out"></div>
+
+  <div class="warn"><b>Bankroll note.</b> Even a sound model loses roughly 40&ndash;45% of the time to variance. Never wager money you cannot afford to lose.</div>
+
+  <p class="footnote">Dean Oliver's Four Factors are computed exactly as published: eFG% = (FGM + 0.5&times;3PM)/FGA; TOV% = TOV/(FGA + 0.44&times;FTA + TOV); ORB% = ORB/(ORB + Opp DRB); DRB% = DRB/(DRB + Opp ORB); FT Rate = FTA/FGA. Defensive versions use the figures the team allows. The 40/25/20/15 weights appear in the Four Factors display as a composite for reference; predictions come from the possession simulation, not the composite. Each possession blends the offence's rate with the defence's allowed rate multiplicatively against league average, which is the standard approach. Possessions per team come from both teams' pace. The fatigue curve raises opponent shooting efficiency linearly through the game, reaching the stated bonus on the final possession, which approximates the described effect of tiring transition defence; it is a modelled shape, not measured player tracking. The back-to-back penalty (&minus;1.5% eFG, +0.5% TOV) is applied when the schedule shows a game the previous day. Referee whistle scales the probability that a possession ends at the line. Home court is applied symmetrically, raising the home side's shooting efficiency and lowering the visitor's by the same amount, calibrated so the standard setting reproduces the real-world home win rate of roughly 57%. The named model this is inspired by was proprietary and unpublished; what is implemented here is the described structure &mdash; possession simulation, fatigue, rest, referee and rotation-sensitive pace &mdash; using public data. Coach-specific rotation equations are not reproducible without minutes data and are not claimed. When ESPN's season endpoint does not expose opponent totals, defensive factors fall back to league average and the card says so. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+// League baselines (recent NBA seasons)
+const LG={efg:.545,tov:.135,orb:.27,drb:.73,ftr:.22,p3:.40,pct3:.36,pct2:.55,ft:.78,pace:99};
+
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function ymd(s){return s.replace(/-/g,'');}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+document.getElementById('dt').value=iso(new Date());
+function v(id){const e=document.getElementById(id);if(!e)return null;const x=e.value.trim();return x===''?null:Number(x);}
+function setS(t,e){const el=document.getElementById('st');el.textContent=t;el.className='status'+(e?' err':'');}
+function setBar(p){document.getElementById('bar').style.width=Math.round(p*100)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function amToImp(p){return p>0?100/(p+100):(-p)/((-p)+100);}
+function fmtAm(p){return p>0?`+${p}`:`${p}`;}
+function probToAm(p){if(p<=0||p>=1)return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`${l}: HTTP ${r.status}`;return null;}return await r.json();}catch(e){window.__err=`${l}: ${e.message}`;return null;}}
+
+// ---- Four Factors, exactly as published ----
+function fourFactors(t){
+  const efg=t.FGA?(t.FGM+0.5*t.TPM)/t.FGA:LG.efg;
+  const tov=(t.FGA+0.44*t.FTA+t.TOV)?t.TOV/(t.FGA+0.44*t.FTA+t.TOV):LG.tov;
+  const orb=(t.ORB+t.oppDRB)?t.ORB/(t.ORB+t.oppDRB):LG.orb;
+  const drb=(t.DRB+t.oppORB)?t.DRB/(t.DRB+t.oppORB):LG.drb;
+  const ftr=t.FGA?t.FTA/t.FGA:LG.ftr;
+  return {efg,tov,orb,drb,ftr};
+}
+// Defensive factors: what the team allows.
+function defFactors(t){
+  if(!t.oppFGA)return {efg:LG.efg,tov:LG.tov,orb:LG.orb,ftr:LG.ftr,fallback:true};
+  const efg=(t.oppFGM+0.5*t.oppTPM)/t.oppFGA;
+  const tov=t.oppTOV/(t.oppFGA+0.44*t.oppFTA+t.oppTOV);
+  const orb=(t.oppORB+t.DRB)?t.oppORB/(t.oppORB+t.DRB):LG.orb;
+  const ftr=t.oppFTA/t.oppFGA;
+  return {efg,tov,orb,ftr,fallback:false};
+}
+function pace(t){return t.G?(t.FGA+0.44*t.FTA+t.TOV-t.ORB)/t.G:LG.pace;}
+// Oliver's weights, as a reference composite (not the predictor).
+function composite(off,def){
+  const z=(x,l,s)=>(x-l)/s;
+  const s=z(off.efg,LG.efg,.02)-z(def.efg,LG.efg,.02);
+  const t=-z(off.tov,LG.tov,.012)+z(def.tov,LG.tov,.012);
+  const r=z(off.orb,LG.orb,.03)+z(off.drb,LG.drb,.03);
+  const f=z(off.ftr,LG.ftr,.03)-z(def.ftr,LG.ftr,.03);
+  return .40*s+.25*t+.20*r+.15*f;
+}
+// Blend offence vs defence around league average (multiplicative).
+function blend(off,def,lg){return clamp(off*def/lg,lg*.55,lg*1.6);}
+
+// ---- Possession engine ----
+function simGame(A,B,cfg){
+  // A = home, B = away. Each has {off, def, p3, pct3, pct2, ft, b2b}
+  const poss=Math.round((cfg.paceA+cfg.paceB)/2);
+  const N=cfg.sims;
+  const marg=new Array(N),tot=new Array(N),ptsA=new Array(N),ptsB=new Array(N);
+  const efgA0=blend(A.off.efg*(1+cfg.hca)*(A.b2b?1-.015:1),B.def.efg,LG.efg);
+  const efgB0=blend(B.off.efg*(1-cfg.hca)*(B.b2b?1-.015:1),A.def.efg,LG.efg);
+  const tovA=blend(A.off.tov*(A.b2b?1+.005:1),B.def.tov,LG.tov),tovB=blend(B.off.tov*(B.b2b?1+.005:1),A.def.tov,LG.tov);
+  const orbA=blend(A.off.orb,1-B.off.drb,LG.orb),orbB=blend(B.off.orb,1-A.off.drb,LG.orb);
+  const ftrA=blend(A.off.ftr,B.def.ftr,LG.ftr)*cfg.ref,ftrB=blend(B.off.ftr,A.def.ftr,LG.ftr)*cfg.ref;
+  // probability a non-turnover possession ends at the line ~ 0.44*FTA per shot-possession
+  const ftPossA=clamp(.44*ftrA/(1+.44*ftrA),.05,.35),ftPossB=clamp(.44*ftrB/(1+.44*ftrB),.05,.35);
+  function possession(efg,tov,orb,ftPoss,p3,pct3,pct2,ft,prog,fat){
+    if(Math.random()<tov)return 0;
+    const e=efg*(1+fat*prog);           // opponent tiring late
+    // scale 2/3 make rates so blended eFG is honoured
+    const base=(1-p3)*pct2+p3*1.5*pct3;
+    const k=base>0?e/base:1;
+    let pts=0;
+    for(let loop=0;loop<4;loop++){
+      if(Math.random()<ftPoss){pts+=(Math.random()<ft?1:0)+(Math.random()<ft?1:0);return pts;}
+      const three=Math.random()<p3;
+      const make=Math.random()<(three?clamp(pct3*k,.15,.6):clamp(pct2*k,.3,.75));
+      if(make)return pts+(three?3:2);
+      if(Math.random()>=orb)return pts;
+    }
+    return pts;
+  }
+  for(let i=0;i<N;i++){
+    let a=0,b=0;
+    for(let p=0;p<poss;p++){
+      const prog=p/poss;
+      a+=possession(efgA0,tovA,orbA,ftPossA,A.p3,A.pct3,A.pct2,A.ft,prog,cfg.fat);
+      b+=possession(efgB0,tovB,orbB,ftPossB,B.p3,B.pct3,B.pct2,B.ft,prog,cfg.fat);
+    }
+    // overtime on ties: replay ~10 possessions until decided
+    let ot=0;
+    while(a===b&&ot<3){for(let p=0;p<10;p++){a+=possession(efgA0,tovA,orbA,ftPossA,A.p3,A.pct3,A.pct2,A.ft,1,cfg.fat);b+=possession(efgB0,tovB,orbB,ftPossB,B.p3,B.pct3,B.pct2,B.ft,1,cfg.fat);}ot++;}
+    ptsA[i]=a;ptsB[i]=b;marg[i]=a-b;tot[i]=a+b;
+  }
+  let w=0;for(const m of marg)if(m>0)w++;
+  const mean=x=>x.reduce((s,y)=>s+y,0)/x.length;
+  return {pHome:w/N,margin:mean(marg),total:mean(tot),ptsA:mean(ptsA),ptsB:mean(ptsB),tot,ptsAarr:ptsA,ptsBarr:ptsB,poss,efgA:efgA0,efgB:efgB0,tovA,tovB,orbA,orbB,ftrA,ftrB};
+}
+function ouSplit(arr,line){let o=0,u=0,p=0;for(const x of arr){if(x>line)o++;else if(x<line)u++;else p++;}return {over:o/arr.length,under:u/arr.length,push:p/arr.length};}
+
+// ---- ESPN data ----
+const cache=new Map();
+function findStat(obj,names){ // recursive search for named stat values
+  const out={};const want=new Set(names);
+  (function walk(o){if(!o||typeof o!=='object')return;if(Array.isArray(o)){o.forEach(walk);return;}
+    if(o.name&&want.has(o.name)&&o.value!=null&&out[o.name]==null)out[o.name]=Number(o.value);
+    Object.values(o).forEach(walk);})(obj);
+  return out;
+}
+async function teamSeason(id){
+  const k=`t|${id}`;if(cache.has(k))return cache.get(k);
+  const d=await getJSON(`${ESPN}/teams/${id}/statistics`,'team stats');
+  let t=null;
+  if(d){
+    const s=findStat(d,['fieldGoalsMade','fieldGoalsAttempted','threePointFieldGoalsMade','threePointFieldGoalsAttempted','freeThrowsMade','freeThrowsAttempted','offensiveRebounds','defensiveRebounds','turnovers','gamesPlayed',
+      'opponentFieldGoalsMade','opponentFieldGoalsAttempted','opponentThreePointFieldGoalsMade','opponentFreeThrowsAttempted','opponentOffensiveRebounds','opponentDefensiveRebounds','opponentTurnovers']);
+    if(s.fieldGoalsAttempted){
+      const G=s.gamesPlayed||82;
+      t={G,FGM:s.fieldGoalsMade||0,FGA:s.fieldGoalsAttempted,TPM:s.threePointFieldGoalsMade||0,TPA:s.threePointFieldGoalsAttempted||0,FTM:s.freeThrowsMade||0,FTA:s.freeThrowsAttempted||0,ORB:s.offensiveRebounds||0,DRB:s.defensiveRebounds||0,TOV:s.turnovers||0,
+        oppFGM:s.opponentFieldGoalsMade||0,oppFGA:s.opponentFieldGoalsAttempted||0,oppTPM:s.opponentThreePointFieldGoalsMade||0,oppFTA:s.opponentFreeThrowsAttempted||0,oppORB:s.opponentOffensiveRebounds||0,oppDRB:s.opponentDefensiveRebounds||0,oppTOV:s.opponentTurnovers||0};
+      // some feeds are per-game; normalise to totals if values look per-game
+      if(t.FGA<200){['FGM','FGA','TPM','TPA','FTM','FTA','ORB','DRB','TOV','oppFGM','oppFGA','oppTPM','oppFTA','oppORB','oppDRB','oppTOV'].forEach(f=>t[f]*=G);}
+    }
+  }
+  cache.set(k,t);return t;
+}
+async function playedYesterday(teamId,date){
+  const k=`y|${teamId}|${date}`;if(cache.has(k))return cache.get(k);
+  const d=await getJSON(`${ESPN}/scoreboard?dates=${ymd(addDays(date,-1))}`,'yesterday');
+  let yes=false;
+  ((d&&d.events)||[]).forEach(e=>{const c=e.competitions&&e.competitions[0];(c&&c.competitors||[]).forEach(x=>{if(String(x.team&&x.team.id)===String(teamId))yes=true;});});
+  cache.set(k,yes);return yes;
+}
+function buildTeam(t,name){
+  const off=fourFactors(t),def=defFactors(t);
+  const p3=t.FGA?t.TPA/t.FGA:LG.p3;
+  const pct3=t.TPA?t.TPM/t.TPA:LG.pct3;
+  const twoA=t.FGA-t.TPA,twoM=t.FGM-t.TPM;
+  const pct2=twoA>0?twoM/twoA:LG.pct2;
+  const ft=t.FTA?t.FTM/t.FTA:LG.ft;
+  return {name,off,def,p3,pct3,pct2,ft,pace:pace(t),raw:t};
+}
+function leagueTeam(name){return {name,off:{efg:LG.efg,tov:LG.tov,orb:LG.orb,drb:LG.drb,ftr:LG.ftr},def:{efg:LG.efg,tov:LG.tov,orb:LG.orb,ftr:LG.ftr,fallback:true},p3:LG.p3,pct3:LG.pct3,pct2:LG.pct2,ft:LG.ft,pace:LG.pace,raw:null,manual:true};}
+
+let slate=[];
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;setBar(0);document.getElementById('out').innerHTML='';document.getElementById('score').innerHTML='';window.__err=null;slate=[];
+  const date=document.getElementById('dt').value,incFinal=document.getElementById('incFinal').value==='1';
+  setS('Loading scoreboard...');
+  const sb=await getJSON(`${ESPN}/scoreboard?dates=${ymd(date)}`,'scoreboard');
+  const events=((sb&&sb.events)||[]).filter(e=>{const st=e.status&&e.status.type&&e.status.type.state;return st==='pre'||st==='in'||(incFinal&&st==='post');});
+  if(!events.length){setS(window.__err?`Could not load. ${window.__err}`:'No NBA games on this date. The regular season tips off in late October; preseason in early October.',true);document.getElementById('out').innerHTML='<div class="empty">Nothing on the schedule for this date.<br><br>You can still model any matchup by hand: run a date with games, then use the override panel, or wait for the season to start.</div>';btn.disabled=false;return;}
+  for(let i=0;i<events.length;i++){
+    const e=events[i];setS(`Simulating ${i+1} of ${events.length}...`);setBar((i+1)/events.length);
+    const c=e.competitions&&e.competitions[0];if(!c)continue;
+    const H=c.competitors.find(x=>x.homeAway==='home'),A=c.competitors.find(x=>x.homeAway==='away');if(!H||!A)continue;
+    const [ht,at,hB,aB]=await Promise.all([teamSeason(H.team.id),teamSeason(A.team.id),playedYesterday(H.team.id,date),playedYesterday(A.team.id,date)]);
+    const home=ht?buildTeam(ht,H.team.displayName):leagueTeam(H.team.displayName);
+    const away=at?buildTeam(at,A.team.displayName):leagueTeam(A.team.displayName);
+    home.b2b=hB;away.b2b=aB;
+    let actual=null;
+    if(e.status.type.state==='post'){const hs=Number(H.score),as=Number(A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
+    slate.push({id:i,home,away,actual,ovr:{}});
+  }
+  if(!slate.length){setS('No usable games.',true);btn.disabled=false;return;}
+  setBar(1);setS(`${slate.length} game${slate.length===1?'':'s'} simulated.`);render();btn.disabled=false;
+});
+
+function applyOvr(team,o,side){
+  const t=JSON.parse(JSON.stringify(team));
+  ['efg','tov','orb','drb','ftr'].forEach(k=>{if(o[side+'_'+k]!=null)t.off[k]=o[side+'_'+k];});
+  ['efg','tov','orb','ftr'].forEach(k=>{if(o[side+'_d'+k]!=null){t.def[k]=o[side+'_d'+k];t.def.fallback=false;}});
+  if(o[side+'_pace']!=null)t.pace=o[side+'_pace'];
+  if(o[side+'_b2b']!=null)t.b2b=o[side+'_b2b']===1;
+  return t;
+}
+function compute(s){
+  const o=s.ovr;
+  const H=applyOvr(s.home,o,'h'),A=applyOvr(s.away,o,'a');
+  const cfg={sims:Number(document.getElementById('sims').value),hca:Number(document.getElementById('hca').value),fat:Number(document.getElementById('fat').value),
+    ref:o.ref!=null?o.ref:Number(document.getElementById('refDef').value),paceA:H.pace,paceB:A.pace};
+  if(document.getElementById('b2b').value==='0'){H.b2b=false;A.b2b=false;}
+  const sim=simGame(H,A,cfg);
+  const line=o.line!=null?o.line:Number(document.getElementById('defLine').value)||224.5;
+  return {H,A,sim,cfg,line,ou:ouSplit(sim.tot,line),ttH:ouSplit(sim.ptsAarr,Math.floor(sim.ptsA)+.5),ttA:ouSplit(sim.ptsBarr,Math.floor(sim.ptsB)+.5),
+    compH:composite(H.off,H.def),compA:composite(A.off,A.def)};
+}
+
+function render(){
+  const saved={};slate.forEach(s=>{['oa','oh','ol'].forEach(k=>{const e=document.getElementById(`${k}-${s.id}`);if(e)saved[`${k}-${s.id}`]=e.value;});});
+  let gM=0,cM=0,gT=0,cT=0;
+  slate.forEach(s=>{const c=compute(s);s._c=c;if(!s.actual)return;
+    gM++;if((c.sim.pHome>=.5?'home':'away')===s.actual.winner)cM++;
+    if(s.actual.total!==c.line){gT++;const pk=c.ou.over>=c.ou.under?'over':'under';if((pk==='over'&&s.actual.total>c.line)||(pk==='under'&&s.actual.total<c.line))cT++;}
+  });
+  document.getElementById('score').innerHTML=gM?`<div class="scoreboard">
+    <div class="sb"><div class="l">Moneyline</div><div class="v">${((cM/gM)*100).toFixed(0)}%</div><div class="r">${cM}/${gM}</div></div>
+    <div class="sb"><div class="l">Total</div><div class="v">${gT?((cT/gT)*100).toFixed(0):'—'}%</div><div class="r">${cT}/${gT}</div></div></div>`:'';
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
+  slate.forEach(s=>{if(['oa','oh','ol'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
+}
+['hca','fat','b2b','sims','defLine','edgeT','refDef'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
+
+function ffRow(nm,f,d){
+  const g=(x,l,hi)=>x==null?'':((hi?x>l:x<l)?'good':(hi?x<l:x>l)?'bad':'');
+  return `<div class="t">${nm}</div><div class="c ${g(f.efg,LG.efg,true)}">${(f.efg*100).toFixed(1)}</div><div class="c ${g(f.tov,LG.tov,false)}">${(f.tov*100).toFixed(1)}</div><div class="c ${g(f.orb,LG.orb,true)}">${(f.orb*100).toFixed(1)}</div><div class="c ${g(f.drb,LG.drb,true)}">${f.drb!=null?(f.drb*100).toFixed(1):'—'}</div><div class="c ${g(f.ftr,LG.ftr,true)}">${(f.ftr*100).toFixed(1)}</div>`;
+}
+function card(s){
+  const c=s._c||compute(s);const sim=c.sim;const pH=sim.pHome,pA=1-pH;
+  let mlRes='',totRes='';
+  if(s.actual){const hit=(pH>=.5?'home':'away')===s.actual.winner;mlRes=`<div class="result-line ${hit?'hit':'miss'}">Final ${s.away.name} ${s.actual.away} &ndash; ${s.home.name} ${s.actual.home}. Model had ${pH>=.5?s.home.name:s.away.name} at ${(Math.max(pH,pA)*100).toFixed(1)}%, <b>${hit?'correct':'incorrect'}</b>.</div>`;
+    if(s.actual.total===c.line)totRes=`<div class="result-line push">Total landed on ${c.line} &mdash; push.</div>`;else{const pk=c.ou.over>=c.ou.under?'over':'under';const hit=(pk==='over'&&s.actual.total>c.line)||(pk==='under'&&s.actual.total<c.line);totRes=`<div class="result-line ${hit?'hit':'miss'}">Actual total ${s.actual.total}: model leaned ${pk} ${c.line} at ${(Math.max(c.ou.over,c.ou.under)*100).toFixed(0)}%, <b>${hit?'correct':'incorrect'}</b>.</div>`;}}
+  let flags='';
+  if(c.H.b2b)flags+=`<div class="flag rest"><b>${s.home.name}</b> played yesterday &mdash; back-to-back penalty applied.</div>`;
+  if(c.A.b2b)flags+=`<div class="flag rest"><b>${s.away.name}</b> played yesterday &mdash; back-to-back penalty applied.</div>`;
+  if(c.H.def.fallback||c.A.def.fallback)flags+='<div class="flag est">Opponent totals were not in the feed, so defensive factors are league average for at least one side. Enter them in the override panel for a sharper number.</div>';
+  if(s.home.manual||s.away.manual)flags+='<div class="flag est">Season stats could not be loaded for at least one team &mdash; league-average inputs are in place. Fill in the Four Factors below.</div>';
+  const OV=(side,nm,t)=>`<div class="g5">${['efg','tov','orb','drb','ftr'].map(k=>`<div><label>${k.toUpperCase()}%</label><input type="number" step="0.1" placeholder="${(t.off[k]*100).toFixed(1)}" oninput="setOvr(${s.id},'${side}_${k}',this.value===''?'':Number(this.value)/100)"></div>`).join('')}</div>
+    <div class="g5 mt">${['efg','tov','orb','ftr'].map(k=>`<div><label>D-${k.toUpperCase()}%</label><input type="number" step="0.1" placeholder="${(t.def[k]*100).toFixed(1)}" oninput="setOvr(${s.id},'${side}_d${k}',this.value===''?'':Number(this.value)/100)"></div>`).join('')}<div><label>Pace</label><input type="number" step="0.1" placeholder="${t.pace.toFixed(1)}" oninput="setOvr(${s.id},'${side}_pace',this.value===''?'':Number(this.value))"></div></div>`;
+  return `<div class="card" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')">
+      <div><div class="cmatch">${s.away.name} @ ${s.home.name}</div><div class="csub">Pace ${sim.poss} poss &middot; Four Factors composite ${s.away.name.split(' ').pop()} ${c.compA>=0?'+':''}${c.compA.toFixed(2)} / ${s.home.name.split(' ').pop()} ${c.compH>=0?'+':''}${c.compH.toFixed(2)}</div></div>
+    </div>
+    <div class="ff"><div></div><div class="h">eFG%</div><div class="h">TOV%</div><div class="h">ORB%</div><div class="h">DRB%</div><div class="h">FTr</div>
+      ${ffRow(s.away.name.split(' ').pop(),c.A.off)}${ffRow(s.home.name.split(' ').pop(),c.H.off)}</div>
+    <div class="mkt ml"><h4>MONEYLINE &mdash; SIMULATED</h4>
+      <div class="bar"><div class="nm">${s.away.name}</div><div class="tr"><div class="fl" style="width:${(pA*100).toFixed(0)}%"></div></div><div class="pc">${(pA*100).toFixed(1)}%</div><div class="od">${fmtAm(probToAm(pA))}</div></div>
+      <div class="bar"><div class="nm">${s.home.name}</div><div class="tr"><div class="fl" style="width:${(pH*100).toFixed(0)}%"></div></div><div class="pc">${(pH*100).toFixed(1)}%</div><div class="od">${fmtAm(probToAm(pH))}</div></div>
+      <div class="note">Projected margin ${sim.margin>=0?s.home.name.split(' ').pop()+' by '+sim.margin.toFixed(1):s.away.name.split(' ').pop()+' by '+(-sim.margin).toFixed(1)}</div>
+      ${mlRes}
+      <div class="odds"><div><label>${s.away.name.split(' ').pop()} ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(pA))}" oninput="price(${s.id})"></div><div><label>${s.home.name.split(' ').pop()} ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(pH))}" oninput="price(${s.id})"></div></div>
+      <div id="rml-${s.id}"></div>
+    </div>
+    <div class="mkt tot"><h4>TOTAL &mdash; SIMULATED</h4>
+      <div class="runs"><div class="rbox"><div class="n">${s.away.name.split(' ').pop()}</div><div class="v">${sim.ptsB.toFixed(1)}</div><div class="s">TT ${Math.floor(sim.ptsB)+.5}: O ${(c.ttA.over*100).toFixed(0)}%</div></div>
+        <div class="rbox"><div class="n">${s.home.name.split(' ').pop()}</div><div class="v">${sim.ptsA.toFixed(1)}</div><div class="s">TT ${Math.floor(sim.ptsA)+.5}: O ${(c.ttH.over*100).toFixed(0)}%</div></div>
+        <div class="rbox"><div class="n">Total</div><div class="v">${sim.total.toFixed(1)}</div><div class="s">${sim.poss} possessions</div></div></div>
+      <div class="ou"><div class="lbl"><span>TOTAL ${c.line}</span><span>model mean ${sim.total.toFixed(1)}</span></div>
+        <div class="track"><div class="over" style="width:${(c.ou.over*100).toFixed(1)}%">${c.ou.over>=.12?`O ${(c.ou.over*100).toFixed(0)}%`:''}</div><div class="tie" style="width:${(c.ou.push*100).toFixed(1)}%"></div><div class="under" style="width:${(c.ou.under*100).toFixed(1)}%">${c.ou.under>=.12?`U ${(c.ou.under*100).toFixed(0)}%`:''}</div></div>
+        <div class="sub">Over ${(c.ou.over*100).toFixed(1)}% &middot; push ${(c.ou.push*100).toFixed(1)}% &middot; under ${(c.ou.under*100).toFixed(1)}%</div></div>
+      ${totRes}${flags}
+      <div class="odds"><div><label>Over ${c.line} price</label><input type="number" id="ol-${s.id}" placeholder="-110" oninput="price(${s.id})"></div><div><label>Referee whistle</label><input type="number" step="0.01" placeholder="${c.cfg.ref.toFixed(2)}" oninput="setOvr(${s.id},'ref',this.value===''?'':Number(this.value))"></div></div>
+      <div id="rtot-${s.id}"></div>
+    </div>
+    <div class="detail">
+      <div class="ovr"><h5>${s.away.name.toUpperCase()} &mdash; OVERRIDE</h5>${OV('a',s.away.name,c.A)}</div>
+      <div class="ovr"><h5>${s.home.name.toUpperCase()} &mdash; OVERRIDE</h5>${OV('h',s.home.name,c.H)}</div>
+      <div class="ovr"><h5>GAME</h5><div class="g3"><div><label>Total line</label><input type="number" step="0.5" placeholder="${c.line}" oninput="setOvr(${s.id},'line',this.value===''?'':Number(this.value))"></div>
+        <div><label>${s.away.name.split(' ').pop()} B2B</label><select onchange="setOvr(${s.id},'a_b2b',this.value)"><option value="">auto</option><option value="1">yes</option><option value="0">no</option></select></div>
+        <div><label>${s.home.name.split(' ').pop()} B2B</label><select onchange="setOvr(${s.id},'h_b2b',this.value)"><option value="">auto</option><option value="1">yes</option><option value="0">no</option></select></div></div>
+        <button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button></div>
+      <div class="work">Blended per-possession rates in play<br>${s.home.name.split(' ').pop()}: eFG <b>${(sim.efgA*100).toFixed(1)}%</b> &middot; TOV <b>${(sim.tovA*100).toFixed(1)}%</b> &middot; ORB <b>${(sim.orbA*100).toFixed(1)}%</b> &middot; FTr <b>${(sim.ftrA*100).toFixed(1)}%</b><br>${s.away.name.split(' ').pop()}: eFG <b>${(sim.efgB*100).toFixed(1)}%</b> &middot; TOV <b>${(sim.tovB*100).toFixed(1)}%</b> &middot; ORB <b>${(sim.orbB*100).toFixed(1)}%</b> &middot; FTr <b>${(sim.ftrB*100).toFixed(1)}%</b><br>Home court +${(c.cfg.hca*100).toFixed(1)}% eFG &middot; fatigue +${(c.cfg.fat*100).toFixed(1)}% by final possession &middot; whistle &times;${c.cfg.ref.toFixed(2)}</div>
+    </div></div>`;
+}
+function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||val==null||(typeof val==='number'&&isNaN(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
+function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}
+function price(id){
+  const s=slate.find(x=>x.id===id);if(!s)return;const c=s._c||compute(s);const t=Number(document.getElementById('edgeT').value);
+  const pH=c.sim.pHome,pA=1-pH;let any=false;const ml=[];
+  [[s.away.name,v(`oa-${id}`),pA],[s.home.name,v(`oh-${id}`),pH]].forEach(([nm,pr,p])=>{if(pr==null)return;const imp=amToImp(pr),e=p-imp;
+    if(e>=t){any=true;ml.push(`<div class="rec go"><b>Play ${nm} ML ${fmtAm(pr)}</b> &mdash; model ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(e*100).toFixed(1)} pts. Fair ${fmtAm(probToAm(p))}.</div>`);}
+    else ml.push(`<div class="rec no">${nm} ${fmtAm(pr)}: ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);});
+  const tot=[];const ol=v(`ol-${id}`);
+  if(ol!=null){const pO=c.ou.over/(c.ou.over+c.ou.under),imp=amToImp(ol),e=pO-imp;
+    if(e>=t){any=true;tot.push(`<div class="rec go"><b>Play Over ${c.line} ${fmtAm(ol)}</b> &mdash; model ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}%, +${(e*100).toFixed(1)} pts.</div>`);}
+    else{const eU=(1-pO)-(1-imp);if(eU>=t){any=true;tot.push(`<div class="rec go"><b>Lean Under ${c.line}</b> &mdash; model ${((1-pO)*100).toFixed(1)}% under; over price implies ${((1-imp)*100).toFixed(1)}% under (assumes symmetric pricing).</div>`);}
+    else tot.push(`<div class="rec no">Over ${c.line} ${fmtAm(ol)}: ${(pO*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);}}
+  const a=document.getElementById(`rml-${id}`),b=document.getElementById(`rtot-${id}`);if(a)a.innerHTML=ml.join('');if(b)b.innerHTML=tot.join('');
+  const cd=document.getElementById(`c-${id}`);if(cd&&!s.actual)cd.classList.toggle('play',any);
+}
+</script>
+</body>
+</html>

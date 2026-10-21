@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB EV Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:29px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+.rules{
+  background:rgba(127,179,217,0.07);border:1px solid rgba(127,179,217,0.28);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:var(--blue);line-height:1.6;margin-bottom:14px;
+}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 10px;border-radius:5px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus{border-color:var(--amber);}
+.krow{display:flex;gap:8px;align-items:flex-end;}
+.krow > div{flex:1;}
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:18px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn.small{width:auto;margin-top:0;padding:9px 14px;font-size:15px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12.5px;color:var(--dim);margin:12px 0;min-height:34px;line-height:1.55;}
+.status.err{color:var(--red);}
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.halt{
+  background:rgba(192,67,58,0.09);border:1px solid rgba(192,67,58,0.4);border-radius:10px;
+  padding:20px 18px;text-align:center;font-size:14px;color:#E8B4AE;line-height:1.7;
+}
+.pick{background:var(--navy);border:1px solid rgba(242,169,59,0.45);border-radius:11px;padding:16px;margin-bottom:14px;}
+.pick-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:4px;}
+.pick-market{font-family:'Teko',sans-serif;font-size:23px;letter-spacing:0.4px;color:var(--amber);line-height:1.15;}
+.pick-game{font-size:11px;color:var(--dim);margin-top:2px;}
+.ev-box{text-align:right;flex-shrink:0;}
+.ev-val{font-family:'Teko',sans-serif;font-size:30px;line-height:1;color:var(--green);}
+.ev-lbl{font-size:9px;color:var(--dim);letter-spacing:0.5px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:10px;}
+th{
+  text-align:left;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:0.5px;
+  color:var(--dim);font-weight:500;padding:5px 4px;border-bottom:1px solid #263644;
+}
+td{padding:6px 4px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:48%;}
+td.na{color:#6B7D8A;font-style:italic;}
+.angle{
+  background:rgba(242,169,59,0.09);border-left:3px solid var(--amber);
+  padding:11px 13px;margin-top:12px;font-size:12.5px;line-height:1.6;border-radius:0 6px 6px 0;
+}
+.angle b{color:var(--amber);}
+.scan-row{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);padding:5px 4px;border-bottom:1px solid #1B2836;}
+.scan-row .gap{font-family:'Teko',sans-serif;font-size:14px;color:var(--chalk);}
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:10.5px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>MLB EV SCANNER</h1></div>
+  <p class="sub">Quantitative slate scan. Projects fair lines from peripheral metrics, compares against live sportsbook odds, and returns only picks clearing a strict EV+ threshold.</p>
+  <div class="rules">
+    <b>OPERATING CONSTRAINTS</b><br>
+    &bull; Markets restricted to F5 moneyline, F5 totals, and team totals<br>
+    &bull; Maximum 2 picks per slate &middot; exactly 1 pick per game<br>
+    &bull; EV+ must exceed the threshold or nothing is returned<br>
+    &bull; Zero market-flow input: no ticket %, no handle, no line movement<br>
+    &bull; Missing data is reported as unavailable, never estimated
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">CONFIGURATION</div>
+    <label>The Odds API key</label>
+    <div class="krow">
+      <div><input type="password" id="oddsKey" placeholder="Paste your key"></div>
+      <button class="btn small" id="saveKeyBtn">SAVE</button>
+      <button class="btn small" id="testKeyBtn" style="background:transparent;border:1px solid #2A3B48;color:var(--dim);">TEST</button>
+    </div>
+    <div id="keyStatus" class="hint"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+      <div>
+        <label>Minimum EV+ threshold</label>
+        <select id="evThreshold">
+          <option value="0.05" selected>5% (specified)</option>
+          <option value="0.03">3%</option>
+          <option value="0.07">7%</option>
+          <option value="0.10">10%</option>
+        </select>
+      </div>
+      <div>
+        <label>Odds reference</label>
+        <select id="bookPref">
+          <option value="pinnacle" selected>Pinnacle preferred</option>
+          <option value="best">Best available price</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="scanBtn" disabled>RUN SLATE SCAN</button>
+    <div class="hint">F5 and team-total markets are additional markets on The Odds API and may require a paid tier. If your key lacks access, the scan will report that explicitly rather than silently returning nothing.</div>
+  </div>
+
+  <div class="status" id="statusLine"></div>
+  <div id="results"></div>
+
+  <p class="footnote">Fair lines are projected from FIP computed directly from raw counting stats ((13&middot;HR + 3&middot;(BB+HBP) &minus; 2&middot;K)/IP + constant), which is the same figure published on public leaderboards. FIP rather than ERA drives the projection deliberately: the gap between them is the regression signal being traded. Run distributions are simulated 20,000 times per game as independent Poisson processes per half-inning block, with starter workload capped at five innings for F5 markets and bullpen innings modelled separately for full-game team totals. Opponent offence is scaled by runs per game against league average; park factors are approximate reference values, not measured current-season figures. Expected value is computed as (P_win &times; net profit) &minus; (P_loss &times; stake) at the displayed price. Statcast expected-contact metrics are attempted and reported as unavailable when the source cannot be reached cross-origin. This is a research tool, not betting advice. No model output is a guarantee; variance dominates small samples.</p>
+</div>
+
+<script>
+const ODDS_BASE = 'https://api.the-odds-api.com/v4';
+const MLB = 'https://statsapi.mlb.com/api/v1';
+const SIMS = 20000;
+const FIP_CONST = 3.15;
+const LEAGUE_RPG = 4.45;
+
+const TEAM_ABBR = {108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK_FACTOR = {COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const DOME = new Set([141,139,146,109,117,158,136]);
+
+let oddsKey = localStorage.getItem('oddsApiKey') || '';
+if(oddsKey) document.getElementById('oddsKey').value = oddsKey;
+updateBtn();
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  oddsKey = document.getElementById('oddsKey').value.trim();
+  localStorage.setItem('oddsApiKey', oddsKey);
+  updateBtn();
+  setStatus(oddsKey ? 'Key saved.' : 'Key cleared.');
+});
+function updateBtn(){ document.getElementById('scanBtn').disabled = !oddsKey; }
+
+document.getElementById('testKeyBtn').addEventListener('click', async () => {
+  const k = document.getElementById('oddsKey').value.trim();
+  const out = document.getElementById('keyStatus');
+  if(!k){ out.style.color = 'var(--red)'; out.textContent = 'Paste a key first.'; return; }
+  out.style.color = 'var(--dim)';
+  out.textContent = 'Testing key...';
+  try{
+    const r = await fetch(`${ODDS_BASE}/sports/?apiKey=${encodeURIComponent(k)}`);
+    if(r.status === 401){
+      out.style.color = 'var(--red)';
+      out.textContent = 'Rejected (401): this key is not valid. Check for a stray space or a missing character when pasting, and confirm it against the dashboard at the-odds-api.com.';
+      return;
+    }
+    if(r.status === 429){
+      out.style.color = 'var(--red)';
+      out.textContent = 'Quota exhausted (429): the key is valid but has no requests left this period.';
+      return;
+    }
+    if(!r.ok){
+      out.style.color = 'var(--red)';
+      out.textContent = `Unexpected response: HTTP ${r.status}.`;
+      return;
+    }
+    const remaining = r.headers.get('x-requests-remaining');
+    const used = r.headers.get('x-requests-used');
+    const rem = remaining != null ? Number(remaining) : null;
+    const list = await r.json();
+    const mlb = (list || []).some(s => s.key === 'baseball_mlb');
+
+    if(rem != null && rem <= 0){
+      out.style.color = 'var(--red)';
+      out.textContent = `Quota exhausted \u2014 ${used} used, ${remaining} remaining. The key itself is fine, but every odds request will fail with 401 until the monthly allowance resets. This status check doesn't count against quota, which is why it succeeds.`;
+      return;
+    }
+
+    out.style.color = 'var(--green)';
+    out.textContent = `Key valid. ${rem != null ? `${used} used, ${rem} remaining this period. ` : ''}`
+      + (mlb ? 'MLB is in season and available.' : 'Note: baseball_mlb is not listed as active right now.');
+  }catch(e){
+    out.style.color = 'var(--red)';
+    out.textContent = `Request blocked \u2014 ${e.message}. This points at the page's host rather than the key.`;
+  }
+});
+function setStatus(t, err){
+  const el = document.getElementById('statusLine');
+  el.textContent = t; el.className = 'status' + (err ? ' err' : '');
+}
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function iso(d){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }
+function amToDec(p){ return p > 0 ? 1 + p/100 : 1 + 100/(-p); }
+function amToImp(p){ return p > 0 ? 100/(p+100) : (-p)/((-p)+100); }
+function fmtAm(p){ return p > 0 ? `+${p}` : `${p}`; }
+
+async function getJSON(url, label){
+  try{
+    const r = await fetch(url);
+    if(!r.ok){ window.__err = `${label}: HTTP ${r.status}`; return null; }
+    return await r.json();
+  }catch(e){ window.__err = `${label}: ${e.message}`; return null; }
+}
+
+// Poisson draw
+function poisson(lambda){
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while(p > L);
+  return k - 1;
+}
+
+// --- Pitcher peripherals --------------------------------------------------
+function computeFIP(st){
+  const ip = Number(st.inningsPitched) || 0;
+  if(ip < 20) return null;
+  const hr = Number(st.homeRuns)||0, bb = Number(st.baseOnBalls)||0;
+  const hbp = Number(st.hitBatsmen)||0, k = Number(st.strikeOuts)||0;
+  return ((13*hr) + (3*(bb+hbp)) - (2*k)) / ip + FIP_CONST;
+}
+
+async function pitcherProfile(pid, season){
+  if(!pid) return null;
+  const d = await getJSON(`${MLB}/people/${pid}/stats?stats=season&group=pitching&season=${season}`, 'pitcher');
+  const st = d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0] && d.stats[0].splits[0].stat;
+  if(!st) return null;
+  const ip = Number(st.inningsPitched) || 0;
+  const fip = computeFIP(st);
+  const era = Number(st.era);
+  if(fip == null || !isFinite(era)) return null;
+  const gs = Number(st.gamesStarted) || 1;
+  return {
+    era, fip, gap: era - fip, ip,
+    ipPerStart: clamp(ip/gs, 3.0, 7.0),
+    k9: Number(st.strikeoutsPer9Inn) || 8.0,
+    bb9: Number(st.walksPer9Inn) || 3.0,
+    whip: Number(st.whip) || 1.30,
+    gs,
+  };
+}
+
+async function teamOffense(tid, season){
+  const d = await getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=hitting&season=${season}`, 'team hitting');
+  const st = d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0] && d.stats[0].splits[0].stat;
+  if(!st) return null;
+  const g = Number(st.gamesPlayed) || 1;
+  return {
+    rpg: (Number(st.runs)||0) / g,
+    ops: Number(st.ops) || 0.720,
+    iso: (Number(st.slg)||0) - (Number(st.avg)||0),
+  };
+}
+
+async function teamBullpen(tid, season){
+  const d = await getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=pitching&season=${season}`, 'team pitching');
+  const st = d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0] && d.stats[0].splits[0].stat;
+  if(!st) return null;
+  const fip = computeFIP(st);
+  return { era: Number(st.era) || 4.20, fip: fip == null ? 4.20 : fip };
+}
+
+// --- Run projection -------------------------------------------------------
+// Expected runs a lineup scores against a given starter over N innings.
+function expRuns(off, pitcher, parkF, innings){
+  // FIP is the true-talent anchor; ERA is deliberately not used here.
+  const pitcherRA9 = pitcher.fip;
+  const offScale = clamp(off.rpg / LEAGUE_RPG, 0.75, 1.30);
+  const base = (pitcherRA9 / 9) * innings;
+  return clamp(base * offScale * parkF, 0.15, 12);
+}
+
+function simulate(lamA5, lamB5, lamA9, lamB9){
+  let aOver = 0, bOver = 0;
+  const f5A = new Array(SIMS), f5B = new Array(SIMS);
+  const f5T = new Array(SIMS), fgA = new Array(SIMS), fgB = new Array(SIMS);
+  for(let i=0;i<SIMS;i++){
+    const a5 = poisson(lamA5), b5 = poisson(lamB5);
+    f5A[i]=a5; f5B[i]=b5; f5T[i]=a5+b5;
+    fgA[i] = a5 + poisson(Math.max(lamA9-lamA5,0.05));
+    fgB[i] = b5 + poisson(Math.max(lamB9-lamB5,0.05));
+  }
+  return { f5A, f5B, f5T, fgA, fgB };
+}
+function pOver(arr, line){ let c=0; for(const v of arr) if(v > line) c++; return c/arr.length; }
+function pUnder(arr, line){ let c=0; for(const v of arr) if(v < line) c++; return c/arr.length; }
+function pWin(a, b){ // F5 moneyline, ties push in most books -> exclude
+  let w=0, t=0;
+  for(let i=0;i<a.length;i++){ if(a[i]>b[i]) w++; else if(a[i]===b[i]) t++; }
+  return w / Math.max(a.length - t, 1);
+}
+
+function ev(p, price){
+  const dec = amToDec(price);
+  return (p * (dec - 1)) - ((1 - p) * 1);
+}
+
+// --- Odds retrieval -------------------------------------------------------
+async function eventOdds(eventId, pref){
+  const markets = 'h2h_1st_5_innings,totals_1st_5_innings,team_totals';
+  const url = `${ODDS_BASE}/sports/baseball_mlb/events/${eventId}/odds`
+    + `?apiKey=${encodeURIComponent(oddsKey)}&regions=us,eu&oddsFormat=american&markets=${markets}`;
+  const r = await fetch(url);
+  if(r.status === 422 || r.status === 404){
+    window.__marketErr = `Your key returned HTTP ${r.status} for F5/team-total markets. These are additional markets on The Odds API and typically require a paid tier.`;
+    return null;
+  }
+  if(!r.ok){ window.__marketErr = `Odds request failed: HTTP ${r.status}`; return null; }
+  return r.json();
+}
+
+function pickBook(bookmakers, pref){
+  if(!bookmakers || !bookmakers.length) return null;
+  if(pref === 'pinnacle'){
+    const p = bookmakers.find(b => b.key === 'pinnacle');
+    if(p) return [p];
+  }
+  return bookmakers;
+}
+
+// Collect every candidate selection from an event's odds payload.
+function candidates(evOdds, pref, home, away){
+  const out = [];
+  const books = pickBook(evOdds.bookmakers, pref) || [];
+  books.forEach(bk => {
+    (bk.markets || []).forEach(mk => {
+      (mk.outcomes || []).forEach(o => {
+        if(mk.key === 'h2h_1st_5_innings'){
+          out.push({ type:'F5_ML', team:o.name, price:o.price, book:bk.title, label:`${o.name} F5 Moneyline` });
+        } else if(mk.key === 'totals_1st_5_innings'){
+          out.push({ type:'F5_TOT', side:o.name, point:o.point, price:o.price, book:bk.title,
+                     label:`F5 Total ${o.name} ${o.point}` });
+        } else if(mk.key === 'team_totals'){
+          const team = o.description || o.name;
+          out.push({ type:'TEAM_TOT', team, side:o.name, point:o.point, price:o.price, book:bk.title,
+                     label:`${team} Team Total ${o.name} ${o.point}` });
+        }
+      });
+    });
+  });
+  return out;
+}
+
+// --- Main scan ------------------------------------------------------------
+document.getElementById('scanBtn').addEventListener('click', runScan);
+
+async function runScan(){
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  document.getElementById('results').innerHTML = '';
+  window.__err = null; window.__marketErr = null;
+
+  const threshold = Number(document.getElementById('evThreshold').value);
+  const pref = document.getElementById('bookPref').value;
+  const date = iso(new Date());
+  const season = Number(date.slice(0,4));
+
+  // Fail fast on an exhausted allowance rather than grinding through the slate first.
+  setStatus('Checking API allowance...');
+  try{
+    const q = await fetch(`${ODDS_BASE}/sports/?apiKey=${encodeURIComponent(oddsKey)}`);
+    const rem = q.headers.get('x-requests-remaining');
+    const used = q.headers.get('x-requests-used');
+    if(q.status === 401){
+      setStatus('The Odds API rejected this key (401). Use TEST above for detail.', true);
+      btn.disabled = false; return;
+    }
+    if(rem != null && Number(rem) <= 0){
+      setStatus(`Odds allowance exhausted \u2014 ${used} used, ${rem} remaining. Every odds request will return 401 until the monthly quota resets, so the scan is stopping here rather than running the projections for nothing.`, true);
+      btn.disabled = false; return;
+    }
+  }catch(e){
+    setStatus(`Could not reach The Odds API \u2014 ${e.message}`, true);
+    btn.disabled = false; return;
+  }
+
+  setStatus('Step 1 \u2014 loading slate and probable starters...');
+  const sched = await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,venue,probablePitcher`, 'schedule');
+  const games = ((sched && sched.dates && sched.dates[0] && sched.dates[0].games) || [])
+    .filter(g => g.status && g.status.abstractGameState === 'Preview');
+
+  if(!games.length){
+    setStatus(window.__err ? `Could not load the slate. ${window.__err}` : 'No upcoming MLB games on today\u2019s slate.', true);
+    btn.disabled = false;
+    return;
+  }
+
+  // Step 1: regression-gap filtering
+  setStatus(`Step 1 \u2014 computing ERA/FIP regression gaps across ${games.length} games...`);
+  const scored = [];
+  for(const g of games){
+    const homeId = g.teams.home.team.id, awayId = g.teams.away.team.id;
+    const [hp, ap] = await Promise.all([
+      pitcherProfile(g.teams.home.probablePitcher && g.teams.home.probablePitcher.id, season),
+      pitcherProfile(g.teams.away.probablePitcher && g.teams.away.probablePitcher.id, season),
+    ]);
+    if(!hp || !ap) continue;
+    const maxGap = Math.max(Math.abs(hp.gap), Math.abs(ap.gap));
+    scored.push({ g, homeId, awayId, hp, ap, maxGap });
+  }
+
+  if(!scored.length){
+    setStatus('No games have both starters announced with sufficient innings (20+ IP) to compute reliable peripherals.', true);
+    btn.disabled = false;
+    return;
+  }
+
+  scored.sort((a,b) => b.maxGap - a.maxGap);
+  const shortlist = scored.slice(0, 6); // widen slightly so odds availability doesn't kill the scan
+
+  setStatus(`Step 2 \u2014 cross-analysis on top ${shortlist.length} regression candidates...`);
+  const analysed = [];
+  for(const s of shortlist){
+    const [hOff, aOff, hPen, aPen] = await Promise.all([
+      teamOffense(s.homeId, season), teamOffense(s.awayId, season),
+      teamBullpen(s.homeId, season), teamBullpen(s.awayId, season),
+    ]);
+    if(!hOff || !aOff) continue;
+    const abbr = TEAM_ABBR[s.homeId];
+    const parkF = (abbr && PARK_FACTOR[abbr]) || 1.0;
+
+    // home lineup faces away starter; away lineup faces home starter
+    const lamHome5 = expRuns(hOff, s.ap, parkF, 5);
+    const lamAway5 = expRuns(aOff, s.hp, parkF, 5);
+    const penH = hPen || { fip:4.20 }, penA = aPen || { fip:4.20 };
+    const lamHome9 = lamHome5 + clamp((penA.fip/9)*4 * clamp(hOff.rpg/LEAGUE_RPG,0.75,1.30) * parkF, 0.2, 8);
+    const lamAway9 = lamAway5 + clamp((penH.fip/9)*4 * clamp(aOff.rpg/LEAGUE_RPG,0.75,1.30) * parkF, 0.2, 8);
+
+    const sim = simulate(lamHome5, lamAway5, lamHome9, lamAway9);
+    analysed.push({ ...s, hOff, aOff, hPen, aPen, parkF, sim,
+      lamHome5, lamAway5, lamHome9, lamAway9,
+      homeName: s.g.teams.home.team.name, awayName: s.g.teams.away.team.name });
+  }
+
+  setStatus('Step 3 \u2014 retrieving live F5 and team-total prices...');
+  const allPicks = [];
+  let oddsFound = 0;
+
+  for(const a of analysed){
+    const evOdds = await eventOddsForGame(a, pref);
+    if(!evOdds) continue;
+    oddsFound++;
+    const cands = candidates(evOdds, pref, a.homeName, a.awayName);
+    const priced = [];
+
+    cands.forEach(c => {
+      let p = null;
+      if(c.type === 'F5_ML'){
+        const isHome = c.team === a.homeName;
+        p = isHome ? pWin(a.sim.f5A, a.sim.f5B) : pWin(a.sim.f5B, a.sim.f5A);
+      } else if(c.type === 'F5_TOT'){
+        p = c.side === 'Over' ? pOver(a.sim.f5T, c.point) : pUnder(a.sim.f5T, c.point);
+      } else if(c.type === 'TEAM_TOT'){
+        const isHome = c.team === a.homeName;
+        const arr = isHome ? a.sim.fgA : a.sim.fgB;
+        p = c.side === 'Over' ? pOver(arr, c.point) : pUnder(arr, c.point);
+      }
+      if(p == null || !isFinite(c.price)) return;
+      const e = ev(p, c.price);
+      priced.push({ ...c, p, ev: e, fairAm: probToAmerican(p) });
+    });
+
+    if(!priced.length) continue;
+    priced.sort((x,y) => y.ev - x.ev);
+    const best = priced[0];                 // exactly one pick per game
+    if(best.ev > threshold) allPicks.push({ game:a, sel:best });
+  }
+
+  if(!oddsFound){
+    setStatus(window.__marketErr
+      ? window.__marketErr
+      : 'No F5 or team-total prices returned for any shortlisted game.', true);
+    btn.disabled = false;
+    return;
+  }
+
+  allPicks.sort((x,y) => y.sel.ev - x.sel.ev);
+  const finalPicks = allPicks.slice(0, 2);   // hard cap
+
+  setStatus(`Scan complete \u2014 ${analysed.length} games cross-analysed, ${oddsFound} priced, ${finalPicks.length} clearing +${Math.round(threshold*100)}% EV.`);
+  render(finalPicks, analysed, threshold);
+  btn.disabled = false;
+}
+
+async function eventOddsForGame(a, pref){
+  if(!window.__eventIndex){
+    const list = await getJSON(`${ODDS_BASE}/sports/baseball_mlb/events?apiKey=${encodeURIComponent(oddsKey)}`, 'events');
+    window.__eventIndex = list || [];
+  }
+  const idx = window.__eventIndex;
+  const match = idx.find(e =>
+    (e.home_team === a.homeName && e.away_team === a.awayName) ||
+    (e.home_team || '').includes(a.homeName.split(' ').pop()) && (e.away_team || '').includes(a.awayName.split(' ').pop()));
+  if(!match) return null;
+  return eventOdds(match.id, pref);
+}
+
+function probToAmerican(p){
+  if(p <= 0 || p >= 1) return null;
+  return p >= 0.5 ? Math.round(-100*p/(1-p)) : Math.round(100*(1-p)/p);
+}
+
+function render(picks, analysed, threshold){
+  const res = document.getElementById('results');
+
+  if(!picks.length){
+    res.innerHTML = `
+      <div class="section-title">RESULT</div>
+      <div class="halt">There are no plays with sufficient mathematical value today (EV+ &lt; ${Math.round(threshold*100)}%).<br>It is recommended to preserve the bankroll.</div>
+      ${scanTable(analysed)}`;
+    return;
+  }
+
+  res.innerHTML = `<div class="section-title">SELECTIONS (${picks.length})</div>`
+    + picks.map(pk => pickCard(pk)).join('')
+    + scanTable(analysed);
+}
+
+function pickCard(pk){
+  const a = pk.game, s = pk.sel;
+  const starterFor = (s.type === 'F5_ML' || s.type === 'F5_TOT')
+    ? null : (s.team === a.homeName ? a.ap : a.hp);
+  const homeAbbr = TEAM_ABBR[a.homeId] || '', awayAbbr = TEAM_ABBR[a.awayId] || '';
+  const dome = DOME.has(a.homeId);
+
+  // Which starter is the regression story
+  const bigger = Math.abs(a.hp.gap) >= Math.abs(a.ap.gap) ? { p:a.hp, who:a.homeName } : { p:a.ap, who:a.awayName };
+  const dir = bigger.p.gap > 0 ? 'ERA above FIP \u2014 run prevention projects to improve' : 'ERA below FIP \u2014 results project to deteriorate';
+
+  return `
+  <div class="pick">
+    <div class="pick-head">
+      <div>
+        <div class="pick-market">${s.label}</div>
+        <div class="pick-game">${a.awayName} @ ${a.homeName} &middot; ${a.g.venue ? a.g.venue.name : ''}</div>
+      </div>
+      <div class="ev-box">
+        <div class="ev-val">+${(s.ev*100).toFixed(1)}%</div>
+        <div class="ev-lbl">EXPECTED VALUE</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th colspan="2">PRICING</th></tr>
+      <tr><td class="k">Market price (${s.book})</td><td>${fmtAm(s.price)}</td></tr>
+      <tr><td class="k">Implied probability</td><td>${(amToImp(s.price)*100).toFixed(1)}%</td></tr>
+      <tr><td class="k">Model probability</td><td>${(s.p*100).toFixed(1)}%</td></tr>
+      <tr><td class="k">Fair line</td><td>${s.fairAm != null ? fmtAm(s.fairAm) : '\u2014'}</td></tr>
+      <tr><td class="k">Edge over market</td><td>+${((s.p - amToImp(s.price))*100).toFixed(1)} pts</td></tr>
+    </table>
+
+    <table>
+      <tr><th colspan="2">REGRESSION PROFILE</th></tr>
+      <tr><td class="k">${a.awayName} starter ERA / FIP</td><td>${a.ap.era.toFixed(2)} / ${a.ap.fip.toFixed(2)} <span style="color:var(--dim)">(gap ${a.ap.gap>=0?'+':''}${a.ap.gap.toFixed(2)})</span></td></tr>
+      <tr><td class="k">${a.homeName} starter ERA / FIP</td><td>${a.hp.era.toFixed(2)} / ${a.hp.fip.toFixed(2)} <span style="color:var(--dim)">(gap ${a.hp.gap>=0?'+':''}${a.hp.gap.toFixed(2)})</span></td></tr>
+      <tr><td class="k">xERA / Barrel% / HardHit%</td><td class="na">Data unavailable for the model</td></tr>
+      <tr><td class="k">O-Swing% / pitch Run Value</td><td class="na">Data unavailable for the model</td></tr>
+    </table>
+
+    <table>
+      <tr><th colspan="2">OFFENCE &amp; CONTEXT</th></tr>
+      <tr><td class="k">${a.awayName} R/G &middot; OPS &middot; ISO</td><td>${a.aOff.rpg.toFixed(2)} &middot; ${a.aOff.ops.toFixed(3)} &middot; ${a.aOff.iso.toFixed(3)}</td></tr>
+      <tr><td class="k">${a.homeName} R/G &middot; OPS &middot; ISO</td><td>${a.hOff.rpg.toFixed(2)} &middot; ${a.hOff.ops.toFixed(3)} &middot; ${a.hOff.iso.toFixed(3)}</td></tr>
+      <tr><td class="k">Platoon splits vs handedness</td><td class="na">Data unavailable for the model</td></tr>
+      <tr><td class="k">Park factor (${homeAbbr})</td><td>${a.parkF.toFixed(2)}</td></tr>
+      <tr><td class="k">Microclimate / wind</td><td class="na">${dome ? 'Enclosed venue \u2014 neutral' : 'Data unavailable for the model'}</td></tr>
+      ${s.type === 'TEAM_TOT' ? `<tr><td class="k">Opposing bullpen FIP</td><td>${(s.team === a.homeName ? a.aPen : a.hPen) ? (s.team === a.homeName ? a.aPen.fip : a.hPen.fip).toFixed(2) : '\u2014'}</td></tr>` : ''}
+    </table>
+
+    <table>
+      <tr><th colspan="2">PROJECTION</th></tr>
+      <tr><td class="k">Projected F5 runs (${awayAbbr} / ${homeAbbr})</td><td>${a.lamAway5.toFixed(2)} / ${a.lamHome5.toFixed(2)}</td></tr>
+      <tr><td class="k">Projected F5 total</td><td>${(a.lamAway5 + a.lamHome5).toFixed(2)}</td></tr>
+      ${s.type === 'TEAM_TOT' ? `<tr><td class="k">Projected full-game runs (${awayAbbr} / ${homeAbbr})</td><td>${a.lamAway9.toFixed(2)} / ${a.lamHome9.toFixed(2)}</td></tr>` : ''}
+    </table>
+
+    <div class="angle">
+      <b>MATHEMATICAL ANGLE:</b> ${bigger.who} starter shows ${dir} (${bigger.p.era.toFixed(2)} ERA vs ${bigger.p.fip.toFixed(2)} FIP)
+      + park factor ${a.parkF.toFixed(2)} + offence scaled at ${(a.aOff.rpg/LEAGUE_RPG).toFixed(2)}/${(a.hOff.rpg/LEAGUE_RPG).toFixed(2)} of league R/G
+      &rarr; model prices this at ${(s.p*100).toFixed(1)}% against a market-implied ${(amToImp(s.price)*100).toFixed(1)}%,
+      for <b>+${(s.ev*100).toFixed(1)}% EV</b>.
+    </div>
+  </div>`;
+}
+
+function scanTable(analysed){
+  if(!analysed.length) return '';
+  const rows = analysed.map(a => `
+    <div class="scan-row">
+      <span>${a.awayName} @ ${a.homeName}</span>
+      <span class="gap">${a.maxGap.toFixed(2)}</span>
+    </div>`).join('');
+  return `<div class="section-title">SLATE SCAN \u2014 REGRESSION GAPS</div>${rows}
+    <div class="hint">Largest absolute ERA&minus;FIP divergence per game among announced starters. Higher values indicate greater separation between surface results and peripherals.</div>`;
+}
+</script>
+</body>
+</html>

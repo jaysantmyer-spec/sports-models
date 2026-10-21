@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F5 Run Projector</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:29px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.formula{
+  background:var(--navy);border:1px solid #263644;border-radius:8px;padding:11px 12px;
+  font-size:11.5px;color:var(--blue);line-height:1.7;margin-bottom:14px;font-family:'Inter',sans-serif;
+}
+.formula b{color:var(--amber);}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 10px;border-radius:5px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus,select:focus{border-color:var(--amber);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:18px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12.5px;color:var(--dim);margin:12px 0;min-height:32px;line-height:1.55;}
+.status.err{color:var(--red);}
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.game{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:11px;}
+.game.edge{border-color:rgba(242,169,59,0.5);}
+.gtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.gname{font-size:14px;font-weight:600;}
+.gmeta{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.gtot{text-align:right;flex-shrink:0;}
+.gtot .v{font-family:'Teko',sans-serif;font-size:27px;line-height:1;color:var(--amber);}
+.gtot .l{font-size:9px;color:var(--dim);letter-spacing:0.5px;}
+.split{display:flex;gap:8px;margin-top:10px;}
+.tcard{flex:1;background:var(--navy-light);border:1px solid #2A3B48;border-radius:7px;padding:9px;text-align:center;}
+.tcard .tn{font-size:11px;color:var(--dim);}
+.tcard .tv{font-family:'Teko',sans-serif;font-size:21px;color:var(--chalk);line-height:1.2;}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.game.open .detail{display:block;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:0.5px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td{padding:6px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:52%;}
+td.na{color:#6B7D8A;font-style:italic;}
+.lineinput{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:11px;}
+.lineinput input{padding:7px 8px;font-size:13px;}
+.lineinput label{font-size:9px;}
+.verdict{margin-top:10px;padding:9px 11px;border-radius:6px;font-size:12px;line-height:1.6;}
+.verdict.go{background:rgba(95,174,122,0.1);border-left:3px solid var(--green);}
+.verdict.no{background:rgba(255,255,255,0.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.verdict b{color:var(--amber);}
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:10.5px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>F5 RUN PROJECTOR</h1></div>
+  <p class="sub">Projects first-five-innings runs for both sides of today's slate, then compares against any line you enter. No API key required.</p>
+
+  <div class="formula">
+    <b>Expected F5 Runs</b> = ( Adjusted Pitcher ERA + Lineup Run Rate ) &divide; 2 &times; 5/9 &times; Park &times; Weather<br>
+    <span style="color:var(--dim)">Adjusted ERA = ERA &times; (pitcher wOBA allowed &divide; league wOBA). Lineup Run Rate converts the opposing lineup's split wOBA onto the same runs-per-nine scale, so the two terms can legitimately be averaged.</span>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">SETTINGS</div>
+    <div class="row2">
+      <div><label>Date</label><input type="date" id="gameDate"></div>
+      <div><label>Lineup depth</label>
+        <select id="depth">
+          <option value="5">Top 5 hitters</option>
+          <option value="7" selected>Top 7 hitters</option>
+          <option value="9">Top 9 hitters</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2" style="margin-top:10px;">
+      <div><label>Wind adjustment</label>
+        <select id="windAdj">
+          <option value="1.00" selected>Neutral / unknown</option>
+          <option value="1.06">Blowing out (strong)</option>
+          <option value="1.03">Blowing out (light)</option>
+          <option value="0.97">Blowing in (light)</option>
+          <option value="0.94">Blowing in (strong)</option>
+        </select>
+      </div>
+      <div><label>Edge threshold (runs)</label>
+        <select id="edgeThresh">
+          <option value="0.5" selected>0.5</option>
+          <option value="0.75">0.75</option>
+          <option value="1.0">1.0</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="runBtn">PROJECT SLATE</button>
+    <div class="hint">Wind is applied globally because determining whether wind blows out requires each stadium's field orientation, which is not available here. Measured speed and direction are shown per game so the setting can be applied with judgment.</div>
+  </div>
+
+  <div class="status" id="statusLine"></div>
+  <div id="results"></div>
+
+  <p class="footnote">Pitcher wOBA allowed is computed from the counting stats surrendered using standard linear weights; those weights drift slightly by season, so treat wOBA figures as closely approximate. Lineups are the team's top plate-appearance leaders rather than posted lineups, since confirmed cards are not published until shortly before first pitch. Each hitter's wOBA is drawn from their split against the opposing starter's throwing hand; switch hitters are credited with the platoon advantage. Park factors are general reference values, not five-inning-specific figures, and are applied to the run estimate directly. Win probability comes from twenty thousand Poisson simulations per game using each side's projected F5 runs, with ties reported separately because a first-five moneyline pushes on a tie &mdash; the quoted win probability is therefore conditional on the game not being tied. Bullpens are deliberately excluded, matching the market. This is a projection tool, not betting advice, and no model output is a guarantee.</p>
+</div>
+
+<script>
+const MLB = 'https://statsapi.mlb.com/api/v1';
+const SIMS = 20000;
+const LEAGUE_WOBA = 0.320;
+const LEAGUE_R9 = 4.45;
+const W = { BB:0.69, HBP:0.72, S:0.89, D:1.27, T:1.62, HR:2.10 };
+
+const TEAM_ABBR = {108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK_FACTOR = {COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const DOME = new Set([141,139,146,109,117,158,136]);
+
+function iso(d){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }
+document.getElementById('gameDate').value = iso(new Date());
+
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function setStatus(t,err){ const e=document.getElementById('statusLine'); e.textContent=t; e.className='status'+(err?' err':''); }
+async function getJSON(u,l){
+  try{ const r=await fetch(u); if(!r.ok){ window.__err=`${l}: HTTP ${r.status}`; return null; } return await r.json(); }
+  catch(e){ window.__err=`${l}: ${e.message}`; return null; }
+}
+async function pool(items, limit, fn){
+  const out=new Array(items.length); let i=0;
+  async function w(){ while(i<items.length){ const k=i++; out[k]=await fn(items[k]); } }
+  await Promise.all(Array.from({length:Math.min(limit,items.length)}, w));
+  return out;
+}
+function poisson(l){ const L=Math.exp(-l); let k=0,p=1; do{k++;p*=Math.random();}while(p>L); return k-1; }
+
+// wOBA from raw counting stats — works for batters and for pitchers' totals allowed.
+function wobaFrom(st){
+  const ab=Number(st.atBats)||0, h=Number(st.hits)||0;
+  const bb=Number(st.baseOnBalls)||0, ibb=Number(st.intentionalWalks)||0;
+  const hbp=Number(st.hitByPitch)||0, sf=Number(st.sacFlies)||0;
+  const hr=Number(st.homeRuns)||0, d2=Number(st.doubles)||0, t3=Number(st.triples)||0;
+  const s1=Math.max(h-hr-d2-t3,0);
+  const den=ab+bb-ibb+sf+hbp;
+  if(den<=0) return null;
+  return (W.BB*(bb-ibb)+W.HBP*hbp+W.S*s1+W.D*d2+W.T*t3+W.HR*hr)/den;
+}
+
+const splitCache=new Map();
+async function batterWOBA(pid, hand, season){
+  const sit = hand==='L' ? 'vl' : 'vr';
+  const ck=`${pid}|${sit}`;
+  if(splitCache.has(ck)) return splitCache.get(ck);
+  const d=await getJSON(`${MLB}/people/${pid}/stats?stats=statSplits&group=hitting&sitCodes=${sit}&season=${season}`,'split');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  let v=null;
+  if(st){
+    const pa=Number(st.plateAppearances)||0;
+    const w=wobaFrom(st);
+    if(pa>=20 && w!=null) v={ woba:w, pa };
+  }
+  splitCache.set(ck,v);
+  return v;
+}
+
+async function pitcherProfile(pid, season){
+  if(!pid) return null;
+  const d=await getJSON(`${MLB}/people/${pid}/stats?stats=season&group=pitching&season=${season}`,'pitcher');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  if(!st) return null;
+  const ip=Number(st.inningsPitched)||0;
+  if(ip<15) return null;
+  const era=Number(st.era);
+  const wobaAg=wobaFrom(st);
+  if(!isFinite(era)||wobaAg==null) return null;
+  return { era, wobaAgainst:wobaAg, ip, whip:Number(st.whip)||null };
+}
+
+const handCache=new Map();
+async function handedness(ids){
+  const need=ids.filter(i=>!handCache.has(i));
+  if(need.length){
+    const d=await getJSON(`${MLB}/people?personIds=${need.join(',')}`,'people');
+    ((d&&d.people)||[]).forEach(p=>handCache.set(p.id,{
+      bats:(p.batSide&&p.batSide.code)||'R',
+      throws:(p.pitchHand&&p.pitchHand.code)||'R'
+    }));
+  }
+}
+
+async function topHitters(teamId, season, depth){
+  const d=await getJSON(`${MLB}/teams/${teamId}/roster?rosterType=active&hydrate=person(stats(group=[hitting],type=[season],season=${season}))`,'roster');
+  const list=[];
+  ((d&&d.roster)||[]).forEach(e=>{
+    if(e.position&&e.position.abbreviation==='P') return;
+    const blk=((e.person&&e.person.stats)||[]).find(s=>s.group&&s.group.displayName==='hitting');
+    const st=blk&&blk.splits&&blk.splits[0]&&blk.splits[0].stat;
+    if(!st||!st.plateAppearances) return;
+    list.push({ id:e.person.id, name:e.person.fullName, pa:Number(st.plateAppearances)||0 });
+  });
+  list.sort((a,b)=>b.pa-a.pa);
+  return list.slice(0,depth);
+}
+
+// Core formula. Both terms are on a runs-per-nine scale before averaging.
+function expectedF5(pitcher, lineupWOBA, parkF, windF){
+  const adjERA = pitcher.era * (pitcher.wobaAgainst / LEAGUE_WOBA);
+  const lineupR9 = (lineupWOBA / LEAGUE_WOBA) * LEAGUE_R9;
+  const blended = (adjERA + lineupR9) / 2;
+  const runs = blended * (5/9) * parkF * windF;
+  return { adjERA, lineupR9, blended, runs: clamp(runs, 0.2, 9) };
+}
+
+function simulate(lamH, lamA){
+  let h=0,a=0,t=0;
+  for(let i=0;i<SIMS;i++){
+    const rh=poisson(lamH), ra=poisson(lamA);
+    if(rh>ra) h++; else if(ra>rh) a++; else t++;
+  }
+  return { homeWin:h/SIMS, awayWin:a/SIMS, tie:t/SIMS };
+}
+function simTotals(lamH, lamA){
+  const arr=new Array(SIMS);
+  for(let i=0;i<SIMS;i++) arr[i]=poisson(lamH)+poisson(lamA);
+  return arr;
+}
+function pOver(arr,line){ let c=0; for(const v of arr) if(v>line) c++; return c/arr.length; }
+function amToImp(p){ return p>0?100/(p+100):(-p)/((-p)+100); }
+function fmtAm(p){ return p>0?`+${p}`:`${p}`; }
+
+let projected=[];
+
+document.getElementById('runBtn').addEventListener('click', run);
+
+async function run(){
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  document.getElementById('results').innerHTML='';
+  window.__err=null;
+  projected=[];
+
+  const date=document.getElementById('gameDate').value;
+  const depth=Number(document.getElementById('depth').value);
+  const windF=Number(document.getElementById('windAdj').value);
+  const season=Number(date.slice(0,4));
+
+  setStatus('Loading slate and probable starters...');
+  const sched=await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,venue,probablePitcher`,'schedule');
+  const games=((sched&&sched.dates&&sched.dates[0]&&sched.dates[0].games)||[])
+    .filter(g=>g.status&&(g.status.abstractGameState==='Preview'||g.status.abstractGameState==='Live'));
+
+  if(!games.length){
+    setStatus(window.__err?`Could not load the slate. ${window.__err}`:'No upcoming games on this date.',true);
+    document.getElementById('results').innerHTML='<div class="empty-state">Nothing scheduled, or the slate has already finished.</div>';
+    btn.disabled=false; return;
+  }
+
+  // Venue weather for display only.
+  const venueInfo={};
+  await pool([...new Set(games.map(g=>g.venue&&g.venue.id).filter(Boolean))],4,async vid=>{
+    const v=await getJSON(`${MLB}/venues/${vid}?hydrate=location`,'venue');
+    const c=v&&v.venues&&v.venues[0]&&v.venues[0].location&&v.venues[0].location.defaultCoordinates;
+    if(!c) return;
+    const w=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${c.latitude}&longitude=${c.longitude}&current=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`,'weather');
+    if(w&&w.current) venueInfo[vid]={temp:w.current.temperature_2m,wind:w.current.wind_speed_10m,dir:w.current.wind_direction_10m};
+  });
+
+  for(let i=0;i<games.length;i++){
+    const g=games[i];
+    setStatus(`Projecting game ${i+1} of ${games.length}...`);
+    const homeId=g.teams.home.team.id, awayId=g.teams.away.team.id;
+    const homeSP=g.teams.home.probablePitcher, awaySP=g.teams.away.probablePitcher;
+    if(!homeSP||!awaySP) continue;
+
+    const [hp,ap]=await Promise.all([pitcherProfile(homeSP.id,season),pitcherProfile(awaySP.id,season)]);
+    if(!hp||!ap) continue;
+
+    await handedness([homeSP.id,awaySP.id]);
+    const hpHand=(handCache.get(homeSP.id)||{}).throws||'R';
+    const apHand=(handCache.get(awaySP.id)||{}).throws||'R';
+
+    const [homeLU,awayLU]=await Promise.all([topHitters(homeId,season,depth),topHitters(awayId,season,depth)]);
+
+    // Home lineup faces the away starter, and vice versa.
+    const homeW=(await pool(homeLU,5,b=>batterWOBA(b.id,apHand,season))).filter(Boolean);
+    const awayW=(await pool(awayLU,5,b=>batterWOBA(b.id,hpHand,season))).filter(Boolean);
+    if(homeW.length<4||awayW.length<4) continue;
+
+    const homeLineupWOBA=homeW.reduce((s,x)=>s+x.woba,0)/homeW.length;
+    const awayLineupWOBA=awayW.reduce((s,x)=>s+x.woba,0)/awayW.length;
+
+    const abbr=TEAM_ABBR[homeId];
+    const parkF=(abbr&&PARK_FACTOR[abbr])||1.0;
+    const isDome=DOME.has(homeId);
+    const effWind=isDome?1.0:windF;
+
+    // Each side's runs: opposing pitcher paired with this lineup's wOBA.
+    const homeProj=expectedF5(ap, homeLineupWOBA, parkF, effWind);
+    const awayProj=expectedF5(hp, awayLineupWOBA, parkF, effWind);
+
+    const ml=simulate(homeProj.runs,awayProj.runs);
+    const totals=simTotals(homeProj.runs,awayProj.runs);
+
+    projected.push({
+      g, homeId, awayId,
+      homeName:g.teams.home.team.name, awayName:g.teams.away.team.name,
+      homeSPName:homeSP.fullName, awaySPName:awaySP.fullName,
+      hp, ap, hpHand, apHand,
+      homeLineupWOBA, awayLineupWOBA,
+      homeN:homeW.length, awayN:awayW.length,
+      homeProj, awayProj, parkF, effWind, isDome,
+      weather:venueInfo[g.venue&&g.venue.id]||null,
+      ml, totals,
+      combined:homeProj.runs+awayProj.runs,
+    });
+  }
+
+  if(!projected.length){
+    setStatus(window.__err?`No games projected. ${window.__err}`:'No games had both starters announced with enough innings to project.',true);
+    document.getElementById('results').innerHTML='<div class="empty-state">Starters may not be announced yet. Try again closer to first pitch.</div>';
+    btn.disabled=false; return;
+  }
+
+  setStatus(`Projected ${projected.length} game${projected.length===1?'':'s'}. Enter a line on any game to test for an edge.`);
+  render();
+  btn.disabled=false;
+}
+
+function render(){
+  document.getElementById('results').innerHTML =
+    `<div class="section-title">PROJECTIONS</div>` +
+    projected.map((p,i)=>gameCard(p,i)).join('');
+}
+
+function gameCard(p,i){
+  const wx = p.isDome ? 'Enclosed venue'
+    : (p.weather ? `${Math.round(p.weather.temp)}&deg;F, wind ${Math.round(p.weather.wind)} mph from ${Math.round(p.weather.dir)}&deg;` : 'Weather unavailable');
+  return `
+  <div class="game" id="g-${i}">
+    <div class="gtop" onclick="document.getElementById('g-${i}').classList.toggle('open')">
+      <div>
+        <div class="gname">${p.awayName} @ ${p.homeName}</div>
+        <div class="gmeta">${p.awaySPName} (${p.apHand}HP) vs ${p.homeSPName} (${p.hpHand}HP)<br>${wx} &middot; park ${p.parkF.toFixed(2)}</div>
+      </div>
+      <div class="gtot">
+        <div class="v">${p.combined.toFixed(2)}</div>
+        <div class="l">PROJ F5 TOTAL</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="tcard"><div class="tn">${p.awayName}</div><div class="tv">${p.awayProj.runs.toFixed(2)}</div></div>
+      <div class="tcard"><div class="tn">${p.homeName}</div><div class="tv">${p.homeProj.runs.toFixed(2)}</div></div>
+    </div>
+
+    <div class="lineinput">
+      <div><label>F5 total line</label><input type="number" step="0.5" id="tl-${i}" placeholder="4.5" oninput="evaluate(${i})"></div>
+      <div><label>Away ML</label><input type="number" id="ma-${i}" placeholder="-120" oninput="evaluate(${i})"></div>
+      <div><label>Home ML</label><input type="number" id="mh-${i}" placeholder="+100" oninput="evaluate(${i})"></div>
+    </div>
+    <div id="v-${i}"></div>
+
+    <div class="detail">
+      <table>
+        <tr><th colspan="2">${p.awayName} OFFENCE vs ${p.hpHand}HP</th></tr>
+        <tr><td class="k">Lineup wOBA (${p.awayN} hitters)</td><td>${p.awayLineupWOBA.toFixed(3)}</td></tr>
+        <tr><td class="k">Converted run rate per 9</td><td>${p.awayProj.lineupR9.toFixed(2)}</td></tr>
+        <tr><td class="k">Opposing starter ERA</td><td>${p.hp.era.toFixed(2)}</td></tr>
+        <tr><td class="k">Opposing starter wOBA allowed</td><td>${p.hp.wobaAgainst.toFixed(3)}</td></tr>
+        <tr><td class="k">Adjusted ERA</td><td>${p.awayProj.adjERA.toFixed(2)}</td></tr>
+        <tr><td class="k">Blended &rarr; &times;5/9 &times;park &times;wind</td><td>${p.awayProj.blended.toFixed(2)} &rarr; <b>${p.awayProj.runs.toFixed(2)}</b></td></tr>
+      </table>
+      <table style="margin-top:9px;">
+        <tr><th colspan="2">${p.homeName} OFFENCE vs ${p.apHand}HP</th></tr>
+        <tr><td class="k">Lineup wOBA (${p.homeN} hitters)</td><td>${p.homeLineupWOBA.toFixed(3)}</td></tr>
+        <tr><td class="k">Converted run rate per 9</td><td>${p.homeProj.lineupR9.toFixed(2)}</td></tr>
+        <tr><td class="k">Opposing starter ERA</td><td>${p.ap.era.toFixed(2)}</td></tr>
+        <tr><td class="k">Opposing starter wOBA allowed</td><td>${p.ap.wobaAgainst.toFixed(3)}</td></tr>
+        <tr><td class="k">Adjusted ERA</td><td>${p.homeProj.adjERA.toFixed(2)}</td></tr>
+        <tr><td class="k">Blended &rarr; &times;5/9 &times;park &times;wind</td><td>${p.homeProj.blended.toFixed(2)} &rarr; <b>${p.homeProj.runs.toFixed(2)}</b></td></tr>
+      </table>
+      <table style="margin-top:9px;">
+        <tr><th colspan="2">SIMULATED OUTCOMES</th></tr>
+        <tr><td class="k">${p.awayName} leads after 5</td><td>${(p.ml.awayWin*100).toFixed(1)}%</td></tr>
+        <tr><td class="k">${p.homeName} leads after 5</td><td>${(p.ml.homeWin*100).toFixed(1)}%</td></tr>
+        <tr><td class="k">Tied after 5 (ML pushes)</td><td>${(p.ml.tie*100).toFixed(1)}%</td></tr>
+        <tr><td class="k">Wind factor applied</td><td>${p.isDome?'1.00 (enclosed)':p.effWind.toFixed(2)}</td></tr>
+      </table>
+    </div>
+  </div>`;
+}
+
+function evaluate(i){
+  const p=projected[i];
+  const thresh=Number(document.getElementById('edgeThresh').value);
+  const tl=parseFloat(document.getElementById(`tl-${i}`).value);
+  const ma=parseFloat(document.getElementById(`ma-${i}`).value);
+  const mh=parseFloat(document.getElementById(`mh-${i}`).value);
+  const out=[];
+
+  if(isFinite(tl)){
+    const diff=p.combined-tl;
+    const side=diff>0?'Over':'Under';
+    const prob=diff>0?pOver(p.totals,tl):1-pOver(p.totals,tl);
+    if(Math.abs(diff)>=thresh){
+      out.push(`<div class="verdict go"><b>${side} ${tl}</b> &mdash; model projects ${p.combined.toFixed(2)}, a ${Math.abs(diff).toFixed(2)}-run gap. Simulated hit rate ${(prob*100).toFixed(1)}%.</div>`);
+    } else {
+      out.push(`<div class="verdict no">Total ${tl}: model at ${p.combined.toFixed(2)}, gap of ${Math.abs(diff).toFixed(2)} runs is inside the ${thresh}-run threshold. No edge claimed.</div>`);
+    }
+  }
+
+  // Moneyline pushes on a tie, so probability is conditional on a decision.
+  const noTie=1-p.ml.tie;
+  [['away',ma,p.awayName,p.ml.awayWin],['home',mh,p.homeName,p.ml.homeWin]].forEach(([k,price,name,raw])=>{
+    if(!isFinite(price)) return;
+    const condProb=raw/noTie;
+    const imp=amToImp(price);
+    const edge=condProb-imp;
+    if(edge>0.02){
+      out.push(`<div class="verdict go"><b>${name} F5 ML ${fmtAm(price)}</b> &mdash; model ${(condProb*100).toFixed(1)}% vs implied ${(imp*100).toFixed(1)}%, edge +${(edge*100).toFixed(1)} pts. Push chance ${(p.ml.tie*100).toFixed(1)}%.</div>`);
+    } else {
+      out.push(`<div class="verdict no">${name} ML ${fmtAm(price)}: model ${(condProb*100).toFixed(1)}% vs implied ${(imp*100).toFixed(1)}%. No meaningful edge.</div>`);
+    }
+  });
+
+  document.getElementById(`v-${i}`).innerHTML=out.join('');
+  document.getElementById(`g-${i}`).classList.toggle('edge', out.some(s=>s.includes('verdict go')));
+}
+</script>
+</body>
+</html>

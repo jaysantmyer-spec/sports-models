@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Model Backtest</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10;
+  --red:#C0433A; --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:29px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(127,179,217,0.08);border:1px solid rgba(127,179,217,0.3);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--blue);line-height:1.5;margin-bottom:16px;
+}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input, select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 10px;border-radius:5px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus{border-color:var(--amber);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:18px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin:12px 0;min-height:34px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.headline{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.hcard{flex:1;min-width:100px;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:12px;text-align:center;}
+.hcard .lbl{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;}
+.hcard .val{font-family:'Teko',sans-serif;font-size:28px;line-height:1.15;color:var(--amber);}
+.hcard .sub2{font-size:10px;color:var(--dim);}
+
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+th{
+  text-align:left;font-family:'Teko',sans-serif;font-size:13px;letter-spacing:0.5px;
+  color:var(--dim);font-weight:500;padding:6px 4px;border-bottom:1px solid #263644;
+}
+td{padding:7px 4px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.num{font-family:'Teko',sans-serif;font-size:16px;}
+td.good{color:var(--green);}
+td.bad{color:var(--red);}
+td.flat{color:var(--dim);}
+
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5;}
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>MLB MODEL BACKTEST</h1></div>
+  <p class="sub">Replays the projection model across dates that already happened, grades every prop against the real box score, and reports which factors actually separated winners from losers.</p>
+  <div class="warn-banner">Each day's projection is built only from stats through the <b>day before</b> that game, so no result leaks backwards into its own prediction. Everything below is measured from real outcomes, not estimated.</div>
+
+  <div class="panel">
+    <div class="panel-label">BACKTEST RANGE</div>
+    <div class="row2">
+      <div>
+        <label>Start date</label>
+        <input type="date" id="startDate">
+      </div>
+      <div>
+        <label>Days to test</label>
+        <select id="dayCount">
+          <option value="1">1 day</option>
+          <option value="3" selected>3 days</option>
+          <option value="5">5 days</option>
+          <option value="7">7 days</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="runBtn">RUN BACKTEST</button>
+    <div class="note">Each day pulls a schedule, every box score, and pre-game stats for both teams. Expect roughly a minute per day \u2014 progress shows below.</div>
+  </div>
+
+  <div class="status" id="statusLine"></div>
+  <div id="results"></div>
+
+  <p class="footnote">Method: for each date, the schedule and final box scores are pulled from the MLB Stats API. Each hitter who actually appeared is projected using only their season stats through the previous day (via a date-ranged stats query), adjusted for the opposing starter, an approximate park factor, and home/away \u2014 then every prop is graded against what that player actually did. Weather is excluded from the backtest because historical conditions at first pitch aren't available from a free source, so its live-model contribution is untested here. Park factors are approximate reference values rather than measured current-season figures. Calibration compares the model's stated confidence against realised hit rate, which is the single most informative check: a well-calibrated 70% bucket should win close to 70% of the time, and a large gap in either direction means the model is over- or under-confident rather than simply lucky or unlucky. Sample sizes are shown throughout because a 100% hit rate on four bets means very little. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const TEAM_ABBR = {108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK_FACTOR = {COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const LEAGUE_AVG = 0.245;
+
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function factorial(n){ let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+function poissonPMF(l,k){ return Math.exp(-l)*Math.pow(l,k)/factorial(k); }
+function poissonCDF(l,k){ let s=0; for(let i=0;i<=k;i++) s+=poissonPMF(l,i); return s; }
+function probOver(l,line){ return clamp(1-poissonCDF(l,Math.floor(line)),0,1); }
+
+function iso(d){
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function setStatus(t, err){
+  const el = document.getElementById('statusLine');
+  el.textContent = t; el.className = 'status' + (err ? ' err' : '');
+}
+async function getJSON(url, label){
+  try{
+    const r = await fetch(url);
+    if(!r.ok){ window.__lastErr = `${label} \u2014 HTTP ${r.status}`; return null; }
+    return await r.json();
+  }catch(e){
+    window.__lastErr = `${label} blocked \u2014 ${e.message}`;
+    return null;
+  }
+}
+
+// default start = 8 days ago
+document.getElementById('startDate').value = addDays(iso(new Date()), -8);
+
+// Season-to-date hitting stats for a team, ending the day BEFORE the game.
+async function teamStatsThrough(teamId, endDate, season){
+  const url = `https://statsapi.mlb.com/api/v1/teams/${teamId}/roster?rosterType=active`
+    + `&hydrate=person(stats(type=byDateRange,group=hitting,startDate=03/01/${season},endDate=${endDate.slice(5,7)}/${endDate.slice(8,10)}/${season}))`;
+  const d = await getJSON(url, `roster ${teamId}`);
+  const out = {};
+  ((d && d.roster) || []).forEach(e => {
+    const p = e.person;
+    const blk = ((p && p.stats) || []).find(s => s.group && s.group.displayName === 'hitting');
+    const st = blk && blk.splits && blk.splits[0] && blk.splits[0].stat;
+    if(!st || !st.gamesPlayed) return;
+    out[p.id] = {
+      avg: Number(st.avg)||0, obp: Number(st.obp)||0, slg: Number(st.slg)||0,
+      hits: Number(st.hits)||0, runs: Number(st.runs)||0, rbi: Number(st.rbi)||0,
+      gamesPlayed: Number(st.gamesPlayed)||1,
+    };
+  });
+  return out;
+}
+
+async function pitcherThrough(pid, endDate, season){
+  if(!pid) return null;
+  const url = `https://statsapi.mlb.com/api/v1/people/${pid}/stats?stats=byDateRange&group=pitching`
+    + `&startDate=03/01/${season}&endDate=${endDate.slice(5,7)}/${endDate.slice(8,10)}/${season}`;
+  const d = await getJSON(url, `pitcher ${pid}`);
+  const st = d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0] && d.stats[0].splits[0].stat;
+  if(!st) return null;
+  return { avgAgainst: Number(st.avg) || LEAGUE_AVG };
+}
+
+const PROPS = [
+  { key:'H_0.5',    cat:'Hits',      line:0.5, stat:'hits' },
+  { key:'H_1.5',    cat:'Hits',      line:1.5, stat:'hits' },
+  { key:'TB_1.5',   cat:'TotalBases',line:1.5, stat:'totalBases' },
+  { key:'RRBI_0.5', cat:'Runs+RBI',  line:0.5, stat:'rrbi' },
+  { key:'RRBI_1.5', cat:'Runs+RBI',  line:1.5, stat:'rrbi' },
+];
+
+async function backtestDate(dateStr, season, bets){
+  const prevDay = addDays(dateStr, -1);
+  const sched = await getJSON(
+    `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${dateStr}&hydrate=team,venue,probablePitcher`,
+    'schedule');
+  const games = ((sched && sched.dates && sched.dates[0] && sched.dates[0].games) || [])
+    .filter(g => g.status && g.status.abstractGameState === 'Final');
+  if(!games.length) return 0;
+
+  const statCache = {};
+  let processed = 0;
+
+  for(const g of games){
+    const homeId = g.teams.home.team.id, awayId = g.teams.away.team.id;
+    const parkAbbr = TEAM_ABBR[homeId];
+    const parkFactor = (parkAbbr && PARK_FACTOR[parkAbbr]) || 1.0;
+
+    const box = await getJSON(`https://statsapi.mlb.com/api/v1/game/${g.gamePk}/boxscore`, `box ${g.gamePk}`);
+    if(!box || !box.teams) continue;
+
+    for(const side of ['home','away']){
+      const teamId = side === 'home' ? homeId : awayId;
+      const oppPitcherObj = side === 'home' ? g.teams.away.probablePitcher : g.teams.home.probablePitcher;
+      const isHome = side === 'home';
+
+      const cacheKey = `${teamId}|${prevDay}`;
+      if(!statCache[cacheKey]) statCache[cacheKey] = await teamStatsThrough(teamId, prevDay, season);
+      const preStats = statCache[cacheKey];
+
+      const pKey = `p|${oppPitcherObj && oppPitcherObj.id}|${prevDay}`;
+      if(!(pKey in statCache)) statCache[pKey] = await pitcherThrough(oppPitcherObj && oppPitcherObj.id, prevDay, season);
+      const oppPitcher = statCache[pKey];
+
+      const players = (box.teams[side] && box.teams[side].players) || {};
+      Object.values(players).forEach(pl => {
+        const pid = pl.person && pl.person.id;
+        const bat = pl.stats && pl.stats.batting;
+        if(!pid || !bat || bat.atBats == null) return;
+        // must have actually batted
+        const pa = Number(bat.plateAppearances) || 0;
+        if(pa < 1) return;
+
+        const pre = preStats[pid];
+        if(!pre || pre.gamesPlayed < 15) return; // need a real pre-game baseline
+
+        const pAvg = oppPitcher ? oppPitcher.avgAgainst : LEAGUE_AVG;
+        const matchupMult = clamp((pre.avg/LEAGUE_AVG) * (pAvg/LEAGUE_AVG), 0.6, 1.6);
+        const homeAwayMult = isHome ? 1.03 : 0.97;
+        const combined = clamp(matchupMult * parkFactor * homeAwayMult, 0.6, 1.7);
+        const damp = 1 + (combined-1)*0.6;
+
+        const proj = {
+          hits: (pre.hits/pre.gamesPlayed) * combined,
+          totalBases: (pre.slg * pre.gamesPlayed > 0 ? (pre.slg/Math.max(pre.avg,0.001)) * (pre.hits/pre.gamesPlayed) : 0) * combined,
+          rrbi: ((pre.runs+pre.rbi)/pre.gamesPlayed) * damp,
+        };
+
+        const actual = {
+          hits: Number(bat.hits) || 0,
+          totalBases: Number(bat.totalBases) || 0,
+          rrbi: (Number(bat.runs)||0) + (Number(bat.rbi)||0),
+        };
+
+        PROPS.forEach(p => {
+          const mean = proj[p.stat];
+          if(!isFinite(mean) || mean <= 0) return;
+          const prob = probOver(mean, p.line);
+          const won = actual[p.stat] > p.line;
+          bets.push({
+            date: dateStr, cat: p.cat, key: p.key, prob, won,
+            parkFactor, isHome, matchupMult,
+            statTotal: pre.avg - pre.obp - pre.slg,
+          });
+        });
+      });
+    }
+    processed++;
+    setStatus(`${dateStr}: processed ${processed}/${games.length} games \u2014 ${bets.length} props graded so far...`);
+  }
+  return processed;
+}
+
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('results').innerHTML = '';
+  window.__lastErr = null;
+
+  const start = document.getElementById('startDate').value;
+  const days = Number(document.getElementById('dayCount').value);
+  if(!start){ setStatus('Pick a start date.', true); btn.disabled = false; return; }
+
+  const season = Number(start.slice(0,4));
+  const bets = [];
+  let gamesTotal = 0;
+
+  for(let i = 0; i < days; i++){
+    const d = addDays(start, i);
+    setStatus(`Loading ${d} (day ${i+1} of ${days})...`);
+    const n = await backtestDate(d, season, bets);
+    gamesTotal += n;
+  }
+
+  if(!bets.length){
+    setStatus(window.__lastErr
+      ? `No props graded. Last error: ${window.__lastErr}`
+      : 'No completed games with usable pre-game stats in that range. Try an in-season date at least a few weeks after opening day.', true);
+    btn.disabled = false;
+    return;
+  }
+
+  setStatus(`Done \u2014 graded ${bets.length} props across ${gamesTotal} completed games.`);
+  analyse(bets);
+  btn.disabled = false;
+});
+
+// --- Pattern analysis -----------------------------------------------------
+function rate(list){
+  if(!list.length) return null;
+  const w = list.filter(b => b.won).length;
+  return { n:list.length, wins:w, pct:w/list.length, avgProb:list.reduce((s,b)=>s+b.prob,0)/list.length };
+}
+function cls(r){
+  if(!r || r.n < 20) return 'flat';
+  return r.pct >= 0.55 ? 'good' : (r.pct <= 0.45 ? 'bad' : 'flat');
+}
+function pctStr(r){ return r ? Math.round(r.pct*100)+'%' : '\u2014'; }
+
+function bucketRows(bets, buckets){
+  return buckets.map(b => {
+    const r = rate(bets.filter(b.test));
+    if(!r) return '';
+    const edge = r.pct - r.avgProb;
+    return `<tr>
+      <td>${b.label}</td>
+      <td class="num ${cls(r)}">${pctStr(r)}</td>
+      <td class="flat">${Math.round(r.avgProb*100)}%</td>
+      <td class="num ${edge >= 0.03 ? 'good' : (edge <= -0.03 ? 'bad' : 'flat')}">${edge>=0?'+':''}${Math.round(edge*100)}</td>
+      <td class="flat">${r.n}</td>
+    </tr>`;
+  }).join('');
+}
+
+function analyse(bets){
+  const overall = rate(bets);
+
+  // Calibration: does a stated 70% actually win 70%?
+  const calBuckets = [
+    { label:'80%+',    test:b => b.prob >= 0.80 },
+    { label:'70\u201380%', test:b => b.prob >= 0.70 && b.prob < 0.80 },
+    { label:'60\u201370%', test:b => b.prob >= 0.60 && b.prob < 0.70 },
+    { label:'50\u201360%', test:b => b.prob >= 0.50 && b.prob < 0.60 },
+    { label:'Under 50%', test:b => b.prob < 0.50 },
+  ];
+
+  const cats = [...new Set(bets.map(b => b.key))].map(k => ({
+    label: k.replace('_',' over '), test: b => b.key === k
+  }));
+
+  const factorBuckets = [
+    { label:'Home batter',        test:b => b.isHome },
+    { label:'Away batter',        test:b => !b.isHome },
+    { label:'Hitter park (1.02+)',test:b => b.parkFactor >= 1.02 },
+    { label:'Neutral park',       test:b => b.parkFactor > 0.98 && b.parkFactor < 1.02 },
+    { label:'Pitcher park (0.98-)',test:b => b.parkFactor <= 0.98 },
+    { label:'Strong matchup (1.15+)', test:b => b.matchupMult >= 1.15 },
+    { label:'Neutral matchup',    test:b => b.matchupMult > 0.9 && b.matchupMult < 1.15 },
+    { label:'Weak matchup (0.9-)',test:b => b.matchupMult <= 0.9 },
+  ];
+
+  // AVG-OBP-SLG quality split at the median
+  const totals = bets.map(b => b.statTotal).sort((a,b)=>a-b);
+  const med = totals[Math.floor(totals.length/2)];
+  const qualityBuckets = [
+    { label:`More negative than ${med.toFixed(3)}`, test:b => b.statTotal <= med },
+    { label:`Less negative than ${med.toFixed(3)}`, test:b => b.statTotal > med },
+  ];
+
+  const calRows = calBuckets.map(b => {
+    const r = rate(bets.filter(b.test));
+    if(!r) return '';
+    const gap = r.pct - r.avgProb;
+    return `<tr>
+      <td>${b.label}</td>
+      <td class="flat">${Math.round(r.avgProb*100)}%</td>
+      <td class="num ${cls(r)}">${pctStr(r)}</td>
+      <td class="num ${Math.abs(gap) <= 0.04 ? 'good' : (gap < 0 ? 'bad' : 'flat')}">${gap>=0?'+':''}${Math.round(gap*100)}</td>
+      <td class="flat">${r.n}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('results').innerHTML = `
+    <div class="section-title">OVERALL</div>
+    <div class="headline">
+      <div class="hcard"><div class="lbl">Props graded</div><div class="val">${overall.n}</div></div>
+      <div class="hcard"><div class="lbl">Hit rate</div><div class="val">${pctStr(overall)}</div><div class="sub2">${overall.wins} of ${overall.n}</div></div>
+      <div class="hcard"><div class="lbl">Model predicted</div><div class="val">${Math.round(overall.avgProb*100)}%</div><div class="sub2">avg confidence</div></div>
+    </div>
+    <div class="note">If "hit rate" sits well below "model predicted", the model is systematically overconfident \u2014 that gap matters far more than any single bet winning or losing.</div>
+
+    <div class="section-title">CALIBRATION \u2014 THE KEY TEST</div>
+    <table>
+      <tr><th>Confidence</th><th>Predicted</th><th>Actual</th><th>Gap</th><th>n</th></tr>
+      ${calRows}
+    </table>
+    <div class="note">A trustworthy model tracks close to zero gap in every band. Consistently negative gaps mean it overrates its own picks; positive means it underrates them.</div>
+
+    <div class="section-title">BY PROP TYPE</div>
+    <table>
+      <tr><th>Prop</th><th>Actual</th><th>Predicted</th><th>Gap</th><th>n</th></tr>
+      ${bucketRows(bets, cats)}
+    </table>
+
+    <div class="section-title">BY SITUATION</div>
+    <table>
+      <tr><th>Factor</th><th>Actual</th><th>Predicted</th><th>Gap</th><th>n</th></tr>
+      ${bucketRows(bets, factorBuckets)}
+    </table>
+    <div class="note">This is where a real pattern would show: if hitter-friendly parks or strong matchups show a consistently positive gap across a decent sample, the model is underusing that factor.</div>
+
+    <div class="section-title">BY AVG \u2212 OBP \u2212 SLG QUALITY</div>
+    <table>
+      <tr><th>Split</th><th>Actual</th><th>Predicted</th><th>Gap</th><th>n</th></tr>
+      ${bucketRows(bets, qualityBuckets)}
+    </table>
+    <div class="note">Tests directly whether the "more negative is better" reading holds up against real outcomes.</div>
+  `;
+}
+</script>
+</body>
+</html>

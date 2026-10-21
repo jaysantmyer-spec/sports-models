@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFB Bet Finder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field:#2F6E4D; --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A; --purple:#9A7FD9;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.pigskin{width:16px;height:11px;background:var(--dirt);border-radius:50%/45%;display:inline-block;position:relative;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:16px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;}
+.key-row input{
+  flex:1;min-width:140px;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.4;}
+.quota-line{font-size:11px;color:var(--dim);margin-top:8px;}
+
+.scan-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.scan-row select{
+  flex:1;min-width:150px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+.scan-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 18px;cursor:pointer;
+}
+.scan-row button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:16px;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-row button{
+  flex:1;min-width:70px;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.bet-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.bet-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.bet-main{flex:1;min-width:0;}
+.bet-pick{font-size:14px;font-weight:600;color:var(--chalk);}
+.bet-event{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-tag{
+  display:inline-block;font-size:9px;letter-spacing:0.5px;border-radius:3px;padding:1px 5px;margin-right:6px;text-transform:uppercase;
+}
+.cat-tag.GAME{color:var(--blue);background:rgba(127,179,217,0.12);}
+.cat-tag.SPREAD{color:var(--purple);background:rgba(154,127,217,0.12);}
+.cat-tag.TOTAL{color:var(--green);background:rgba(95,174,122,0.12);}
+.cat-tag.HALF{color:var(--amber);background:rgba(242,169,59,0.12);}
+.bet-right{text-align:right;flex-shrink:0;}
+.edge-pct{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.edge-pct.strong{color:var(--amber);}
+.edge-pct.lean{color:var(--green);}
+.badge{font-size:9px;letter-spacing:0.5px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.bet-card.open .reasons{display:block;}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;}
+.detail-row b{color:var(--chalk);font-weight:600;}
+
+.game-row{
+  display:flex;align-items:center;gap:10px;background:var(--navy);border:1px solid #263644;
+  border-radius:8px;padding:9px 12px;margin-bottom:7px;
+}
+.game-main{flex:1;font-size:12.5px;}
+.game-time{color:var(--dim);font-size:10.5px;margin-top:1px;}
+.game-row button{
+  background:rgba(242,169,59,0.12);border:1px solid rgba(242,169,59,0.35);color:var(--amber);
+  font-size:10.5px;font-weight:600;border-radius:6px;padding:6px 9px;cursor:pointer;white-space:nowrap;
+}
+.game-row button:disabled{opacity:0.5;cursor:default;}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="pigskin"></span><h1>CFB BET FINDER</h1></div>
+  <p class="sub">Real, live college football odds across dozens of US sportsbooks \u2014 moneyline (game), spread (team), and total bets ranked by priced edge, plus on-demand 1st-half lines.</p>
+  <div class="warn-banner">Surfaces pricing gaps between real sportsbooks \u2014 not predictions of who wins, and not a guarantee. Not betting advice. Gamble responsibly if at all.</div>
+
+  <div class="key-card">
+    <div class="key-label">YOUR ODDS API KEY</div>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your free key from the-odds-api.com">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Stored only in this browser (localStorage), sent only to api.the-odds-api.com. If you already used this key in another app on this device, it should already be filled in below.</div>
+    <div class="quota-line" id="quotaLine"></div>
+  </div>
+
+  <div class="scan-row">
+    <select id="windowSelect">
+      <option value="60">Kicking off within 1 hour</option>
+      <option value="180">Kicking off within 3 hours</option>
+      <option value="1440" selected>Kicking off within 24 hours</option>
+      <option value="10080">Kicking off within 7 days</option>
+    </select>
+    <button id="scanBtn" disabled>SCAN CFB ODDS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">RANKED: BEST BETS</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="GAME">Game (ML)</button>
+    <button data-f="SPREAD">Team (ATS)</button>
+    <button data-f="TOTAL">Totals</button>
+    <button data-f="HALF">Halves</button>
+  </div>
+  <div class="scan-row" style="margin-bottom:14px;">
+    <select id="minProbSelect">
+      <option value="0">Any win probability</option>
+      <option value="0.5" selected>Likely to win (50%+)</option>
+      <option value="0.65">Strong favorite (65%+)</option>
+      <option value="0.8">Heavy favorite (80%+)</option>
+    </select>
+  </div>
+  <div id="list"><div class="empty-state">Paste your API key above, then tap Scan.</div></div>
+
+  <div class="section-title">GAMES IN THIS SCAN \u2014 CHECK 1ST HALF LINES</div>
+  <div id="gamesList"><div class="empty-state">Run a scan first to see games here.</div></div>
+
+  <p class="footnote">The big number on each card is the modeled win probability (consensus across books, de-vigged). "Edge" is a separate, smaller number \u2014 how much better the best book's price is than that consensus suggests. Raw edge size alone tends to favor longshots, since underdogs get thinner, more inconsistent coverage across books than favorites do, which is why there's a win-probability filter above (defaults to 50%+) instead of sorting by edge size alone. Spread and total edges only count books quoting the exact same point \u2014 different numbers aren't compared as if equivalent. 1st-half odds are fetched per game on tap (not automatically, to conserve API quota) using the same de-vig method. Uses your own free-tier API quota (usually 500 requests/month); the main scan costs ~3 requests (moneyline+spread+total), each half-check costs ~1 more. This is a stats/odds-comparison tool, not financial or betting advice.</p>
+</div>
+
+<script>
+const API_BASE = 'https://api.the-odds-api.com/v4';
+const SPORT_KEY = 'americanfootball_ncaaf';
+let apiKey = localStorage.getItem('oddsApiKey') || '';
+if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+updateScanButton();
+
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('oddsApiKey', apiKey);
+  updateScanButton();
+});
+function updateScanButton(){ document.getElementById('scanBtn').disabled = !apiKey; }
+
+function setStatus(text, isErr){
+  const el = document.getElementById('statusLine');
+  el.textContent = text; el.className = 'status' + (isErr ? ' err' : '');
+}
+function americanToImplied(price){
+  if(price > 0) return 100 / (price + 100);
+  return (-price) / ((-price) + 100);
+}
+function formatAmerican(price){ return price > 0 ? `+${price}` : `${price}`; }
+function updateQuota(res){
+  const remaining = res.headers.get('x-requests-remaining');
+  const used = res.headers.get('x-requests-used');
+  if(remaining != null) document.getElementById('quotaLine').textContent = `API quota: ${used} used, ${remaining} remaining this period.`;
+}
+
+// Process a market across an event's bookmakers. If groupByPoint, outcomes are
+// grouped by (name, point) so only identical lines across books are compared.
+function processEventMarket(event, marketKey, groupByPoint, categoryLabel, subLabelPrefix){
+  const out = [];
+  const books = event.bookmakers || [];
+  const groups = {}; // groupKey -> [{book, name, price, point}]
+  books.forEach(b => {
+    const m = (b.markets||[]).find(mk => mk.key === marketKey);
+    if(!m) return;
+    m.outcomes.forEach(o => {
+      const key = groupByPoint ? `${o.point}` : 'all';
+      if(!groups[key]) groups[key] = [];
+      groups[key].push({ book: b.title, name: o.name, price: o.price, point: o.point });
+    });
+  });
+
+  Object.values(groups).forEach(entries => {
+    // need at least 2 distinct books represented to compare
+    const bookTitles = new Set(entries.map(e => e.book));
+    if(bookTitles.size < 2) return;
+    // de-vig per book: for each book, find its outcomes within this group, normalize
+    const byBook = {};
+    entries.forEach(e => { (byBook[e.book] = byBook[e.book] || []).push(e); });
+    const normalized = {}; // name -> [probs across books]
+    Object.values(byBook).forEach(bookEntries => {
+      if(bookEntries.length < 2) return; // need both sides from same book to de-vig
+      let sum = 0;
+      const implieds = bookEntries.map(e => ({ ...e, implied: americanToImplied(e.price) }));
+      implieds.forEach(e => sum += e.implied);
+      implieds.forEach(e => {
+        const norm = e.implied / sum;
+        (normalized[e.name] = normalized[e.name] || []).push(norm);
+      });
+    });
+    const consensus = {};
+    Object.keys(normalized).forEach(name => {
+      consensus[name] = normalized[name].reduce((a,b)=>a+b,0) / normalized[name].length;
+    });
+    // best price per outcome name in this group
+    const bestByName = {};
+    entries.forEach(e => {
+      const current = bestByName[e.name];
+      if(!current || americanToImplied(e.price) < americanToImplied(current.price)){
+        bestByName[e.name] = e;
+      }
+    });
+    Object.keys(bestByName).forEach(name => {
+      if(consensus[name] == null) return;
+      const best = bestByName[name];
+      const impliedBest = americanToImplied(best.price);
+      const edge = consensus[name] - impliedBest;
+      if(edge <= 0) return;
+      const pointStr = best.point != null ? ` ${best.point > 0 ? '+' : ''}${best.point}` : '';
+      out.push({
+        category: categoryLabel,
+        pick: `${subLabelPrefix || ''}${name}${pointStr}`,
+        event: `${event.away_team} @ ${event.home_team}`,
+        eventId: event.id,
+        commence: event.commence_time,
+        book: best.book,
+        price: best.price,
+        fairProb: consensus[name],
+        edge,
+        numBooks: bookTitles.size,
+      });
+    });
+  });
+  return out;
+}
+
+async function scanOdds(){
+  if(!apiKey) return;
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  document.getElementById('gamesList').innerHTML = '';
+  setStatus('Fetching live CFB odds...');
+
+  const windowMinutes = parseInt(document.getElementById('windowSelect').value, 10);
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + windowMinutes*60000);
+  const timeParams = `&commenceTimeFrom=${now.toISOString().split('.')[0]}Z&commenceTimeTo=${windowEnd.toISOString().split('.')[0]}Z`;
+
+  try{
+    const url = `${API_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=h2h,spreads,totals&oddsFormat=american${timeParams}`;
+    const res = await fetch(url);
+    updateQuota(res);
+
+    if(!res.ok){
+      if(res.status === 401) setStatus('API key rejected. Check it was pasted correctly.', true);
+      else if(res.status === 429) setStatus('Out of API quota for this period.', true);
+      else setStatus('Could not fetch odds right now.', true);
+      document.getElementById('scanBtn').disabled = false;
+      return;
+    }
+
+    const events = await res.json();
+    if(!events || !events.length){
+      setStatus('No CFB games with odds found in that window.', true);
+      document.getElementById('list').innerHTML = '<div class="empty-state">Try a wider time window \u2014 college football is mostly Saturdays.</div>';
+      document.getElementById('scanBtn').disabled = false;
+      return;
+    }
+
+    let allEdges = [];
+    events.forEach(event => {
+      allEdges = allEdges.concat(processEventMarket(event, 'h2h', false, 'GAME', ''));
+      allEdges = allEdges.concat(processEventMarket(event, 'spreads', true, 'SPREAD', ''));
+      allEdges = allEdges.concat(processEventMarket(event, 'totals', true, 'TOTAL', ''));
+    });
+    allEdges.sort((a,b) => b.edge - a.edge);
+    window.__allEdges = allEdges;
+    renderList('all');
+    renderGamesList(events);
+    setStatus(`Scanned ${events.length} game${events.length===1?'':'s'}, found ${allEdges.length} priced edge${allEdges.length===1?'':'s'}.`);
+  }catch(e){
+    setStatus('Something went wrong fetching odds.', true);
+  }
+  document.getElementById('scanBtn').disabled = false;
+}
+
+function edgeClass(edge){ return edge >= 0.05 ? 'strong' : (edge >= 0.02 ? 'lean' : ''); }
+function badgeText(edge){ return edge >= 0.05 ? 'STRONG EDGE' : (edge >= 0.02 ? 'LEAN' : ''); }
+
+function betCardHTML(e, idx){
+  return `
+    <div class="bet-card" id="bet-${idx}" onclick="document.getElementById('bet-${idx}').classList.toggle('open')">
+      <div class="bet-top">
+        <div class="bet-main">
+          <div class="bet-pick"><span class="cat-tag ${e.category}">${e.category}</span>${e.pick}</div>
+          <div class="bet-event">${e.event} \u00b7 ${formatAmerican(e.price)} at ${e.book}</div>
+        </div>
+        <div class="bet-right">
+          <div class="edge-pct ${edgeClass(e.edge)}">${(e.fairProb*100).toFixed(0)}%</div>
+          <div class="badge ${edgeClass(e.edge)}">+${(e.edge*100).toFixed(1)}% edge</div>
+        </div>
+      </div>
+      <div class="reasons">
+        <div class="detail-row"><span>Modeled win probability</span><b>${(e.fairProb*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Pricing edge at best book</span><b>+${(e.edge*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best price implied probability</span><b>${((e.fairProb - e.edge)*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best book</span><b>${e.book} (${formatAmerican(e.price)})</b></div>
+        <div class="detail-row"><span>Books compared</span><b>${e.numBooks}</b></div>
+        <div class="detail-row"><span>Kickoff</span><b>${new Date(e.commence).toLocaleString()}</b></div>
+      </div>
+    </div>`;
+}
+
+function renderList(filter){
+  const minProb = parseFloat(document.getElementById('minProbSelect').value);
+  const edges = (window.__allEdges || [])
+    .filter(e => (filter === 'all' || e.category === filter) && e.fairProb >= minProb)
+    .slice(0, 60);
+  const list = document.getElementById('list');
+  list.innerHTML = edges.length ? edges.map((e,i) => betCardHTML(e,i)).join('') : '<div class="empty-state">Nothing matches this probability floor right now \u2014 try lowering it.</div>';
+}
+
+document.getElementById('minProbSelect').addEventListener('change', () => {
+  const activeFilter = document.querySelector('.filter-row button.active').dataset.f;
+  renderList(activeFilter);
+});
+
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList(btn.dataset.f);
+  });
+});
+
+function renderGamesList(events){
+  const list = document.getElementById('gamesList');
+  list.innerHTML = events.map((e,i) => `
+    <div class="game-row" id="grow-${i}">
+      <div class="game-main">
+        <div>${e.away_team} @ ${e.home_team}</div>
+        <div class="game-time">${new Date(e.commence_time).toLocaleString()}</div>
+      </div>
+      <button onclick="checkHalves('${e.id}', ${i})" id="halfbtn-${i}">+ 1ST HALF</button>
+    </div>
+  `).join('');
+}
+
+async function checkHalves(eventId, rowIdx){
+  const btn = document.getElementById(`halfbtn-${rowIdx}`);
+  btn.disabled = true;
+  btn.textContent = 'LOADING...';
+  try{
+    const url = `${API_BASE}/sports/${SPORT_KEY}/events/${eventId}/odds?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=h2h_h1,spreads_h1,totals_h1&oddsFormat=american`;
+    const res = await fetch(url);
+    updateQuota(res);
+    if(!res.ok){
+      btn.textContent = 'NO HALF LINES';
+      return;
+    }
+    const event = await res.json();
+    let halfEdges = [];
+    halfEdges = halfEdges.concat(processEventMarket(event, 'h2h_h1', false, 'HALF', '1H ML: '));
+    halfEdges = halfEdges.concat(processEventMarket(event, 'spreads_h1', true, 'HALF', '1H Spread: '));
+    halfEdges = halfEdges.concat(processEventMarket(event, 'totals_h1', true, 'HALF', '1H Total: '));
+
+    if(!halfEdges.length){
+      btn.textContent = 'NO EDGE FOUND';
+      return;
+    }
+    window.__allEdges = (window.__allEdges || []).concat(halfEdges);
+    window.__allEdges.sort((a,b) => b.edge - a.edge);
+    const activeFilter = document.querySelector('.filter-row button.active').dataset.f;
+    renderList(activeFilter);
+    btn.textContent = `+${halfEdges.length} ADDED`;
+    setStatus(`Added ${halfEdges.length} 1st-half edge(s) to the ranked list above.`);
+  }catch(e){
+    btn.textContent = 'ERROR';
+  }
+}
+
+document.getElementById('scanBtn').addEventListener('click', scanOdds);
+</script>
+</body>
+</html>

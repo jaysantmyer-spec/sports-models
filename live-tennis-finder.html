@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Tennis Bet Finder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass:#3E7A4A; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:#E8C547;border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:12px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;}
+.key-row input{
+  flex:1;min-width:140px;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.4;}
+.quota-line{font-size:11px;color:var(--dim);margin-top:8px;}
+
+.scan-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.scan-row select{
+  flex:1;min-width:170px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+.scan-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 18px;cursor:pointer;
+}
+.scan-row button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:32px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-row button{
+  flex:1;min-width:70px;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+.prob-row{display:flex;gap:8px;margin-bottom:14px;}
+.prob-row select{
+  flex:1;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+
+.bet-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.bet-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.bet-main{flex:1;min-width:0;}
+.bet-pick{font-size:14px;font-weight:600;color:var(--chalk);}
+.bet-event{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-tag{
+  display:inline-block;font-size:9px;letter-spacing:0.5px;border-radius:3px;padding:1px 5px;margin-right:6px;text-transform:uppercase;
+}
+.cat-tag.ML{color:var(--blue);background:rgba(127,179,217,0.12);}
+.cat-tag.SPREAD{color:#9A7FD9;background:rgba(154,127,217,0.12);}
+.cat-tag.TOTAL{color:var(--green);background:rgba(95,174,122,0.12);}
+.bet-right{text-align:right;flex-shrink:0;}
+.prob{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prob.strong{color:var(--amber);}
+.prob.lean{color:var(--green);}
+.badge{font-size:9px;letter-spacing:0.5px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.bet-card.open .reasons{display:block;}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;}
+.detail-row b{color:var(--chalk);font-weight:600;}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>LIVE TENNIS FINDER</h1></div>
+  <p class="sub">Real, live ATP/WTA odds across US and UK sportsbooks (via The Odds API) \u2014 match winner, game spread, and total games \u2014 ranked by modeled win probability and priced edge.</p>
+  <div class="warn-banner">Coverage is Grand Slams, Masters 1000s, and 500-level events only \u2014 The Odds API doesn't carry Challenger/ITF-level tennis. If nothing's shown, it's most likely because no tournament at that tier is currently active, not a bug.</div>
+
+  <div class="key-card">
+    <div class="key-label">YOUR ODDS API KEY</div>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your free key from the-odds-api.com">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Stored only in this browser, sent only to api.the-odds-api.com. If you've used this key in another app on this device, it should already be filled in.</div>
+    <div class="quota-line" id="quotaLine"></div>
+  </div>
+
+  <div class="scan-row">
+    <select id="sportSelect"><option value="">Loading active tennis events...</option></select>
+    <button id="scanBtn" disabled>SCAN LIVE ODDS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">RANKED: BEST BETS</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="ML">Match winner</button>
+    <button data-f="SPREAD">Game spread</button>
+    <button data-f="TOTAL">Total games</button>
+  </div>
+  <div class="prob-row">
+    <select id="minProbSelect">
+      <option value="0">Any win probability</option>
+      <option value="0.5" selected>Likely to win (50%+)</option>
+      <option value="0.65">Strong favorite (65%+)</option>
+    </select>
+  </div>
+  <div id="list"><div class="empty-state">Paste your API key above, then tap Scan.</div></div>
+
+  <p class="footnote">The big number is modeled win probability (consensus across books, de-vigged). The smaller badge is "edge" \u2014 how much better the best book's price is than that consensus. Spread/total edges only count books quoting the exact same line. Uses your own free-tier API quota (usually 500 requests/month); each scan costs a few requests depending on how many tennis events are active. This is a stats/odds-comparison tool, not financial or betting advice.</p>
+</div>
+
+<script>
+const API_BASE = 'https://api.the-odds-api.com/v4';
+let apiKey = localStorage.getItem('oddsApiKey') || '';
+if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+updateScanButton();
+
+document.getElementById('saveKeyBtn').addEventListener('click', async () => {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('oddsApiKey', apiKey);
+  updateScanButton();
+  if(apiKey) await loadTennisSports();
+});
+function updateScanButton(){ document.getElementById('scanBtn').disabled = !apiKey; }
+
+function setStatus(text, isErr){ const el = document.getElementById('statusLine'); el.textContent = text; el.className = 'status' + (isErr ? ' err' : ''); }
+function americanToImplied(price){ return price>0 ? 100/(price+100) : (-price)/((-price)+100); }
+function formatAmerican(price){ return price>0 ? `+${price}` : `${price}`; }
+function updateQuota(res){
+  const remaining = res.headers.get('x-requests-remaining');
+  const used = res.headers.get('x-requests-used');
+  if(remaining != null) document.getElementById('quotaLine').textContent = `API quota: ${used} used, ${remaining} remaining this period.`;
+}
+
+async function loadTennisSports(){
+  setStatus('Checking which tennis tournaments are currently active...');
+  try{
+    const res = await fetch(`${API_BASE}/sports/?apiKey=${encodeURIComponent(apiKey)}`);
+    updateQuota(res);
+    if(!res.ok){
+      setStatus(res.status === 401 ? 'API key rejected.' : 'Could not load sports list.', true);
+      return;
+    }
+    const sports = await res.json();
+    const tennisSports = sports.filter(s => s.key.startsWith('tennis_') && !s.has_outrights);
+    const select = document.getElementById('sportSelect');
+    if(!tennisSports.length){
+      select.innerHTML = '<option value="">No active ATP/WTA 500+ events right now</option>';
+      setStatus('No Grand Slam, Masters, or 500-level tennis tournament is currently active. This updates automatically \u2014 check back when one is underway.', true);
+      return;
+    }
+    select.innerHTML = '<option value="__all__">All active tournaments</option>' +
+      tennisSports.map(s => `<option value="${s.key}">${s.title}</option>`).join('');
+    setStatus(`Found ${tennisSports.length} active tennis tournament(s).`);
+  }catch(e){
+    setStatus('Network error loading tennis tournaments.', true);
+  }
+}
+
+function processEventMarket(event, marketKey, groupByPoint, categoryLabel){
+  const out = [];
+  const books = event.bookmakers || [];
+  const groups = {};
+  books.forEach(b => {
+    const m = (b.markets||[]).find(mk => mk.key === marketKey);
+    if(!m) return;
+    m.outcomes.forEach(o => {
+      const key = groupByPoint ? `${o.point}` : 'all';
+      if(!groups[key]) groups[key] = [];
+      groups[key].push({ book: b.title, name: o.name, price: o.price, point: o.point });
+    });
+  });
+  Object.values(groups).forEach(entries => {
+    const bookTitles = new Set(entries.map(e => e.book));
+    if(bookTitles.size < 2) return;
+    const byBook = {};
+    entries.forEach(e => { (byBook[e.book] = byBook[e.book] || []).push(e); });
+    const normalized = {};
+    Object.values(byBook).forEach(bookEntries => {
+      if(bookEntries.length < 2) return;
+      const implieds = bookEntries.map(e => ({ ...e, implied: americanToImplied(e.price) }));
+      const sum = implieds.reduce((a,e) => a+e.implied, 0);
+      implieds.forEach(e => { (normalized[e.name] = normalized[e.name] || []).push(e.implied/sum); });
+    });
+    const consensus = {};
+    Object.keys(normalized).forEach(name => { consensus[name] = normalized[name].reduce((a,b)=>a+b,0)/normalized[name].length; });
+    const bestByName = {};
+    entries.forEach(e => {
+      const cur = bestByName[e.name];
+      if(!cur || americanToImplied(e.price) < americanToImplied(cur.price)) bestByName[e.name] = e;
+    });
+    Object.keys(bestByName).forEach(name => {
+      if(consensus[name] == null) return;
+      const best = bestByName[name];
+      const impliedBest = americanToImplied(best.price);
+      const edge = consensus[name] - impliedBest;
+      const pointStr = best.point != null ? ` ${best.point > 0 ? '+' : ''}${best.point}` : '';
+      out.push({
+        category: categoryLabel, pick: `${name}${pointStr}`,
+        event: `${event.away_team} vs ${event.home_team}`, tournament: event.sport_title || '',
+        commence: event.commence_time, book: best.book, price: best.price,
+        fairProb: consensus[name], edge, numBooks: bookTitles.size,
+      });
+    });
+  });
+  return out;
+}
+
+async function scanOdds(){
+  if(!apiKey) return;
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  const sportKey = document.getElementById('sportSelect').value;
+  if(!sportKey){ setStatus('No active tournament selected.', true); document.getElementById('scanBtn').disabled = false; return; }
+  setStatus('Fetching live tennis odds...');
+
+  try{
+    let sportKeys = [sportKey];
+    if(sportKey === '__all__'){
+      const res = await fetch(`${API_BASE}/sports/?apiKey=${encodeURIComponent(apiKey)}`);
+      updateQuota(res);
+      const sports = await res.json();
+      sportKeys = sports.filter(s => s.key.startsWith('tennis_') && !s.has_outrights).map(s => s.key);
+    }
+
+    let allEdges = [];
+    let totalEvents = 0;
+    for(const key of sportKeys){
+      const url = `${API_BASE}/sports/${key}/odds/?apiKey=${encodeURIComponent(apiKey)}&regions=us,uk&markets=h2h,spreads,totals&oddsFormat=american`;
+      const res = await fetch(url);
+      updateQuota(res);
+      if(!res.ok) continue;
+      const events = await res.json();
+      totalEvents += events.length;
+      events.forEach(event => {
+        allEdges = allEdges.concat(processEventMarket(event, 'h2h', false, 'ML'));
+        allEdges = allEdges.concat(processEventMarket(event, 'spreads', true, 'SPREAD'));
+        allEdges = allEdges.concat(processEventMarket(event, 'totals', true, 'TOTAL'));
+      });
+    }
+
+    if(!totalEvents){
+      setStatus('No live/upcoming matches with odds found for the selected tournament(s) right now.', true);
+      document.getElementById('list').innerHTML = '<div class="empty-state">Nothing scheduled with odds posted yet \u2014 try again closer to match time, or pick a different tournament above.</div>';
+      document.getElementById('scanBtn').disabled = false;
+      return;
+    }
+
+    allEdges.sort((a,b) => b.fairProb - a.fairProb);
+    window.__allEdges = allEdges;
+    renderList();
+    setStatus(`Scanned ${totalEvents} match(es), found ${allEdges.length} priced line(s).`);
+  }catch(e){
+    setStatus('Something went wrong fetching odds.', true);
+  }
+  document.getElementById('scanBtn').disabled = false;
+}
+
+function edgeClass(edge){ return edge >= 0.05 ? 'strong' : (edge >= 0.02 ? 'lean' : ''); }
+function badgeText(edge){ return edge >= 0.05 ? 'STRONG' : (edge >= 0.02 ? 'LEAN' : ''); }
+
+function betCardHTML(e, idx){
+  return `
+    <div class="bet-card" id="bet-${idx}" onclick="document.getElementById('bet-${idx}').classList.toggle('open')">
+      <div class="bet-top">
+        <div class="bet-main">
+          <div class="bet-pick"><span class="cat-tag ${e.category}">${e.category}</span>${e.pick}</div>
+          <div class="bet-event">${e.event} \u00b7 ${e.tournament} \u00b7 ${formatAmerican(e.price)} at ${e.book}</div>
+        </div>
+        <div class="bet-right">
+          <div class="prob ${edgeClass(e.edge)}">${Math.round(e.fairProb*100)}%</div>
+          <div class="badge ${edgeClass(e.edge)}">${e.edge>0?'+':''}${(e.edge*100).toFixed(1)}% edge</div>
+        </div>
+      </div>
+      <div class="reasons">
+        <div class="detail-row"><span>Modeled win probability</span><b>${(e.fairProb*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best price implied probability</span><b>${((e.fairProb-e.edge)*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best book</span><b>${e.book} (${formatAmerican(e.price)})</b></div>
+        <div class="detail-row"><span>Books compared</span><b>${e.numBooks}</b></div>
+        <div class="detail-row"><span>Start time</span><b>${new Date(e.commence).toLocaleString()}</b></div>
+      </div>
+    </div>`;
+}
+
+function renderList(){
+  const filter = document.querySelector('.filter-row button.active').dataset.f;
+  const minProb = parseFloat(document.getElementById('minProbSelect').value);
+  const rows = (window.__allEdges || []).filter(e => (filter === 'all' || e.category === filter) && e.fairProb >= minProb).slice(0, 60);
+  document.getElementById('list').innerHTML = rows.length ? rows.map((e,i) => betCardHTML(e,i)).join('') : '<div class="empty-state">Nothing matches these filters right now.</div>';
+}
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  });
+});
+document.getElementById('minProbSelect').addEventListener('change', renderList);
+document.getElementById('scanBtn').addEventListener('click', scanOdds);
+
+if(apiKey) loadTennisSports();
+</script>
+</body>
+</html>

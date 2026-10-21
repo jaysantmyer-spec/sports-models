@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Ensemble Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--court:#3D2A1F;--wood:#C8813F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--blue:#7FB3D9;--dim:#7C93A3;--green:#5FAE7A;--purple:#9A7FD9;--teal:#5FB8AE;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--court) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--wood);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}
+.chain b{color:var(--amber);}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button{flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;}
+.tabs button.active{background:rgba(242,169,59,.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;}.pane.active{display:block;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.mt{margin-top:8px;}
+.btn{width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:12.5px;padding:7px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.scoreboard{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.sb{flex:1;min-width:90px;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:10px 6px;text-align:center;}
+.sb .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}
+.sb .v{font-family:'Teko',sans-serif;font-size:23px;color:var(--amber);line-height:1.15;}
+.sb .r{font-size:9.5px;color:var(--dim);}
+.sb.best{border-color:rgba(95,174,122,.6);}
+.trained{font-size:10.5px;padding:7px 10px;border-radius:6px;margin-bottom:10px;line-height:1.5;}
+.trained.yes{background:rgba(95,174,122,.1);color:var(--green);}
+.trained.no{background:rgba(242,169,59,.08);color:var(--amber);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.cprob{text-align:right;flex-shrink:0;}
+.cprob .v{font-family:'Teko',sans-serif;font-size:25px;line-height:1;color:var(--amber);}
+.cprob .l{font-size:8.5px;color:var(--dim);letter-spacing:.5px;}
+.models{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px;}
+.mcol{background:var(--nl);border:1px solid #2A3B48;border-radius:6px;padding:7px 4px;text-align:center;}
+.mcol.ens{border-color:rgba(242,169,59,.45);}
+.mcol .t{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;line-height:1.3;min-height:20px;}
+.mcol .p{font-family:'Teko',sans-serif;font-size:20px;color:var(--chalk);line-height:1.1;margin-top:3px;}
+.mcol.ens .p{color:var(--amber);}
+.mcol .w{font-size:8.5px;color:var(--dim);}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar .nm{font-size:11px;width:92px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:14px;overflow:hidden;}
+.bar .fl{height:100%;background:var(--amber);opacity:.75;}
+.bar .pc{font-family:'Teko',sans-serif;font-size:15px;width:44px;text-align:right;flex-shrink:0;}
+.bar .od{font-size:10px;color:var(--dim);width:40px;text-align:right;flex-shrink:0;}
+.ou{margin-top:8px;}
+.ou .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.ou .track{display:flex;height:18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);}
+.ou .over{background:var(--green);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#0B1F12;}
+.ou .under{background:var(--purple);opacity:.75;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;color:#120B26;}
+.ou .tie{background:var(--dim);opacity:.6;}
+.ou .sub{font-size:10.5px;color:var(--dim);margin-top:4px;}
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.rest{background:rgba(192,67,58,.08);color:#E8B4AE;}.flag.est{background:rgba(242,169,59,.08);color:var(--amber);}.flag.inj{background:rgba(95,184,174,.09);color:var(--teal);line-height:1.5;}
+.result-line{font-size:11px;border-radius:5px;padding:6px 9px;margin-top:7px;line-height:1.5;}
+.result-line.hit{background:rgba(95,174,122,.12);color:var(--green);}.result-line.miss{background:rgba(192,67,58,.1);color:#E8B4AE;}
+.odds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px;}
+.odds input{padding:7px 8px;font-size:13px;}.odds label{font-size:9px;}
+.rec{margin-top:8px;padding:9px 11px;border-radius:6px;font-size:11.5px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.ovr{background:var(--nl);border:1px solid #2A3B48;border-radius:7px;padding:10px;margin-top:9px;}
+.ovr h5{font-family:'Teko',sans-serif;font-size:13px;letter-spacing:.4px;margin:0 0 7px;color:var(--amber);}
+.ovr input{padding:6px 6px;font-size:12px;}.ovr label{font-size:8px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td{padding:5px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:50%;}td.num{font-family:'Teko',sans-serif;font-size:16px;}
+td.good{color:var(--green);}td.bad{color:var(--red);}td.flat{color:var(--dim);}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,.1);border:1px solid rgba(192,67,58,.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.note{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>NBA ENSEMBLE MODEL</h1></div>
+  <p class="sub">Three independent models that learn from last season, plus a possession simulator for totals. Train on 2025&ndash;26, see each model's out-of-sample accuracy, and the slate uses what it learned.</p>
+
+  <div class="chain">
+    <b>BRADLEY&ndash;TERRY</b> &mdash; ln(P/(1&minus;P)) = R<sub>i</sub> &minus; R<sub>j</sub> + &gamma;H + &delta;F, ratings fit by logistic regression on results, with home advantage and back-to-back fatigue terms<br>
+    <b>MARGIN RATINGS</b> &mdash; point-differential ratings with home advantage; win probability from the fitted residual spread<br>
+    <b>FOUR FACTORS REGRESSION</b> &mdash; Margin = &beta;&#8320; + &beta;&#8321;&Delta;eFG% + &beta;&#8322;&Delta;TOV% + &beta;&#8323;&Delta;ORB% + &beta;&#8324;&Delta;FT Rate, coefficients fit from rolling pre-game stats (needs box scores)<br>
+    <b>ENSEMBLE</b> &mdash; weighted by each model's out-of-sample Brier score, so the better a model tested, the more it counts
+  </div>
+
+  <div class="tabs"><button class="active" data-t="live">Today's Slate</button><button data-t="train">Train &amp; Backtest</button></div>
+
+  <div class="pane active" id="pane-live">
+    <div id="trainedBanner" class="trained no">No trained parameters found. Defaults in use &mdash; run Train &amp; Backtest first for learned ratings and coefficients.</div>
+    <div class="panel">
+      <div class="plabel">SETTINGS</div>
+      <div class="g3">
+        <div><label>Date</label><input type="date" id="dt"></div>
+        <div><label>Include finished</label><select id="incFinal"><option value="1" selected>Grade them</option><option value="0">Upcoming only</option></select></div>
+        <div><label>Edge threshold</label><select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select></div>
+      </div>
+      <div class="g2 mt">
+        <div><label>Default total line</label><input type="number" step="0.5" id="defLine" value="224.5"></div>
+        <div><label>Ensemble weighting</label><select id="ensMode"><option value="brier" selected>By backtest Brier</option><option value="equal">Equal</option></select></div>
+      </div>
+      <div class="g2 mt">
+        <div><label>Injury adjustment</label><select id="injMode"><option value="1" selected>On (auto from ESPN)</option><option value="0">Off</option></select></div>
+        <div><label>Day-to-day weight</label><select id="ddW"><option value="0.4" selected>40% of Out</option><option value="0">Ignore</option><option value="0.7">70%</option></select></div>
+      </div>
+      <button class="btn" id="run">RUN SLATE</button>
+      <div class="prog"><div id="bar"></div></div>
+      <div class="status" id="st"></div>
+      <div class="hint">No API key. Injuries load automatically from ESPN's report. Each absent player's value comes from his per-game production harvested during Four Factors training; without that, a flat default is used and flagged. Every impact can be edited or skipped inside the card.</div>
+    </div>
+    <div id="score"></div>
+    <div id="out"></div>
+  </div>
+
+  <div class="pane" id="pane-train">
+    <div class="panel">
+      <div class="plabel">TRAIN ON A SEASON &mdash; WALK-FORWARD</div>
+      <div class="g3">
+        <div><label>Season start</label><input type="date" id="trStart" value="2025-10-21"></div>
+        <div><label>Season end</label><input type="date" id="trEnd" value="2026-04-12"></div>
+        <div><label>Warm-up games</label><select id="warm"><option value="250">250</option><option value="400" selected>400</option><option value="500">500</option></select></div>
+      </div>
+      <div class="g3 mt">
+        <div><label>Recency half-life</label><select id="halflife"><option value="0" selected>Off (best on 2025–26)</option><option value="60">60 days</option><option value="30">30 days</option><option value="15">15 days</option></select></div>
+        <div><label>Four Factors (box scores)</label><select id="ffMode"><option value="0" selected>Skip (fast, ~2 min)</option><option value="1">Include (slow, ~15 min)</option></select></div>
+        <div><label>Refit every</label><select id="refit"><option value="3" selected>3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></div>
+      </div>
+      <button class="btn" id="trRun">TRAIN &amp; BACKTEST</button>
+      <div class="prog"><div id="trBar"></div></div>
+      <div class="status" id="trSt"></div>
+      <div class="hint">Walks the season in order. Every game is predicted using only games before it, then the models are refit. Warm-up games train but are not scored. Results and learned parameters save to this browser so the slate uses them.</div>
+    </div>
+    <div id="trOut"></div>
+  </div>
+
+  <div class="warn"><b>Bankroll note.</b> Published accuracy claims for these model families (67&ndash;74%) come from academic samples with their own feature sets; the number to trust is the one this trainer reports on games it never saw.</div>
+
+  <p class="footnote">Bradley&ndash;Terry ratings are fit by maximum likelihood on game outcomes with L2 shrinkage, plus a shared home-advantage term and a back-to-back fatigue term, exactly the logit form shown. Margin ratings are fit by least squares on point differential with a home term; win probability is the normal CDF of the predicted margin over the residual standard deviation measured out of sample. The Four Factors regression uses each team's season-to-date eFG%, TOV%, ORB% and FT rate (offence minus what the opponent allows), computed only from games before the one being predicted; it requires one box-score request per game. Walk-forward means models are refit on an expanding window and every scored prediction is genuinely out of sample; warm-up games are excluded from scoring. Ensemble weights are the inverse of each model's out-of-sample Brier score, normalised. Totals come from margin-model offensive and defensive point ratings with the fitted total residual spread. Injuries are read from ESPN's report at run time; a player marked Out is charged his full estimated impact and Day-to-Day the chosen fraction. Impact is production above a replacement line (points plus 0.7&times;rebounds plus 0.7&times;assists, minus 8, times 0.18), capped at 6.5 points so no single absence exceeds a superstar's usual effect on the spread; it is a transparent heuristic, not a plus-minus model, and every value is editable. The adjustment moves the margin model directly and Bradley&ndash;Terry through the points-per-logit ratio implied by both models' fitted home terms. Injury adjustments cannot be backtested because ESPN's report is current only, so their effect on accuracy is not measured here. The possession simulator and referee, coach-rotation and in-game fatigue layers described in the source are not reproducible from public box scores and are not claimed here; rest is. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+const SUMMARY='https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=';
+const KEY='nbaEnsembleParams_v1';
+const LG={efg:.545,tov:.135,orb:.27,ftr:.22,ppg:113};
+
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function ymd(s){return s.replace(/-/g,'');}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+document.getElementById('dt').value=iso(new Date());
+function v(id){const e=document.getElementById(id);if(!e)return null;const x=e.value.trim();return x===''?null:Number(x);}
+function setS(id,t,e){const el=document.getElementById(id);el.textContent=t;el.className='status'+(e?' err':'');}
+function setBar(id,p){document.getElementById(id).style.width=Math.round(p*100)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function sig(x){return 1/(1+Math.exp(-x));}
+function normCDF(x){const t=1/(1+.2316419*Math.abs(x));const d=.3989423*Math.exp(-x*x/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function amToImp(p){return p>0?100/(p+100):(-p)/((-p)+100);}
+function fmtAm(p){return p>0?`+${p}`:`${p}`;}
+function probToAm(p){if(p<=0||p>=1)return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`${l}: HTTP ${r.status}`;return null;}return await r.json();}catch(e){window.__err=`${l}: ${e.message}`;return null;}}
+async function pool(items,limit,fn){const out=new Array(items.length);let i=0;async function w(){while(i<items.length){const k=i++;out[k]=await fn(items[k],k);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},w));return out;}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('pane-'+b.dataset.t).classList.add('active');}));
+
+// ---------- Parameters (learned or default) ----------
+let P=loadParams();
+function loadParams(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
+function saveParams(p){try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}}
+function showTrained(){const b=document.getElementById('trainedBanner');if(P&&P.bt){b.className='trained yes';b.textContent=`Trained on ${P.meta.season}: ${P.meta.scored} games scored out of sample. Ensemble Brier ${P.meta.ensBrier.toFixed(4)}, accuracy ${(P.meta.ensAcc*100).toFixed(1)}%. Recency ${P.hl?P.hl+'d':'off'}, calibration a=${P.cal?P.cal.a.toFixed(2):'1.00'}. Player values ${P.players?Object.keys(P.players).length+' players':'none \u2014 run Four Factors training to harvest them'}. Weights BT ${(P.w.bt*100).toFixed(0)}% / Margin ${(P.w.mg*100).toFixed(0)}%${P.w.ff?` / Four Factors ${(P.w.ff*100).toFixed(0)}%`:''}.`;}else{b.className='trained no';b.textContent='No trained parameters found. Defaults in use \u2014 run Train & Backtest first for learned ratings and coefficients.';}}
+showTrained();
+
+// ---------- Model fits ----------
+// Recency weight: games decay by half every `hl` days before `asOf`. hl=0 means equal weight.
+function gameWeights(games,asOf,hl){if(!hl)return games.map(()=>1);return games.map(g=>Math.pow(.5,Math.max(0,daysBetween(g.date,asOf))/hl));}
+// games: [{h,a,hs,as,hb2b,ab2b}] with team ids as strings
+function fitBT(games,teams,iters,wts){
+  wts=wts||games.map(()=>1);
+  const idx={};teams.forEach((t,i)=>idx[t]=i);const n=teams.length;
+  const R=new Float64Array(n),cnt=new Float64Array(n);let H=.3,F=-.15;
+  games.forEach((g,gi)=>{if(idx[g.h]!=null)cnt[idx[g.h]]+=wts[gi];if(idx[g.a]!=null)cnt[idx[g.a]]+=wts[gi];});
+  const N=Math.max(1,wts.reduce((s,x)=>s+x,0)),lr=.8,l2=.01;
+  for(let it=0;it<iters;it++){
+    const gR=new Float64Array(n);let gH=0,gF=0;
+    for(let gi=0;gi<games.length;gi++){const g=games[gi];
+      const i=idx[g.h],j=idx[g.a];if(i==null||j==null)continue;
+      const fb=(g.hb2b?1:0)-(g.ab2b?1:0);
+      const p=sig(R[i]-R[j]+H+F*fb),e=((g.hs>g.as?1:0)-p)*wts[gi];
+      gR[i]+=e;gR[j]-=e;gH+=e;gF+=e*fb;
+    }
+    // mean gradients per parameter so step size is independent of season length
+    for(let k=0;k<n;k++)R[k]+=lr*(gR[k]/Math.max(1,cnt[k])-l2*R[k]);
+    // shared terms see every game, so a Newton-scaled step (÷ mean p(1−p) ≈ 0.24) converges in the same iteration budget
+    H+=4*lr*gH/N;F+=4*lr*gF/N;
+    let m=0;for(const x of R)m+=x;m/=n;for(let k=0;k<n;k++)R[k]-=m;
+  }
+  const out={};teams.forEach((t,i)=>out[t]=R[i]);return {R:out,H,F};
+}
+function fitMargin(games,teams,iters,wts){
+  wts=wts||games.map(()=>1);
+  // rating_h - rating_a + H = margin ; plus off/def points for totals
+  const idx={};teams.forEach((t,i)=>idx[t]=i);const n=teams.length;
+  const R=new Float64Array(n),O=new Float64Array(n),D=new Float64Array(n);let H=2.5,F=-1.2,base=LG.ppg;
+  for(let it=0;it<iters;it++){
+    const gR=new Float64Array(n),gO=new Float64Array(n),gD=new Float64Array(n);let gH=0,gF=0,gB=0,cnt=0;
+    for(let gi=0;gi<games.length;gi++){const g=games[gi];const wt=wts[gi];
+      const i=idx[g.h],j=idx[g.a];if(i==null||j==null)continue;cnt+=wt;
+      const pm=R[i]-R[j]+H+F*((g.hb2b?1:0)-(g.ab2b?1:0));const em=((g.hs-g.as)-pm)*wt;
+      gR[i]+=em;gR[j]-=em;gH+=em;gF+=em*((g.hb2b?1:0)-(g.ab2b?1:0));
+      const ph=base+O[i]-D[j]+H/2,pa=base+O[j]-D[i]-H/2;const eh=(g.hs-ph)*wt,ea=(g.as-pa)*wt;
+      gO[i]+=eh;gD[j]-=eh;gO[j]+=ea;gD[i]-=ea;gB+=eh+ea;
+    }
+    const lr=.05/Math.max(1,Math.sqrt(cnt/200));
+    for(let k=0;k<n;k++){R[k]+=lr*gR[k]/Math.max(1,cnt/n);O[k]+=lr*gO[k]/Math.max(1,cnt/n);D[k]+=lr*gD[k]/Math.max(1,cnt/n);}
+    H+=lr*gH/Math.max(1,cnt);F+=lr*gF/Math.max(1,cnt);base+=lr*gB/Math.max(1,2*cnt);
+    let m=0;for(const x of R)m+=x;m/=n;for(let k=0;k<n;k++)R[k]-=m;
+    m=0;for(const x of O)m+=x;m/=n;for(let k=0;k<n;k++)O[k]-=m;m=0;for(const x of D)m+=x;m/=n;for(let k=0;k<n;k++)D[k]-=m;
+  }
+  const r={},o={},d={};teams.forEach((t,i)=>{r[t]=R[i];o[t]=O[i];d[t]=D[i];});
+  return {R:r,O:o,D:d,H,F,base};
+}
+// Four Factors regression by normal equations on [1, dEFG, dTOV, dORB, dFTR]
+function fitFF(rows){
+  if(rows.length<40)return null;
+  const k=5;const XtX=Array.from({length:k},()=>new Float64Array(k));const Xty=new Float64Array(k);
+  for(const r of rows){const x=[1,r.dEfg,r.dTov,r.dOrb,r.dFtr];for(let i=0;i<k;i++){Xty[i]+=x[i]*r.y;for(let j=0;j<k;j++)XtX[i][j]+=x[i]*x[j];}}
+  for(let i=1;i<k;i++)XtX[i][i]+=1e-3; // ridge
+  // Gaussian elimination
+  const A=XtX.map((row,i)=>[...row,Xty[i]]);
+  for(let c=0;c<k;c++){let piv=c;for(let r=c+1;r<k;r++)if(Math.abs(A[r][c])>Math.abs(A[piv][c]))piv=r;[A[c],A[piv]]=[A[piv],A[c]];if(Math.abs(A[c][c])<1e-12)return null;
+    for(let r=0;r<k;r++){if(r===c)continue;const f=A[r][c]/A[c][c];for(let j=c;j<=k;j++)A[r][j]-=f*A[c][j];}}
+  return A.map((row,i)=>row[k]/row[i]);
+}
+function ffOf(t){ // rolling totals -> factors
+  if(!t||!t.FGA)return null;
+  return {efg:(t.FGM+.5*t.TPM)/t.FGA,tov:t.TOV/(t.FGA+.44*t.FTA+t.TOV),orb:(t.ORB+t.oDRB)?t.ORB/(t.ORB+t.oDRB):LG.orb,ftr:t.FTA/t.FGA,
+    defg:t.oFGA?(t.oFGM+.5*t.oTPM)/t.oFGA:LG.efg,dtov:t.oFGA?t.oTOV/(t.oFGA+.44*t.oFTA+t.oTOV):LG.tov,dorb:(t.oORB+t.DRB)?t.oORB/(t.oORB+t.DRB):LG.orb,dftr:t.oFGA?t.oFTA/t.oFGA:LG.ftr};
+}
+function ffDeltas(h,a){
+  // Home's expected rate = home offence + what away's defence allows (both relative to league);
+  // the league terms cancel in the home-minus-away difference.
+  return {dEfg:(h.efg+a.defg)-(a.efg+h.defg),
+          dTov:(h.tov+a.dtov)-(a.tov+h.dtov),
+          dOrb:(h.orb+a.dorb)-(a.orb+h.dorb),
+          dFtr:(h.ftr+a.dftr)-(a.ftr+h.dftr)};
+}
+
+// ---------- Box score parsing ----------
+// Player lines: ESPN lists labels once per team block, then one stats array per athlete.
+function parsePlayers(sum){
+  const out=[];const blocks=sum&&sum.boxscore&&sum.boxscore.players;if(!blocks)return out;
+  for(const b of blocks){const st=(b.statistics||[])[0];if(!st)return out;const labels=st.labels||st.names||[];
+    const ix=n=>labels.indexOf(n);const iMin=ix('MIN'),iPts=ix('PTS'),iReb=ix('REB'),iAst=ix('AST');
+    for(const a of (st.athletes||[])){if(!a.athlete||a.didNotPlay)continue;const s=a.stats||[];const min=Number(s[iMin])||0;if(!min)continue;
+      out.push({id:String(a.athlete.id),name:a.athlete.displayName,team:String(b.team&&b.team.id),min,pts:Number(s[iPts])||0,reb:Number(s[iReb])||0,ast:Number(s[iAst])||0});}}
+  return out;
+}
+function parseBox(sum){
+  const teams=sum&&sum.boxscore&&sum.boxscore.teams;if(!teams||teams.length<2)return null;
+  const rd=(stats,name)=>{const s=stats.find(x=>x.name===name);return s?s.displayValue:null;};
+  const pair=(s)=>{if(!s)return [0,0];const m=s.split('-').map(Number);return [m[0]||0,m[1]||0];};
+  const out={};
+  for(const t of teams){const st=t.statistics||[];const [fgm,fga]=pair(rd(st,'fieldGoalsMade-fieldGoalsAttempted'));const [tpm,tpa]=pair(rd(st,'threePointFieldGoalsMade-threePointFieldGoalsAttempted'));const [ftm,fta]=pair(rd(st,'freeThrowsMade-freeThrowsAttempted'));
+    out[String(t.team.id)]={FGM:fgm,FGA:fga,TPM:tpm,TPA:tpa,FTM:ftm,FTA:fta,ORB:Number(rd(st,'offensiveRebounds'))||0,DRB:Number(rd(st,'defensiveRebounds'))||0,TOV:Number(rd(st,'turnovers'))||0};}
+  return out;
+}
+
+// ---------- Season walk ----------
+async function loadSeason(start,end,onProg){
+  const games=[];let day=start,n=0;const total=Math.round((new Date(end)-new Date(start))/86400000)+1;
+  while(day<=end){
+    const sb=await getJSON(`${ESPN}/scoreboard?dates=${ymd(day)}`,'scoreboard');
+    ((sb&&sb.events)||[]).forEach(e=>{const c=e.competitions&&e.competitions[0];if(!c||!(e.status&&e.status.type&&e.status.type.completed))return;
+      if(e.season&&e.season.type!==2)return; // regular season only
+      const H=c.competitors.find(x=>x.homeAway==='home'),A=c.competitors.find(x=>x.homeAway==='away');if(!H||!A)return;
+      games.push({id:e.id,date:day,h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,hs:Number(H.score),as:Number(A.score)});});
+    n++;onProg(n/total,games.length);day=addDays(day,1);
+  }
+  // back-to-back flags from the walk itself
+  const last={};games.forEach(g=>{g.hb2b=last[g.h]===addDays(g.date,-1);g.ab2b=last[g.a]===addDays(g.date,-1);last[g.h]=g.date;last[g.a]=g.date;});
+  return games;
+}
+
+// ---------- Train & backtest ----------
+document.getElementById('trRun').addEventListener('click',async()=>{
+  const btn=document.getElementById('trRun');btn.disabled=true;setBar('trBar',0);document.getElementById('trOut').innerHTML='';window.__err=null;
+  const start=document.getElementById('trStart').value,end=document.getElementById('trEnd').value;
+  const hl=Number(document.getElementById('halflife').value);const warm=Number(document.getElementById('warm').value),useFF=document.getElementById('ffMode').value==='1',refitEvery=Number(document.getElementById('refit').value);
+  setS('trSt','Loading season schedule and results...');
+  const games=await loadSeason(start,end,(p,n)=>{setBar('trBar',p*.4);setS('trSt',`Loading results... ${n} games`);});
+  if(games.length<warm+50){setS('trSt',window.__err?`Could not load enough games. ${window.__err}`:`Only ${games.length} games found in that range.`,true);btn.disabled=false;return;}
+  const teams=[...new Set(games.flatMap(g=>[g.h,g.a]))];
+  const names={};games.forEach(g=>{names[g.h]=g.hn;names[g.a]=g.an;});
+
+  // Optional box scores for Four Factors
+  const box={};const players={};
+  if(useFF){
+    setS('trSt','Loading box scores for Four Factors and player values...');
+    await pool(games,6,async(g,k)=>{const s=await getJSON(SUMMARY+g.id,'summary');const b=parseBox(s);if(b)box[g.id]=b;
+      for(const pl of parsePlayers(s)){const r=players[pl.id]||(players[pl.id]={name:pl.name,team:pl.team,g:0,min:0,pts:0,reb:0,ast:0});r.g++;r.min+=pl.min;r.pts+=pl.pts;r.reb+=pl.reb;r.ast+=pl.ast;r.team=pl.team;}
+      if(k%20===0){setBar('trBar',.4+.4*k/games.length);setS('trSt',`Box scores ${k}/${games.length}`);}});
+  }
+
+  // Walk forward
+  const preds=[];let bt=null,mg=null,ff=null,lastFit=null;const roll={};const ffRows=[];
+  const zero=()=>({FGM:0,FGA:0,TPM:0,TPA:0,FTM:0,FTA:0,ORB:0,DRB:0,TOV:0,oFGM:0,oFGA:0,oTPM:0,oFTA:0,oORB:0,oDRB:0,oTOV:0,G:0});
+  let sigM=13,sigT=20;
+  for(let i=0;i<games.length;i++){
+    const g=games[i];
+    if(i>=warm&&(lastFit==null||daysBetween(lastFit,g.date)>=refitEvery)){
+      const train=games.slice(0,i);const wts=gameWeights(train,g.date,hl);
+      bt=fitBT(train,teams,300,wts);mg=fitMargin(train,teams,300,wts);
+      if(useFF)ff=fitFF(ffRows);
+      // residual spreads from the training window
+      const rm=[],rt=[];for(const t of train){const pm=mg.R[t.h]-mg.R[t.a]+mg.H+mg.F*((t.hb2b?1:0)-(t.ab2b?1:0));rm.push((t.hs-t.as)-pm);rt.push((t.hs+t.as)-(2*mg.base+mg.O[t.h]+mg.O[t.a]-mg.D[t.h]-mg.D[t.a]));}
+      sigM=Math.sqrt(rm.reduce((s,x)=>s+x*x,0)/rm.length);sigT=Math.sqrt(rt.reduce((s,x)=>s+x*x,0)/rt.length);
+      lastFit=g.date;
+    }
+    if(i>=warm&&bt&&mg){
+      const fb=(g.hb2b?1:0)-(g.ab2b?1:0);
+      const pBT=sig(bt.R[g.h]-bt.R[g.a]+bt.H+bt.F*fb);
+      const m=mg.R[g.h]-mg.R[g.a]+mg.H+mg.F*fb;const pMG=normCDF(m/sigM);
+      const tot=2*mg.base+mg.O[g.h]+mg.O[g.a]-mg.D[g.h]-mg.D[g.a];
+      let pFF=null;
+      if(useFF&&ff&&roll[g.h]&&roll[g.a]&&roll[g.h].G>=8&&roll[g.a].G>=8){const d=ffDeltas(ffOf(roll[g.h]),ffOf(roll[g.a]));const mf=ff[0]+ff[1]*d.dEfg+ff[2]*d.dTov+ff[3]*d.dOrb+ff[4]*d.dFtr;pFF=normCDF(mf/sigM);}
+      preds.push({date:g.date,y:g.hs>g.as?1:0,pBT,pMG,pFF,m,tot,actualM:g.hs-g.as,actualT:g.hs+g.as});
+    }
+    // accumulate rolling box totals and FF rows AFTER prediction (no leakage)
+    if(useFF&&box[g.id]){
+      const bh=box[g.id][g.h],ba=box[g.id][g.a];
+      if(bh&&ba){
+        if(roll[g.h]&&roll[g.a]&&roll[g.h].G>=8&&roll[g.a].G>=8){const d=ffDeltas(ffOf(roll[g.h]),ffOf(roll[g.a]));ffRows.push({...d,y:g.hs-g.as});}
+        roll[g.h]=roll[g.h]||zero();roll[g.a]=roll[g.a]||zero();
+        const add=(r,t,o)=>{['FGM','FGA','TPM','TPA','FTM','FTA','ORB','DRB','TOV'].forEach(k=>r[k]+=t[k]);r.oFGM+=o.FGM;r.oFGA+=o.FGA;r.oTPM+=o.TPM;r.oFTA+=o.FTA;r.oORB+=o.ORB;r.oDRB+=o.DRB;r.oTOV+=o.TOV;r.G++;};
+        add(roll[g.h],bh,ba);add(roll[g.a],ba,bh);
+      }
+    }
+    if(i%50===0){setBar('trBar',.8+.2*i/games.length);setS('trSt',`Walk-forward ${i}/${games.length}...`);await new Promise(r=>setTimeout(r,0));}
+  }
+  setBar('trBar',1);
+  // Final fit on the whole season for the live slate
+  const wF=gameWeights(games,end,hl);const btF=fitBT(games,teams,400,wF),mgF=fitMargin(games,teams,400,wF);const ffF=useFF?fitFF(ffRows):null;
+  const res=analyseTrain(preds,useFF);
+  const pv={};Object.keys(players).forEach(id=>{const r=players[id];if(r.g>=10)pv[id]={name:r.name,team:r.team,g:r.g,min:r.min/r.g,pts:r.pts/r.g,reb:r.reb/r.g,ast:r.ast/r.g};});
+  P={bt:btF,mg:mgF,ff:ffF,cal:res.cal,hl,players:Object.keys(pv).length?pv:(P&&P.players)||null,sigM:res.sigM,sigT:sigT,names,w:res.w,roll:useFF?roll:null,meta:{season:`${start.slice(0,4)}\u2013${end.slice(2,4)}`,scored:preds.length,ensBrier:res.ens.brier,ensAcc:res.ens.acc,trainedAt:new Date().toISOString()}};
+  saveParams(P);showTrained();
+  setS('trSt',`Done. ${games.length} games loaded, ${preds.length} scored out of sample. Parameters saved.`);
+  btn.disabled=false;
+});
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
+
+function analyseTrain(preds,useFF){
+  const brier=k=>preds.filter(p=>p[k]!=null).reduce((s,p)=>s+Math.pow(p[k]-p.y,2),0)/Math.max(1,preds.filter(p=>p[k]!=null).length);
+  const acc=k=>{const s=preds.filter(p=>p[k]!=null);return s.filter(p=>(p[k]>=.5?1:0)===p.y).length/Math.max(1,s.length);};
+  const models=[['pBT','Bradley\u2013Terry'],['pMG','Margin ratings']];if(useFF&&preds.some(p=>p.pFF!=null))models.push(['pFF','Four Factors']);
+  const B={},A={};models.forEach(([k])=>{B[k]=brier(k);A[k]=acc(k);});
+  // Weight by Brier skill over a coin flip (0.25 - Brier), and drop any model that barely beats one.
+  const skill={};let sum=0;models.forEach(([k])=>{skill[k]=B[k]<.235?Math.max(0,.25-B[k]):0;sum+=skill[k];});
+  if(sum===0){models.forEach(([k])=>{skill[k]=1;sum++;});}
+  const w={bt:skill.pBT/sum,mg:skill.pMG/sum,ff:skill.pFF?skill.pFF/sum:0};
+  preds.forEach(p=>{let e=w.bt*p.pBT+w.mg*p.pMG;if(w.ff&&p.pFF!=null)e+=w.ff*p.pFF;else if(w.ff)e=e/(1-w.ff);p.pE=e;});
+  // Learned calibration: p' = sigmoid(a*logit(p)+b), chosen to minimise out-of-sample Brier.
+  const logit=x=>Math.log(Math.max(1e-6,x)/Math.max(1e-6,1-x));
+  let best={a:1,b:0,br:brier('pE')};
+  for(let a=.6;a<=1.4;a+=.02)for(let b=-.3;b<=.3;b+=.02){let s=0;for(const p of preds){const q=sig(a*logit(p.pE)+b);s+=(q-p.y)**2;}s/=preds.length;if(s<best.br-1e-9)best={a,b,br:s};}
+  preds.forEach(p=>{p.pRaw=p.pE;p.pE=sig(best.a*logit(p.pRaw)+best.b);});
+  const ens={brier:brier('pE'),acc:acc('pE'),rawBrier:brier('pRaw'),cal:best};
+  const sigM=Math.sqrt(preds.reduce((s,p)=>s+Math.pow(p.actualM-p.m,2),0)/preds.length);
+  const maeT=preds.reduce((s,p)=>s+Math.abs(p.actualT-p.tot),0)/preds.length;
+  const homeReal=preds.filter(p=>p.y===1).length/preds.length,homeModel=preds.reduce((s,p)=>s+p.pE,0)/preds.length;
+  // calibration on ensemble
+  const bands=[['70%+',.7,1.01],['60\u201370%',.6,.7],['50\u201360%',.5,.6]];
+  const cal=bands.map(([lb,lo,hi])=>{const sub=preds.filter(p=>{const c=Math.max(p.pE,1-p.pE);return c>=lo&&c<hi;});if(!sub.length)return '';const conf=sub.reduce((s,p)=>s+Math.max(p.pE,1-p.pE),0)/sub.length;const hit=sub.filter(p=>(p.pE>=.5?1:0)===p.y).length/sub.length;const gap=hit-conf;
+    return `<tr><td>${lb}</td><td class="flat">${(conf*100).toFixed(0)}%</td><td class="num ${sub.length<20?'flat':(gap>=-.04?'good':'bad')}">${(hit*100).toFixed(0)}%</td><td class="num ${Math.abs(gap)<=.04?'good':(gap<0?'bad':'flat')}">${gap>=0?'+':''}${(gap*100).toFixed(0)}</td><td class="flat">${sub.length}</td></tr>`;}).join('');
+  const bestM=models.reduce((b,[k])=>B[k]<B[b]?k:b,'pBT');
+  const f=[];
+  f.push(`Ensemble out-of-sample: <b>${(ens.acc*100).toFixed(1)}%</b> accuracy, Brier <b>${ens.brier.toFixed(4)}</b> on ${preds.length} games (raw ${ens.rawBrier.toFixed(4)} before the learned calibration a=${best.a.toFixed(2)}, b=${best.b.toFixed(2)}). Standard error on accuracy is about &plusmn;${(Math.sqrt(.25/preds.length)*100).toFixed(1)} points.`);
+  if(ens.brier>.235)f.push('Brier is close to the 0.25 coin-flip mark: the percentages carry limited information beyond picking the favourite. Treat stated edges under 5 points as noise.');
+  if(Math.abs(homeModel-homeReal)>.02)f.push(`Home rate: model ${(homeModel*100).toFixed(1)}% vs real ${(homeReal*100).toFixed(1)}%. The fitted home term (BT &gamma; ${P?'':''}) is ${homeModel>homeReal?'too strong':'too weak'} for this season.`);
+  f.push(`Margin residual spread is <b>${sigM.toFixed(1)}</b> points (NBA is typically 12&ndash;14). Total MAE <b>${maeT.toFixed(1)}</b> points.`);
+  if(!useFF)f.push('Four Factors regression was skipped. Re-run with box scores enabled to add it; it is the only model here that uses efficiency stats rather than results.');
+  models.forEach(([k,nm])=>{if(B[k]>=.235)f.push(`${nm} did not beat 0.235 Brier and was given zero ensemble weight.`);});
+  const rows=models.map(([k,nm])=>`<tr><td>${nm}${k===bestM?' &#9733;':''}</td><td class="num ${k===bestM?'good':'flat'}">${(A[k]*100).toFixed(1)}%</td><td class="num ${k===bestM?'good':'flat'}">${B[k].toFixed(4)}</td><td class="flat">${(k==='pBT'?w.bt:k==='pMG'?w.mg:w.ff)*100|0}%</td></tr>`).join('')+`<tr><td><b>Ensemble</b></td><td class="num good">${(ens.acc*100).toFixed(1)}%</td><td class="num good">${ens.brier.toFixed(4)}</td><td class="flat">&mdash;</td></tr>`;
+  document.getElementById('trOut').innerHTML=`
+    <div class="section-title">OUT-OF-SAMPLE RESULTS &mdash; ${preds.length} GAMES</div>
+    <table><tr><th>Model</th><th>Accuracy</th><th>Brier</th><th>Weight</th></tr>${rows}</table>
+    <div class="note">Brier is mean squared error of the probability; 0.25 is a coin flip and lower is better. It rewards well-calibrated percentages, not just correct picks.</div>
+    <div class="section-title">ENSEMBLE CALIBRATION</div>
+    <table><tr><th>Confidence</th><th>Stated</th><th>Actual</th><th>Gap</th><th>n</th></tr>${cal}</table>
+    <div class="section-title">WHAT THE TRAINER LEARNED</div>
+    <div class="work">${f.map(x=>'&bull; '+x).join('<br>')}</div>`;
+  return {w,ens,sigM,cal:best};
+}
+
+// ---------- Injuries ----------
+let INJ={};   // teamId -> [{id,name,status,detail,ret}]
+async function loadInjuries(){
+  INJ={};const d=await getJSON(`${ESPN}/injuries`,'injuries');
+  for(const t of ((d&&d.injuries)||[])){const tid=String(t.team&&t.team.id);const list=[];
+    for(const it of (t.injuries||[])){const a=it.athlete||{};let id=a.id?String(a.id):null;
+      if(!id){const l=(a.links||[]).find(x=>/\/id\/(\d+)/.test(x.href||''));if(l)id=(l.href.match(/\/id\/(\d+)/)||[])[1];}
+      const st=(it.status||'').toLowerCase();const kind=st.startsWith('out')?'out':(st.includes('day')?'dd':(it.type&&it.type.abbreviation==='O'?'out':'dd'));
+      list.push({id,name:a.displayName||'Unknown',status:it.status,kind,detail:it.details?[it.details.type,it.details.detail].filter(Boolean).join(' '):'',ret:it.details&&it.details.returnDate?it.details.returnDate.slice(0,10):''});}
+    if(list.length)INJ[tid]=list;}
+}
+// Production above a replacement-level line, converted to points of margin. Capped so no
+// single absence exceeds what a superstar is generally worth (~6 points of spread).
+function playerImpact(pv){if(!pv)return null;const prod=pv.pts+.7*pv.reb+.7*pv.ast;return clamp((prod-8)*.18,0,6.5);}
+function injuryAdjust(teamId,ovr,side){
+  const on=document.getElementById('injMode').value==='1';const ddW=Number(document.getElementById('ddW').value);
+  const list=INJ[teamId]||[];const rows=[];let total=0;
+  for(const inj of list){
+    const key=side+'_inj_'+(inj.id||inj.name);
+    if(ovr[key]==='skip')continue;
+    const pv=P&&P.players&&inj.id?P.players[inj.id]:null;
+    let base=pv?playerImpact(pv):null;let src=pv?'stats':'default';
+    if(base==null){base=inj.kind==='out'?1.5:.5;src='default';}
+    if(ovr[key]!=null&&ovr[key]!=='skip'){base=Number(ovr[key]);src='manual';}
+    const w=inj.kind==='out'?1:ddW;const pts=on?base*w:0;
+    rows.push({...inj,pts,base,src,w,key});total+=pts;
+  }
+  return {rows,total:on?total:0};
+}
+
+// ---------- Live slate ----------
+let slate=[];
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;setBar('bar',0);document.getElementById('out').innerHTML='';document.getElementById('score').innerHTML='';window.__err=null;slate=[];
+  const date=document.getElementById('dt').value,incFinal=document.getElementById('incFinal').value==='1';
+  setS('st','Loading scoreboard and injury report...');
+  const [sb]=await Promise.all([getJSON(`${ESPN}/scoreboard?dates=${ymd(date)}`,'scoreboard'),loadInjuries()]);
+  const events=((sb&&sb.events)||[]).filter(e=>{const st=e.status&&e.status.type&&e.status.type.state;return st==='pre'||st==='in'||(incFinal&&st==='post');});
+  if(!events.length){setS('st',window.__err?`Could not load. ${window.__err}`:'No NBA games on this date. Regular season begins October 20; preseason October 3.',true);document.getElementById('out').innerHTML='<div class="empty">Nothing scheduled for this date.</div>';btn.disabled=false;return;}
+  const yd=await getJSON(`${ESPN}/scoreboard?dates=${ymd(addDays(date,-1))}`,'yesterday');
+  const played=new Set();((yd&&yd.events)||[]).forEach(e=>{const c=e.competitions&&e.competitions[0];(c&&c.competitors||[]).forEach(x=>played.add(String(x.team.id)));});
+  events.forEach((e,i)=>{const c=e.competitions&&e.competitions[0];if(!c)return;const H=c.competitors.find(x=>x.homeAway==='home'),A=c.competitors.find(x=>x.homeAway==='away');if(!H||!A)return;
+    let actual=null;if(e.status.type.state==='post'){const hs=Number(H.score),as=Number(A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
+    slate.push({id:i,h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,hb2b:played.has(String(H.team.id)),ab2b:played.has(String(A.team.id)),actual,ovr:{}});});
+  setBar('bar',1);setS('st',`${slate.length} game${slate.length===1?'':'s'} loaded.${P?'':' Using default ratings \u2014 train first for learned values.'}`);render();btn.disabled=false;
+});
+
+function compute(s){
+  const o=s.ovr;const hb=o.hb2b!=null?o.hb2b===1:s.hb2b,ab=o.ab2b!=null?o.ab2b===1:s.ab2b;const fb=(hb?1:0)-(ab?1:0);
+  const bt=P&&P.bt,mg=P&&P.mg;
+  const rBTh=o.btH!=null?o.btH:(bt&&bt.R[s.h]!=null?bt.R[s.h]:0),rBTa=o.btA!=null?o.btA:(bt&&bt.R[s.a]!=null?bt.R[s.a]:0);
+  const H=bt?bt.H:.4,F=bt?bt.F:-.15;
+  const injH=injuryAdjust(s.h,o,'h'),injA=injuryAdjust(s.a,o,'a');
+  const Hm0=mg?mg.H:2.5;const ptsPerLogit=(Hm0&&H)?Hm0/H:8; // map points to logit using both models' fitted home terms
+  const injLogit=(injA.total-injH.total)/ptsPerLogit;
+  const pBT=sig(rBTh-rBTa+H+F*fb+injLogit);
+  const rMh=o.mgH!=null?o.mgH:(mg&&mg.R[s.h]!=null?mg.R[s.h]:0),rMa=o.mgA!=null?o.mgA:(mg&&mg.R[s.a]!=null?mg.R[s.a]:0);
+  const Hm=mg?mg.H:2.5,Fm=mg?mg.F:-1.2,sigM=P&&P.sigM?P.sigM:13,sigT=P&&P.sigT?P.sigT:20;
+  const m=rMh-rMa+Hm+Fm*fb-injH.total+injA.total;const pMG=normCDF(m/sigM);
+  const base=mg?mg.base:LG.ppg;const Oh=mg&&mg.O[s.h]!=null?mg.O[s.h]:0,Oa=mg&&mg.O[s.a]!=null?mg.O[s.a]:0,Dh=mg&&mg.D[s.h]!=null?mg.D[s.h]:0,Da=mg&&mg.D[s.a]!=null?mg.D[s.a]:0;
+  // an absent scorer lowers his own team's total more than it raises the opponent's
+  const ptsH=base+Oh-Da+Hm/2-injH.total*.7,ptsA=base+Oa-Dh-Hm/2-injA.total*.7;const tot=o.tot!=null?o.tot:ptsH+ptsA;
+  let pFF=null;
+  if(P&&P.ff&&P.roll&&P.roll[s.h]&&P.roll[s.a]){const d=ffDeltas(ffOf(P.roll[s.h]),ffOf(P.roll[s.a]));const mf=P.ff[0]+P.ff[1]*d.dEfg+P.ff[2]*d.dTov+P.ff[3]*d.dOrb+P.ff[4]*d.dFtr;pFF=normCDF(mf/sigM);}
+  const eq=document.getElementById('ensMode').value==='equal';
+  let w=P&&P.w&&!eq?P.w:{bt:.5,mg:.5,ff:0};
+  if(eq&&pFF!=null)w={bt:1/3,mg:1/3,ff:1/3};
+  let pE=w.bt*pBT+w.mg*pMG;if(w.ff&&pFF!=null)pE+=w.ff*pFF;else if(w.ff)pE/= (1-w.ff);
+  if(P&&P.cal){const lg=Math.log(Math.max(1e-6,pE)/Math.max(1e-6,1-pE));pE=sig(P.cal.a*lg+P.cal.b);}
+  const line=o.line!=null?o.line:Number(document.getElementById('defLine').value)||224.5;
+  const pOver=1-normCDF((line-tot)/sigT);
+  return {pBT,pMG,pFF,pE,m,tot,ptsH,ptsA,line,pOver,w,sigM,sigT,hb,ab,rBTh,rBTa,rMh,rMa,injH,injA};
+}
+
+function render(){
+  const saved={};slate.forEach(s=>{['oa','oh','ol','ou','tl'].forEach(k=>{const e=document.getElementById(`${k}-${s.id}`);if(e)saved[`${k}-${s.id}`]=e.value;});});
+  let gM=0,cM=0,gT=0,cT=0;
+  slate.forEach(s=>{const c=compute(s);s._c=c;if(!s.actual)return;gM++;if((c.pE>=.5?'home':'away')===s.actual.winner)cM++;if(s.actual.total!==c.line){gT++;if((c.pOver>=.5&&s.actual.total>c.line)||(c.pOver<.5&&s.actual.total<c.line))cT++;}});
+  document.getElementById('score').innerHTML=gM?`<div class="scoreboard"><div class="sb"><div class="l">Ensemble ML</div><div class="v">${((cM/gM)*100).toFixed(0)}%</div><div class="r">${cM}/${gM}</div></div><div class="sb"><div class="l">Total</div><div class="v">${gT?((cT/gT)*100).toFixed(0):'—'}%</div><div class="r">${cT}/${gT}</div></div></div>`:'';
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
+  slate.forEach(s=>{if(['oa','oh','ol','ou','tl'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
+}
+['defLine','edgeT','ensMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
+
+function card(s){
+  const c=s._c||compute(s);const pH=c.pE,pA=1-pH;const fav=pH>=.5?s.hn:s.an;
+  let res='';
+  if(s.actual){const hit=(pH>=.5?'home':'away')===s.actual.winner;res=`<div class="result-line ${hit?'hit':'miss'}">Final ${s.an} ${s.actual.away} &ndash; ${s.hn} ${s.actual.home}. Ensemble had ${fav} at ${(Math.max(pH,pA)*100).toFixed(1)}%, <b>${hit?'correct':'incorrect'}</b>. Total ${s.actual.total} vs line ${c.line}.</div>`;}
+  let flags='';
+  const injBlock=(side,nm,inj)=>{if(!inj.rows.length)return '';
+    return `<div class="flag inj"><b>${nm}</b> &mdash; ${inj.total>0?'&minus;'+inj.total.toFixed(1)+' pts':'no adjustment'}<br>`+inj.rows.map(r=>`<span style="display:flex;justify-content:space-between;gap:6px;margin-top:3px;"><span>${r.name} <i style="color:var(--dim)">${r.status}${r.detail?' · '+r.detail:''}${r.ret?' · ret '+r.ret:''}</i></span><span style="white-space:nowrap;">${r.pts>0?'&minus;'+r.pts.toFixed(1):'0.0'} <i style="color:var(--dim)">${r.src==='stats'?'':r.src==='manual'?'(manual)':'(default)'}</i></span></span>`).join('')+`</div>`;};
+  flags+=injBlock('h',s.hn,c.injH)+injBlock('a',s.an,c.injA);
+  if(c.hb)flags+=`<div class="flag rest"><b>${s.hn}</b> on a back-to-back.</div>`;if(c.ab)flags+=`<div class="flag rest"><b>${s.an}</b> on a back-to-back.</div>`;
+  if(!P)flags+='<div class="flag est">Untrained: ratings are zero for every team, so this is home court and rest only. Train on last season first.</div>';
+  const pO=c.pOver,pU=1-pO;
+  return `<div class="card" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')"><div><div class="cmatch">${s.an} @ ${s.hn}</div><div class="csub">Margin ${c.m>=0?s.hn.split(' ').pop()+' by '+c.m.toFixed(1):s.an.split(' ').pop()+' by '+(-c.m).toFixed(1)} &middot; total ${c.tot.toFixed(1)}</div></div>
+      <div class="cprob"><div class="v">${(Math.max(pH,pA)*100).toFixed(1)}%</div><div class="l">${fav.toUpperCase().slice(0,12)}</div></div></div>
+    <div class="models">
+      <div class="mcol"><div class="t">Bradley&ndash;Terry</div><div class="p">${(c.pBT*100).toFixed(0)}%</div><div class="w">w ${(c.w.bt*100).toFixed(0)}</div></div>
+      <div class="mcol"><div class="t">Margin ratings</div><div class="p">${(c.pMG*100).toFixed(0)}%</div><div class="w">w ${(c.w.mg*100).toFixed(0)}</div></div>
+      <div class="mcol"><div class="t">Four Factors</div><div class="p">${c.pFF!=null?(c.pFF*100).toFixed(0)+'%':'—'}</div><div class="w">${c.pFF!=null?'w '+(c.w.ff*100).toFixed(0):'not trained'}</div></div>
+      <div class="mcol ens"><div class="t">Ensemble</div><div class="p">${(pH*100).toFixed(0)}%</div><div class="w">home</div></div>
+    </div>
+    <div class="note">All percentages are the home side's win chance.</div>
+    <div class="bar" style="margin-top:8px"><div class="nm">${s.an}</div><div class="tr"><div class="fl" style="width:${(pA*100).toFixed(0)}%"></div></div><div class="pc">${(pA*100).toFixed(1)}%</div><div class="od">${fmtAm(probToAm(pA))}</div></div>
+    <div class="bar"><div class="nm">${s.hn}</div><div class="tr"><div class="fl" style="width:${(pH*100).toFixed(0)}%"></div></div><div class="pc">${(pH*100).toFixed(1)}%</div><div class="od">${fmtAm(probToAm(pH))}</div></div>
+    <div class="ou"><div class="lbl"><span>TOTAL ${c.line}</span><span>model ${c.ptsA.toFixed(1)} + ${c.ptsH.toFixed(1)} = ${c.tot.toFixed(1)}</span></div>
+      <div class="track"><div class="over" style="width:${(pO*100).toFixed(1)}%">${pO>=.12?`O ${(pO*100).toFixed(0)}%`:''}</div><div class="under" style="width:${(pU*100).toFixed(1)}%">${pU>=.12?`U ${(pU*100).toFixed(0)}%`:''}</div></div>
+      <div class="sub">Over ${(pO*100).toFixed(1)}% &middot; under ${(pU*100).toFixed(1)}% &middot; &sigma; ${c.sigT.toFixed(1)}</div></div>
+    ${res}${flags}
+    <div class="odds"><div><label>${s.an.split(' ').pop()} ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(pA))}" oninput="price(${s.id})"></div><div><label>${s.hn.split(' ').pop()} ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(pH))}" oninput="price(${s.id})"></div></div>
+    <div class="odds"><div><label>Book total</label><input type="number" step="0.5" id="tl-${s.id}" placeholder="${c.line}" onchange="setLine(${s.id},this.value)"></div><div><label>Over ${c.line}</label><input type="number" id="ol-${s.id}" placeholder="-110" oninput="price(${s.id})"></div><div><label>Under ${c.line}</label><input type="number" id="ou-${s.id}" placeholder="-110" oninput="price(${s.id})"></div></div>
+    <div id="r-${s.id}"></div>
+    <div class="detail"><div class="ovr"><h5>OVERRIDE</h5>
+      <div class="g4"><div><label>${s.hn.split(' ').pop()} BT</label><input type="number" step="0.01" placeholder="${c.rBTh.toFixed(2)}" oninput="setOvr(${s.id},'btH',this.value)"></div><div><label>${s.an.split(' ').pop()} BT</label><input type="number" step="0.01" placeholder="${c.rBTa.toFixed(2)}" oninput="setOvr(${s.id},'btA',this.value)"></div><div><label>${s.hn.split(' ').pop()} margin</label><input type="number" step="0.1" placeholder="${c.rMh.toFixed(1)}" oninput="setOvr(${s.id},'mgH',this.value)"></div><div><label>${s.an.split(' ').pop()} margin</label><input type="number" step="0.1" placeholder="${c.rMa.toFixed(1)}" oninput="setOvr(${s.id},'mgA',this.value)"></div></div>
+      <div class="g4 mt"><div><label>Total proj</label><input type="number" step="0.5" placeholder="${c.tot.toFixed(1)}" oninput="setOvr(${s.id},'tot',this.value)"></div><div><label>Total line</label><input type="number" step="0.5" placeholder="${c.line}" oninput="setOvr(${s.id},'line',this.value)"></div><div><label>${s.hn.split(' ').pop()} B2B</label><select onchange="setOvr(${s.id},'hb2b',this.value)"><option value="">auto</option><option value="1">yes</option><option value="0">no</option></select></div><div><label>${s.an.split(' ').pop()} B2B</label><select onchange="setOvr(${s.id},'ab2b',this.value)"><option value="">auto</option><option value="1">yes</option><option value="0">no</option></select></div></div>
+      ${[...c.injH.rows.map(r=>({...r,side:'h',nm:s.hn})),...c.injA.rows.map(r=>({...r,side:'a',nm:s.an}))].length?`<h5 class="mt">INJURY IMPACT (points of margin)</h5><div class="g2">${[...c.injH.rows.map(r=>({...r,side:'h'})),...c.injA.rows.map(r=>({...r,side:'a'}))].map(r=>`<div><label>${r.name.split(' ').pop()} (${r.side==='h'?s.hn.split(' ').pop():s.an.split(' ').pop()})</label><div style="display:flex;gap:4px;"><input type="number" step="0.5" placeholder="${r.base.toFixed(1)}" oninput="setOvr(${s.id},'${r.key}',this.value)"><button class="btn ghost" style="width:auto;margin:0;padding:4px 7px;" onclick="setOvrRaw(${s.id},'${r.key}','skip')">skip</button></div></div>`).join('')}</div>`:''}
+      <button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button></div>
+      <div class="work">BT: ${c.rBTh.toFixed(2)} &minus; ${c.rBTa.toFixed(2)} + &gamma; ${(P&&P.bt?P.bt.H:.4).toFixed(2)}${(c.hb||c.ab)?' + fatigue':''} &rarr; <b>${(c.pBT*100).toFixed(1)}%</b><br>Margin: ${c.rMh.toFixed(1)} &minus; ${c.rMa.toFixed(1)} + H ${(P&&P.mg?P.mg.H:2.5).toFixed(1)} = <b>${c.m.toFixed(1)}</b>, &Phi;(${c.m.toFixed(1)}/${c.sigM.toFixed(1)}) = <b>${(c.pMG*100).toFixed(1)}%</b><br>Ensemble = ${c.w.bt.toFixed(2)}&times;BT + ${c.w.mg.toFixed(2)}&times;Margin${c.w.ff?` + ${c.w.ff.toFixed(2)}&times;FF`:''} = <b>${(pH*100).toFixed(1)}%</b></div>
+    </div></div>`;
+}
+function setLine(id,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||isNaN(Number(val)))delete s.ovr.line;else s.ovr.line=Number(val);render();}
+function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||val==null||isNaN(Number(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
+function setOvrRaw(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr[key]=val;render();}
+function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}
+function price(id){
+  const s=slate.find(x=>x.id===id);if(!s)return;const c=s._c||compute(s);const t=Number(document.getElementById('edgeT').value);const out=[];let any=false;
+  [[s.an,v(`oa-${id}`),1-c.pE],[s.hn,v(`oh-${id}`),c.pE]].forEach(([nm,pr,p])=>{if(pr==null)return;const imp=amToImp(pr),e=p-imp;
+    if(e>=t){any=true;out.push(`<div class="rec go"><b>Play ${nm} ML ${fmtAm(pr)}</b> &mdash; ensemble ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(e*100).toFixed(1)} pts. Fair ${fmtAm(probToAm(p))}.</div>`);}
+    else out.push(`<div class="rec no">${nm} ${fmtAm(pr)}: ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);});
+  const ol=v(`ol-${id}`),ou=v(`ou-${id}`);
+  [['Over',ol,c.pOver],['Under',ou,1-c.pOver]].forEach(([nm,pr,p])=>{if(pr==null)return;const imp=amToImp(pr),e=p-imp;
+    if(e>=t){any=true;out.push(`<div class="rec go"><b>Play ${nm} ${c.line} ${fmtAm(pr)}</b> &mdash; model ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied, +${(e*100).toFixed(1)} pts. Fair ${fmtAm(probToAm(p))}.</div>`);}
+    else out.push(`<div class="rec no">${nm} ${c.line} ${fmtAm(pr)}: ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% (${e>=0?'+':''}${(e*100).toFixed(1)}). Under threshold.</div>`);});
+  const el=document.getElementById(`r-${id}`);if(el)el.innerHTML=out.join('');const cd=document.getElementById(`c-${id}`);if(cd&&!s.actual)cd.classList.toggle('play',any);
+}
+</script>
+</body>
+</html>

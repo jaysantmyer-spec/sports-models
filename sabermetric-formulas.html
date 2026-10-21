@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sabermetric Formulas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:29px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 14px;line-height:1.55;}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tabs button{
+  flex:1;min-width:72px;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;
+}
+.tabs button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.pane{display:none;}
+.pane.active{display:block;}
+
+.formula-box{
+  background:var(--navy);border:1px solid #263644;border-radius:9px;
+  padding:13px 14px;margin-bottom:13px;
+}
+.formula-name{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:0.5px;color:var(--amber);margin-bottom:4px;}
+.formula-desc{font-size:11.5px;color:var(--dim);line-height:1.55;margin-bottom:9px;}
+.formula-math{
+  background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:11px 12px;
+  font-size:12.5px;color:var(--chalk);line-height:1.8;text-align:center;
+}
+.frac{display:inline-block;vertical-align:middle;text-align:center;margin:0 3px;}
+.frac .num{display:block;border-bottom:1px solid var(--chalk);padding:0 6px 2px;}
+.frac .den{display:block;padding:2px 6px 0;}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:13px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 10px;border-radius:5px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus,select:focus{border-color:var(--amber);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.mt{margin-top:9px;}
+.btn{
+  width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:10px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:13px;padding:8px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:9px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.result{
+  background:linear-gradient(160deg, rgba(242,169,59,0.1) 0%, var(--navy) 60%);
+  border:1px solid rgba(242,169,59,0.4);border-radius:10px;padding:16px;margin-top:13px;text-align:center;
+}
+.result .rl{font-size:10px;color:var(--dim);letter-spacing:0.6px;text-transform:uppercase;}
+.result .rv{font-family:'Teko',sans-serif;font-size:42px;line-height:1.1;color:var(--amber);}
+.result .rs{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5;}
+
+table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:11px;}
+th{text-align:left;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:0.5px;color:var(--dim);font-weight:500;padding:5px 3px;border-bottom:1px solid #263644;}
+td{padding:6px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:58%;}
+.work{
+  background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:10px 11px;
+  font-size:11.5px;color:var(--dim);line-height:1.8;margin-top:10px;
+}
+.work b{color:var(--chalk);}
+.note{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.55;}
+.footnote{font-size:10.5px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>SABERMETRIC FORMULAS</h1></div>
+  <p class="sub">Four standard formulas, implemented exactly as written. Pull real stats from any season, or enter values by hand.</p>
+
+  <div class="tabs">
+    <button class="active" data-t="fip">FIP</button>
+    <button data-t="pyth">Pythagorean</button>
+    <button data-t="rc">Runs Created</button>
+    <button data-t="war">WAR</button>
+  </div>
+
+  <!-- ============ FIP ============ -->
+  <div class="pane active" id="pane-fip">
+    <div class="formula-box">
+      <div class="formula-name">FIELDING INDEPENDENT PITCHING</div>
+      <div class="formula-desc">Estimates a pitcher's run prevention based only on actions they control (strikeouts, walks, hit-by-pitches, and home runs).</div>
+      <div class="formula-math">
+        FIP =
+        <span class="frac">
+          <span class="num">(13 &times; HR) + (3 &times; [BB + HBP]) &minus; (2 &times; SO)</span>
+          <span class="den">IP</span>
+        </span>
+        + FIP Constant
+      </div>
+      <div class="hint">The FIP Constant normalizes the result to a standard ERA scale, usually around 3.10 to 3.20.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">LOAD A PITCHER</div>
+      <div class="grid2">
+        <div><label>Pitcher name</label><input type="text" id="fipSearch" placeholder="e.g. Gerrit Cole"></div>
+        <div><label>Season</label><input type="number" id="fipSeason" value="2026" min="1900"></div>
+      </div>
+      <button class="btn ghost" id="fipLoad">LOAD STATS</button>
+      <div class="status" id="fipStatus"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">INPUTS</div>
+      <div class="grid3">
+        <div><label>HR</label><input type="number" id="fHR" oninput="calcFIP()"></div>
+        <div><label>BB</label><input type="number" id="fBB" oninput="calcFIP()"></div>
+        <div><label>HBP</label><input type="number" id="fHBP" oninput="calcFIP()"></div>
+      </div>
+      <div class="grid3 mt">
+        <div><label>SO</label><input type="number" id="fSO" oninput="calcFIP()"></div>
+        <div><label>IP</label><input type="number" step="0.1" id="fIP" oninput="calcFIP()"></div>
+        <div><label>FIP Constant</label><input type="number" step="0.01" id="fC" value="3.15" oninput="calcFIP()"></div>
+      </div>
+      <div id="fipOut"></div>
+    </div>
+  </div>
+
+  <!-- ============ Pythagorean ============ -->
+  <div class="pane" id="pane-pyth">
+    <div class="formula-box">
+      <div class="formula-name">PYTHAGOREAN EXPECTATION</div>
+      <div class="formula-desc">Estimates how many games a team should have won based on their runs scored and runs allowed.</div>
+      <div class="formula-math">
+        Expected Win % =
+        <span class="frac">
+          <span class="num">Runs Scored&sup2;</span>
+          <span class="den">Runs Scored&sup2; + Runs Allowed&sup2;</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">LOAD A TEAM</div>
+      <div class="grid2">
+        <div><label>Team</label><select id="pyTeam"></select></div>
+        <div><label>Season</label><input type="number" id="pySeason" value="2026" min="1900"></div>
+      </div>
+      <button class="btn ghost" id="pyLoad">LOAD STATS</button>
+      <div class="status" id="pyStatus"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">INPUTS</div>
+      <div class="grid3">
+        <div><label>Runs Scored</label><input type="number" id="pRS" oninput="calcPyth()"></div>
+        <div><label>Runs Allowed</label><input type="number" id="pRA" oninput="calcPyth()"></div>
+        <div><label>Games (optional)</label><input type="number" id="pG" oninput="calcPyth()"></div>
+      </div>
+      <div id="pyOut"></div>
+    </div>
+  </div>
+
+  <!-- ============ Runs Created ============ -->
+  <div class="pane" id="pane-rc">
+    <div class="formula-box">
+      <div class="formula-name">RUNS CREATED</div>
+      <div class="formula-desc">Estimates the total number of runs a player contributes to their team.</div>
+      <div class="formula-math">
+        Runs Created =
+        <span class="frac">
+          <span class="num">(Total Bases) &times; (Hits + Walks)</span>
+          <span class="den">At Bats + Walks</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">LOAD A BATTER</div>
+      <div class="grid2">
+        <div><label>Batter name</label><input type="text" id="rcSearch" placeholder="e.g. Aaron Judge"></div>
+        <div><label>Season</label><input type="number" id="rcSeason" value="2026" min="1900"></div>
+      </div>
+      <button class="btn ghost" id="rcLoad">LOAD STATS</button>
+      <div class="status" id="rcStatus"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">INPUTS</div>
+      <div class="grid2">
+        <div><label>Total Bases</label><input type="number" id="cTB" oninput="calcRC()"></div>
+        <div><label>Hits</label><input type="number" id="cH" oninput="calcRC()"></div>
+      </div>
+      <div class="grid2 mt">
+        <div><label>Walks</label><input type="number" id="cBB" oninput="calcRC()"></div>
+        <div><label>At Bats</label><input type="number" id="cAB" oninput="calcRC()"></div>
+      </div>
+      <div id="rcOut"></div>
+    </div>
+  </div>
+
+  <!-- ============ WAR ============ -->
+  <div class="pane" id="pane-war">
+    <div class="formula-box">
+      <div class="formula-name">WINS ABOVE REPLACEMENT</div>
+      <div class="formula-desc">Estimates the number of wins a player contributes compared to a replacement-level minor leaguer or bench player.</div>
+      <div class="formula-math">
+        Position Player WAR =
+        <span class="frac">
+          <span class="num">Batting Runs + Base Running + Fielding + Positional + League + Replacement</span>
+          <span class="den">Runs per Win</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">COMPONENT RUNS</div>
+      <div class="grid2">
+        <div><label>Batting Runs</label><input type="number" step="0.1" id="wBat" oninput="calcWAR()"></div>
+        <div><label>Base Running</label><input type="number" step="0.1" id="wRun" oninput="calcWAR()"></div>
+      </div>
+      <div class="grid2 mt">
+        <div><label>Fielding</label><input type="number" step="0.1" id="wFld" oninput="calcWAR()"></div>
+        <div><label>Positional</label><input type="number" step="0.1" id="wPos" oninput="calcWAR()"></div>
+      </div>
+      <div class="grid2 mt">
+        <div><label>League</label><input type="number" step="0.1" id="wLg" oninput="calcWAR()"></div>
+        <div><label>Replacement</label><input type="number" step="0.1" id="wRep" oninput="calcWAR()"></div>
+      </div>
+      <div class="mt"><label>Runs per Win</label><input type="number" step="0.1" id="wRPW" value="10" oninput="calcWAR()"></div>
+      <div class="hint">These six component runs are produced by full defensive and positional models and are not published by the MLB Stats API, so they are entered by hand. Runs per Win typically sits near 10 and varies with the league run environment.</div>
+      <div id="warOut"></div>
+    </div>
+  </div>
+
+  <p class="footnote">FIP, Pythagorean Expectation, Runs Created and Position Player WAR are implemented exactly as specified, with no alteration to their structure, terms or exponents. Player and team statistics are pulled from the MLB Stats API, which requires no key. Every input remains editable after loading, so figures from any source can be substituted. Each result shows its full arithmetic so the calculation can be checked rather than taken on trust. Note that FIP as written is undefined at zero innings pitched, Pythagorean Expectation is undefined when a team has neither scored nor allowed a run, and Runs Created is undefined when at-bats plus walks is zero; each calculator reports these cases rather than returning a misleading number.</p>
+</div>
+
+<script>
+const MLB = 'https://statsapi.mlb.com/api/v1';
+
+document.querySelectorAll('.tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('pane-' + b.dataset.t).classList.add('active');
+  });
+});
+
+async function getJSON(u, l){
+  try{
+    const r = await fetch(u);
+    if(!r.ok){ window.__err = `${l}: HTTP ${r.status}`; return null; }
+    return await r.json();
+  }catch(e){ window.__err = `${l}: ${e.message}`; return null; }
+}
+function setS(id, t, err){
+  const e = document.getElementById(id);
+  e.textContent = t; e.className = 'status' + (err ? ' err' : '');
+}
+function val(id){ const v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); }
+function set(id, v){ document.getElementById(id).value = (v == null ? '' : v); }
+
+async function findPlayer(name, group){
+  const d = await getJSON(`${MLB}/people/search?names=${encodeURIComponent(name)}`, 'search');
+  const people = (d && d.people) || [];
+  if(!people.length) return null;
+  if(group === 'pitching'){
+    const p = people.find(x => x.primaryPosition && x.primaryPosition.abbreviation === 'P');
+    if(p) return p;
+  } else {
+    const b = people.find(x => x.primaryPosition && x.primaryPosition.abbreviation !== 'P');
+    if(b) return b;
+  }
+  return people[0];
+}
+
+async function seasonStat(pid, group, season){
+  const d = await getJSON(`${MLB}/people/${pid}/stats?stats=season&group=${group}&season=${season}`, 'stats');
+  return d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0]
+    ? d.stats[0].splits[0].stat : null;
+}
+
+// ---------- FIP ----------
+document.getElementById('fipLoad').addEventListener('click', async () => {
+  const nm = document.getElementById('fipSearch').value.trim();
+  const yr = document.getElementById('fipSeason').value.trim();
+  if(!nm){ setS('fipStatus','Enter a pitcher name.',true); return; }
+  setS('fipStatus','Searching...');
+  const p = await findPlayer(nm, 'pitching');
+  if(!p){ setS('fipStatus', window.__err || 'No player found by that name.', true); return; }
+  const st = await seasonStat(p.id, 'pitching', yr);
+  if(!st){ setS('fipStatus', `No ${yr} pitching stats found for ${p.fullName}.`, true); return; }
+  set('fHR', Number(st.homeRuns)||0);
+  set('fBB', Number(st.baseOnBalls)||0);
+  set('fHBP', Number(st.hitBatsmen)||0);
+  set('fSO', Number(st.strikeOuts)||0);
+  set('fIP', Number(st.inningsPitched)||0);
+  setS('fipStatus', `Loaded ${p.fullName}, ${yr}${st.era ? ` \u00b7 actual ERA ${st.era}` : ''}.`);
+  calcFIP();
+});
+
+function calcFIP(){
+  const hr=val('fHR'), bb=val('fBB'), hbp=val('fHBP'), so=val('fSO'), ip=val('fIP'), c=val('fC');
+  const out=document.getElementById('fipOut');
+  if([hr,bb,hbp,so,ip,c].some(v => v==null)){ out.innerHTML=''; return; }
+  if(ip<=0){
+    out.innerHTML='<div class="note" style="color:var(--red)">FIP is undefined at zero innings pitched.</div>';
+    return;
+  }
+  const num = (13*hr) + (3*(bb+hbp)) - (2*so);
+  const fip = num/ip + c;
+  out.innerHTML = `
+    <div class="result">
+      <div class="rl">FIP</div>
+      <div class="rv">${fip.toFixed(2)}</div>
+      <div class="rs">on the ERA scale</div>
+    </div>
+    <div class="work">
+      (13 &times; ${hr}) + (3 &times; [${bb} + ${hbp}]) &minus; (2 &times; ${so}) = <b>${num.toFixed(1)}</b><br>
+      ${num.toFixed(1)} &divide; ${ip} = <b>${(num/ip).toFixed(4)}</b><br>
+      ${(num/ip).toFixed(4)} + ${c} = <b>${fip.toFixed(2)}</b>
+    </div>`;
+}
+
+// ---------- Pythagorean ----------
+(async function loadTeams(){
+  const sel = document.getElementById('pyTeam');
+  const d = await getJSON(`${MLB}/teams?sportId=1`, 'teams');
+  const teams = ((d && d.teams) || []).sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+})();
+
+document.getElementById('pyLoad').addEventListener('click', async () => {
+  const tid = document.getElementById('pyTeam').value;
+  const yr = document.getElementById('pySeason').value.trim();
+  if(!tid){ setS('pyStatus','Team list still loading.',true); return; }
+  setS('pyStatus','Loading...');
+  const [hit, pit] = await Promise.all([
+    getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=hitting&season=${yr}`,'hitting'),
+    getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=pitching&season=${yr}`,'pitching'),
+  ]);
+  const hs = hit && hit.stats && hit.stats[0] && hit.stats[0].splits && hit.stats[0].splits[0] && hit.stats[0].splits[0].stat;
+  const ps = pit && pit.stats && pit.stats[0] && pit.stats[0].splits && pit.stats[0].splits[0] && pit.stats[0].splits[0].stat;
+  if(!hs || !ps){ setS('pyStatus', `No ${yr} team stats found.`, true); return; }
+  set('pRS', Number(hs.runs)||0);
+  set('pRA', Number(ps.runs)||0);
+  set('pG', Number(hs.gamesPlayed)||'');
+  setS('pyStatus', `Loaded ${yr} season totals.`);
+  calcPyth();
+});
+
+function calcPyth(){
+  const rs=val('pRS'), ra=val('pRA'), g=val('pG');
+  const out=document.getElementById('pyOut');
+  if(rs==null||ra==null){ out.innerHTML=''; return; }
+  const rs2=rs*rs, ra2=ra*ra;
+  if(rs2+ra2===0){
+    out.innerHTML='<div class="note" style="color:var(--red)">Undefined when a team has neither scored nor allowed a run.</div>';
+    return;
+  }
+  const wp = rs2/(rs2+ra2);
+  let extra='';
+  if(g!=null && g>0){
+    const w=wp*g;
+    extra=`<tr><td class="k">Expected record over ${g} games</td><td>${w.toFixed(1)} &ndash; ${(g-w).toFixed(1)}</td></tr>`;
+  }
+  out.innerHTML = `
+    <div class="result">
+      <div class="rl">Expected Win %</div>
+      <div class="rv">${wp.toFixed(3)}</div>
+      <div class="rs">${(wp*100).toFixed(1)}% of games</div>
+    </div>
+    <table>
+      <tr><td class="k">Runs Scored&sup2;</td><td>${rs2.toLocaleString()}</td></tr>
+      <tr><td class="k">Runs Allowed&sup2;</td><td>${ra2.toLocaleString()}</td></tr>
+      ${extra}
+    </table>
+    <div class="work">
+      ${rs}&sup2; = <b>${rs2.toLocaleString()}</b> &nbsp;&middot;&nbsp; ${ra}&sup2; = <b>${ra2.toLocaleString()}</b><br>
+      ${rs2.toLocaleString()} &divide; (${rs2.toLocaleString()} + ${ra2.toLocaleString()}) = <b>${wp.toFixed(4)}</b>
+    </div>`;
+}
+
+// ---------- Runs Created ----------
+document.getElementById('rcLoad').addEventListener('click', async () => {
+  const nm = document.getElementById('rcSearch').value.trim();
+  const yr = document.getElementById('rcSeason').value.trim();
+  if(!nm){ setS('rcStatus','Enter a batter name.',true); return; }
+  setS('rcStatus','Searching...');
+  const p = await findPlayer(nm, 'hitting');
+  if(!p){ setS('rcStatus', window.__err || 'No player found by that name.', true); return; }
+  const st = await seasonStat(p.id, 'hitting', yr);
+  if(!st){ setS('rcStatus', `No ${yr} hitting stats found for ${p.fullName}.`, true); return; }
+  set('cTB', Number(st.totalBases)||0);
+  set('cH', Number(st.hits)||0);
+  set('cBB', Number(st.baseOnBalls)||0);
+  set('cAB', Number(st.atBats)||0);
+  setS('rcStatus', `Loaded ${p.fullName}, ${yr}.`);
+  calcRC();
+});
+
+function calcRC(){
+  const tb=val('cTB'), h=val('cH'), bb=val('cBB'), ab=val('cAB');
+  const out=document.getElementById('rcOut');
+  if([tb,h,bb,ab].some(v=>v==null)){ out.innerHTML=''; return; }
+  const den = ab+bb;
+  if(den<=0){
+    out.innerHTML='<div class="note" style="color:var(--red)">Undefined when at-bats plus walks is zero.</div>';
+    return;
+  }
+  const num = tb*(h+bb);
+  const rc = num/den;
+  out.innerHTML = `
+    <div class="result">
+      <div class="rl">Runs Created</div>
+      <div class="rv">${rc.toFixed(1)}</div>
+      <div class="rs">estimated runs contributed</div>
+    </div>
+    <div class="work">
+      ${tb} &times; (${h} + ${bb}) = ${tb} &times; ${h+bb} = <b>${num.toLocaleString()}</b><br>
+      ${ab} + ${bb} = <b>${den}</b><br>
+      ${num.toLocaleString()} &divide; ${den} = <b>${rc.toFixed(2)}</b>
+    </div>`;
+}
+
+// ---------- WAR ----------
+function calcWAR(){
+  const bat=val('wBat'), run=val('wRun'), fld=val('wFld');
+  const pos=val('wPos'), lg=val('wLg'), rep=val('wRep'), rpw=val('wRPW');
+  const out=document.getElementById('warOut');
+  const parts=[bat,run,fld,pos,lg,rep];
+  if(parts.some(v=>v==null) || rpw==null){ out.innerHTML=''; return; }
+  if(rpw===0){
+    out.innerHTML='<div class="note" style="color:var(--red)">Runs per Win cannot be zero.</div>';
+    return;
+  }
+  const sum = parts.reduce((a,b)=>a+b,0);
+  const war = sum/rpw;
+  out.innerHTML = `
+    <div class="result">
+      <div class="rl">Position Player WAR</div>
+      <div class="rv">${war.toFixed(1)}</div>
+      <div class="rs">wins above replacement</div>
+    </div>
+    <div class="work">
+      ${bat} + ${run} + ${fld} + ${pos} + ${lg} + ${rep} = <b>${sum.toFixed(1)}</b> runs<br>
+      ${sum.toFixed(1)} &divide; ${rpw} = <b>${war.toFixed(2)}</b>
+    </div>`;
+}
+</script>
+</body>
+</html>

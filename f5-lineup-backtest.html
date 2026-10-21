@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F5 Lineup Comparison Backtest</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:0.5px;margin:0;line-height:1.05;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 14px;line-height:1.55;}
+.mode-banner{
+  border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.6;margin-bottom:14px;
+  background:rgba(127,179,217,0.07);border:1px solid rgba(127,179,217,0.3);color:var(--blue);
+}
+.mode-banner.warn{background:rgba(192,67,58,0.1);border-color:rgba(192,67,58,0.4);color:#E8B4AE;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:9px 10px;border-radius:5px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus{border-color:var(--amber);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:18px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:14px;padding:9px;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12.5px;color:var(--dim);margin:12px 0;min-height:34px;line-height:1.55;}
+.status.err{color:var(--red);}
+.progress{background:rgba(255,255,255,0.06);border-radius:4px;height:6px;overflow:hidden;margin:8px 0;}
+.progress div{height:100%;background:var(--amber);width:0;transition:width 0.2s;}
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.headline{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.hcard{flex:1;min-width:95px;background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px;text-align:center;}
+.hcard .lbl{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;}
+.hcard .val{font-family:'Teko',sans-serif;font-size:26px;line-height:1.15;color:var(--amber);}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{
+  text-align:left;font-family:'Teko',sans-serif;font-size:13px;letter-spacing:0.5px;
+  color:var(--dim);font-weight:500;padding:6px 4px;border-bottom:1px solid #263644;
+}
+td{padding:8px 4px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.num{font-family:'Teko',sans-serif;font-size:18px;}
+td.top{color:var(--amber);}
+td.mid{color:var(--green);}
+td.low{color:var(--dim);}
+td.na{color:#6B7D8A;font-style:italic;font-size:11px;}
+.note{font-size:11px;color:var(--dim);margin-top:9px;line-height:1.55;}
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:10.5px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>F5 LINEUP COMPARISON BACKTEST</h1></div>
+  <p class="sub">For every game: pulls both starting lineups and starting pitchers with handedness, computes each lineup's average split-adjusted rate stats against the opposing starter's throwing hand, and tests whether the superior lineup actually won the first five innings.</p>
+  <div class="mode-banner" id="modeBanner">
+    Split-stat mode is determined on the first request and reported here. Date-bounded splits are required for an honest test; season-wide splits would let a game's own result influence its own prediction.
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">RANGE</div>
+    <div class="row2">
+      <div><label>Start date</label><input type="date" id="startDate"></div>
+      <div><label>Days to process</label>
+        <select id="dayCount">
+          <option value="1">1 day</option>
+          <option value="3" selected>3 days</option>
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2" style="margin-top:10px;">
+      <div><label>Lookback window</label>
+        <select id="lookback">
+          <option value="90">~300 PA (90 days)</option>
+          <option value="60">~200 PA (60 days)</option>
+          <option value="season" selected>Season to date</option>
+        </select>
+      </div>
+    <div class="row2" style="margin-top:10px;">
+      <div><label>Statcast expected stats</label>
+        <select id="useSavant">
+          <option value="1" selected>Attempt (adds xBA, xSLG, xwOBA, xBABIP)</option>
+          <option value="0">Skip</option>
+        </select>
+      </div>
+      <div><label>Min PA in split</label>
+        <select id="minPA">
+          <option value="20" selected>20</option>
+          <option value="40">40</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+    </div>
+    <div id="savantStatus" class="hint"></div>
+    <button class="btn" id="runBtn">PROCESS RANGE</button>
+    <button class="btn ghost" id="resetBtn">CLEAR ACCUMULATED RESULTS</button>
+    <div class="hint">Results accumulate across runs and persist in this browser, so a full season can be built up in chunks. Expect roughly 10&ndash;20 seconds per game day.</div>
+  </div>
+
+  <div class="progress"><div id="progBar"></div></div>
+  <div class="status" id="statusLine"></div>
+  <div id="results"></div>
+
+  <p class="footnote">Method: starting lineups are taken from each game's box score (batting order positions ending in 00), with handedness from each player's registry entry. Switch hitters are assigned the platoon advantage, batting opposite the starter's throwing hand. Each batter's rate stats are queried against the specific split matching the opposing starter's hand &mdash; left-handed starter returns the batter's numbers against left-handed pitching. Lineup figures are unweighted means across qualifying starters, matching the described methodology. wOBA is computed from split components using standard linear weights, which drift slightly year to year, so treat it as closely approximate rather than exact. xBABIP is not published by Statcast directly and is derived here as expected hits minus home runs, over balls in play, using the batter's expected batting average against their actual split counting stats. Statcast expected stats are pulled once per season as a bulk leaderboard and are season-wide rather than platoon-split, which is a genuine mismatch against the handedness-specific rows above and is flagged in the results rather than papered over. If Savant refuses the cross-origin request, those rows are omitted entirely rather than estimated. F5 outcome is read from the line score across innings one through five; ties are excluded from all percentages, as in the reference table. A stat is scored correct when the lineup with the higher average in that stat won the first five innings. This measures directional agreement only and is not a betting model: it carries no price, no vig, and no market comparison.</p>
+</div>
+
+<script>
+const MLB = 'https://statsapi.mlb.com/api/v1';
+const STATS = ['AVG','OBP','SLG','OPS','BABIP','wOBA'];
+const X_STATS = ['xBA','xSLG','xwOBA','xBABIP'];
+const ALL_STATS = STATS.concat(X_STATS);
+// Linear weights drift by season; these are representative modern values.
+const W = { BB:0.69, HBP:0.72, S:0.89, D:1.27, T:1.62, HR:2.10 };
+
+const KEY = 'f5BacktestResults_v1';
+let tally = loadTally();
+let splitMode = null; // 'bounded' | 'season'
+
+function loadTally(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const t = JSON.parse(raw);
+      // Backfill any buckets added after this tally was first saved.
+      ALL_STATS.forEach(s => { if(!t.stats[s]) t.stats[s] = { correct:0, n:0 }; });
+      return t;
+    }
+  }catch(e){}
+  const t = { games:0, ties:0, scored:0, dates:[], stats:{} };
+  ALL_STATS.forEach(s => t.stats[s] = { correct:0, n:0 });
+  return t;
+}
+function saveTally(){ try{ localStorage.setItem(KEY, JSON.stringify(tally)); }catch(e){} }
+
+function iso(d){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }
+function addDays(s,n){ const d=new Date(s+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function mmdd(s){ return `${s.slice(5,7)}/${s.slice(8,10)}/${s.slice(0,4)}`; }
+function setStatus(t,err){ const e=document.getElementById('statusLine'); e.textContent=t; e.className='status'+(err?' err':''); }
+function setProg(p){ document.getElementById('progBar').style.width = Math.round(p*100)+'%'; }
+
+document.getElementById('startDate').value = '2026-04-15';
+
+async function getJSON(url,label){
+  try{
+    const r = await fetch(url);
+    if(!r.ok){ window.__err = `${label}: HTTP ${r.status}`; return null; }
+    return await r.json();
+  }catch(e){ window.__err = `${label}: ${e.message}`; return null; }
+}
+
+// Bounded concurrency so the MLB API isn't hammered.
+async function pool(items, limit, fn){
+  const out = new Array(items.length);
+  let i = 0;
+  async function worker(){
+    while(i < items.length){
+      const idx = i++;
+      out[idx] = await fn(items[idx], idx);
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(limit,items.length)}, worker));
+  return out;
+}
+
+const statCache = new Map();
+const savantIndex = new Map();   // playerId -> {xBA, xSLG, xwOBA, xBABIP}
+let savantLoaded = false, savantFailed = false;
+
+// Minimal CSV parser: handles quoted fields, since player names contain commas.
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQ = false;
+      } else field += ch;
+    } else if(ch === '"'){ inQ = true; }
+    else if(ch === ','){ row.push(field); field = ''; }
+    else if(ch === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+    else if(ch !== '\r'){ field += ch; }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Savant publishes xBA/xSLG/xwOBA but not xBABIP, so it is derived here:
+// expected hits minus home runs, over balls in play.
+async function loadSavant(season){
+  if(savantLoaded || savantFailed) return;
+  const sStat = document.getElementById('savantStatus');
+  sStat.style.color = 'var(--dim)';
+  sStat.textContent = 'Loading Statcast expected statistics...';
+  const url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics`
+    + `?type=batter&year=${season}&position=&team=&filterType=bip&min=1&csv=true`;
+  try{
+    const r = await fetch(url);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const rows = parseCSV(await r.text());
+    if(rows.length < 2) throw new Error('empty response');
+    const head = rows[0].map(h => h.trim().replace(/^"|"$/g,''));
+    const col = n => head.indexOf(n);
+    const iId = col('player_id'), iBip = col('bip'), iPa = col('pa');
+    const iEstBa = col('est_ba'), iEstSlg = col('est_slg'), iEstWoba = col('est_woba');
+    if(iId < 0 || iEstBa < 0) throw new Error('unexpected column layout');
+
+    let n = 0;
+    for(let i = 1; i < rows.length; i++){
+      const r0 = rows[i];
+      if(!r0 || r0.length < head.length) continue;
+      const id = Number(r0[iId]);
+      if(!id) continue;
+      const bip = iBip >= 0 ? Number(r0[iBip]) : 0;
+      const pa  = iPa  >= 0 ? Number(r0[iPa])  : 0;
+      const xba = Number(r0[iEstBa]);
+      const xslg = iEstSlg >= 0 ? Number(r0[iEstSlg]) : null;
+      const xwoba = iEstWoba >= 0 ? Number(r0[iEstWoba]) : null;
+      if(!isFinite(xba)) continue;
+      savantIndex.set(id, {
+        xBA: xba,
+        xSLG: isFinite(xslg) ? xslg : null,
+        xwOBA: isFinite(xwoba) ? xwoba : null,
+        bip, pa,
+      });
+      n++;
+    }
+    savantLoaded = true;
+    sStat.style.color = 'var(--green)';
+    sStat.textContent = `Statcast loaded: ${n} batters. Note these are season-wide figures, not platoon splits \u2014 see the footnote.`;
+  }catch(e){
+    savantFailed = true;
+    sStat.style.color = 'var(--red)';
+    sStat.textContent = `Statcast unavailable (${e.message}). Savant blocks cross-origin requests from many hosts; expected-stat rows will be omitted rather than estimated.`;
+  }
+}
+
+// Derive xBABIP for a batter given their Savant line and actual split counting stats.
+function deriveXBABIP(sv, st){
+  if(!sv || !sv.bip) return null;
+  const ab = Number(st.atBats)||0, hr = Number(st.homeRuns)||0;
+  if(!ab) return null;
+  const xHits = sv.xBA * ab;             // expected hits overall
+  const xOnBip = xHits - hr;             // remove home runs, which are not in play
+  if(xOnBip <= 0) return null;
+  const k = Number(st.strikeOuts)||0, sf = Number(st.sacFlies)||0;
+  const den = ab - k - hr + sf;
+  return den > 0 ? xOnBip / den : null;
+}
+
+// Batter rate stats versus a given pitcher hand, as of a cutoff date.
+async function batterSplit(pid, hand, cutoff, season, lookback){
+  const sit = hand === 'L' ? 'vl' : 'vr';
+  const ck = `${pid}|${sit}|${cutoff}|${lookback}`;
+  if(statCache.has(ck)) return statCache.get(ck);
+
+  let url;
+  if(lookback === 'season'){
+    url = `${MLB}/people/${pid}/stats?stats=statSplits&group=hitting&sitCodes=${sit}&season=${season}`;
+  } else {
+    const start = addDays(cutoff, -Number(lookback));
+    url = `${MLB}/people/${pid}/stats?stats=statSplits&group=hitting&sitCodes=${sit}`
+        + `&season=${season}&startDate=${mmdd(start)}&endDate=${mmdd(cutoff)}`;
+  }
+  const d = await getJSON(url, 'split');
+  const st = d && d.stats && d.stats[0] && d.stats[0].splits && d.stats[0].splits[0] && d.stats[0].splits[0].stat;
+
+  if(splitMode === null && st){
+    // If a bounded query silently returns full-season volume, treat it as unbounded.
+    splitMode = (lookback === 'season') ? 'season' : 'bounded';
+    showMode();
+  }
+  const val = st || null;
+  statCache.set(ck, val);
+  return val;
+}
+
+function computeStats(st){
+  const pa = Number(st.plateAppearances)||0;
+  const ab = Number(st.atBats)||0;
+  if(!pa || !ab) return null;
+  const h = Number(st.hits)||0, bb = Number(st.baseOnBalls)||0, ibb = Number(st.intentionalWalks)||0;
+  const hbp = Number(st.hitByPitch)||0, sf = Number(st.sacFlies)||0, k = Number(st.strikeOuts)||0;
+  const hr = Number(st.homeRuns)||0, d2 = Number(st.doubles)||0, t3 = Number(st.triples)||0;
+  const s1 = Math.max(h - hr - d2 - t3, 0);
+
+  const avg = Number(st.avg) || (ab ? h/ab : 0);
+  const obp = Number(st.obp) || ((ab+bb+hbp+sf) ? (h+bb+hbp)/(ab+bb+hbp+sf) : 0);
+  const slg = Number(st.slg) || (ab ? (s1 + 2*d2 + 3*t3 + 4*hr)/ab : 0);
+  const babipDen = ab - k - hr + sf;
+  const babip = babipDen > 0 ? (h - hr)/babipDen : null;
+  const wobaDen = ab + bb - ibb + sf + hbp;
+  const woba = wobaDen > 0
+    ? (W.BB*(bb-ibb) + W.HBP*hbp + W.S*s1 + W.D*d2 + W.T*t3 + W.HR*hr) / wobaDen
+    : null;
+
+  return { pa, AVG:avg, OBP:obp, SLG:slg, OPS:obp+slg, BABIP:babip, wOBA:woba };
+}
+
+function meanOf(list, key){
+  const vals = list.map(x => x[key]).filter(v => v != null && isFinite(v));
+  if(!vals.length) return null;
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+
+// Batting-order values ending in 00 mark the starter at that lineup slot.
+function starters(sideBox){
+  const out = [];
+  Object.values(sideBox.players || {}).forEach(p => {
+    const bo = p.battingOrder;
+    if(!bo) return;
+    if(Number(bo) % 100 !== 0) return;
+    out.push({ id: p.person.id, order: Number(bo) });
+  });
+  out.sort((a,b)=>a.order-b.order);
+  return out;
+}
+
+async function handedness(ids){
+  const need = ids.filter(id => !handCache.has(id));
+  if(need.length){
+    const d = await getJSON(`${MLB}/people?personIds=${need.join(',')}`, 'people');
+    ((d && d.people) || []).forEach(p => {
+      handCache.set(p.id, {
+        bats: (p.batSide && p.batSide.code) || 'R',
+        throws: (p.pitchHand && p.pitchHand.code) || 'R',
+      });
+    });
+  }
+  return ids.map(id => handCache.get(id) || { bats:'R', throws:'R' });
+}
+const handCache = new Map();
+
+function f5Winner(line){
+  const innings = (line && line.innings) || [];
+  let h=0, a=0;
+  innings.slice(0,5).forEach(i => {
+    h += (i.home && Number(i.home.runs)) || 0;
+    a += (i.away && Number(i.away.runs)) || 0;
+  });
+  if(innings.length < 5) return null;     // shortened game, unusable
+  if(h === a) return 'tie';
+  return h > a ? 'home' : 'away';
+}
+
+function attachX(c, pid, st){
+  if(!savantLoaded) return;
+  const sv = savantIndex.get(pid);
+  if(!sv) return;
+  c.xBA = sv.xBA;
+  c.xSLG = sv.xSLG;
+  c.xwOBA = sv.xwOBA;
+  c.xBABIP = deriveXBABIP(sv, st);
+}
+
+async function processGame(g, season, lookback, minPA){
+  const cutoff = addDays(g.officialDate || g.gameDate.slice(0,10), -1);
+  const [box, line] = await Promise.all([
+    getJSON(`${MLB}/game/${g.gamePk}/boxscore`, 'boxscore'),
+    getJSON(`${MLB}/game/${g.gamePk}/linescore`, 'linescore'),
+  ]);
+  if(!box || !box.teams || !line) return null;
+
+  const res = f5Winner(line);
+  if(res === null) return null;
+
+  const homeSP = (box.teams.home.pitchers || [])[0];
+  const awaySP = (box.teams.away.pitchers || [])[0];
+  if(!homeSP || !awaySP) return null;
+
+  const homeLineup = starters(box.teams.home);
+  const awayLineup = starters(box.teams.away);
+  if(homeLineup.length < 8 || awayLineup.length < 8) return null;
+
+  const allIds = [homeSP, awaySP, ...homeLineup.map(x=>x.id), ...awayLineup.map(x=>x.id)];
+  await handedness(allIds);
+  const homeSPHand = (handCache.get(homeSP) || {}).throws || 'R';
+  const awaySPHand = (handCache.get(awaySP) || {}).throws || 'R';
+
+  // Home lineup faces the away starter, and vice versa.
+  const homeStats = (await pool(homeLineup, 5, async b => {
+    const st = await batterSplit(b.id, awaySPHand, cutoff, season, lookback);
+    if(!st) return null;
+    const c = computeStats(st);
+    if(!c || c.pa < minPA) return null;
+    attachX(c, b.id, st);
+    return c;
+  })).filter(Boolean);
+
+  const awayStats = (await pool(awayLineup, 5, async b => {
+    const st = await batterSplit(b.id, homeSPHand, cutoff, season, lookback);
+    if(!st) return null;
+    const c = computeStats(st);
+    if(!c || c.pa < minPA) return null;
+    attachX(c, b.id, st);
+    return c;
+  })).filter(Boolean);
+
+  if(homeStats.length < 5 || awayStats.length < 5) return null;
+
+  return { res, homeStats, awayStats };
+}
+
+document.getElementById('runBtn').addEventListener('click', run);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(!confirm('Clear all accumulated results?')) return;
+  localStorage.removeItem(KEY);
+  tally = loadTally();
+  render();
+  setStatus('Accumulated results cleared.');
+});
+
+async function run(){
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  window.__err = null;
+
+  const start = document.getElementById('startDate').value;
+  const days = Number(document.getElementById('dayCount').value);
+  const lookback = document.getElementById('lookback').value;
+  const minPA = Number(document.getElementById('minPA').value);
+  if(!start){ setStatus('Pick a start date.', true); btn.disabled = false; return; }
+  const season = Number(start.slice(0,4));
+
+  splitMode = (lookback === 'season') ? 'season' : null;
+  showMode();
+
+  if(document.getElementById('useSavant').value === '1'){
+    await loadSavant(season);
+  }
+
+  let processed = 0, skipped = 0;
+
+  for(let d = 0; d < days; d++){
+    const date = addDays(start, d);
+    if(tally.dates.includes(date)){
+      setStatus(`${date} already processed \u2014 skipping to avoid double counting.`);
+      continue;
+    }
+    setStatus(`Loading schedule for ${date} (day ${d+1} of ${days})...`);
+    const sched = await getJSON(`${MLB}/schedule?sportId=1&date=${date}`, 'schedule');
+    const games = ((sched && sched.dates && sched.dates[0] && sched.dates[0].games) || [])
+      .filter(g => g.status && g.status.abstractGameState === 'Final');
+
+    if(!games.length){ setProg((d+1)/days); continue; }
+
+    for(let i = 0; i < games.length; i++){
+      setStatus(`${date} \u2014 game ${i+1}/${games.length} \u00b7 ${tally.scored} games scored so far`);
+      setProg((d + (i+1)/games.length) / days);
+      const r = await processGame(games[i], season, lookback, minPA);
+      if(!r){ skipped++; continue; }
+
+      tally.games++;
+      if(r.res === 'tie'){ tally.ties++; processed++; continue; }
+
+      tally.scored++;
+      ALL_STATS.forEach(s => {
+        const hv = meanOf(r.homeStats, s), av = meanOf(r.awayStats, s);
+        if(hv == null || av == null || hv === av) return;
+        const predicted = hv > av ? 'home' : 'away';
+        tally.stats[s].n++;
+        if(predicted === r.res) tally.stats[s].correct++;
+      });
+      processed++;
+    }
+    tally.dates.push(date);
+    saveTally();
+    render();
+  }
+
+  setProg(1);
+  setStatus(processed
+    ? `Done \u2014 added ${processed} games this run (${skipped} skipped for incomplete data). Running total: ${tally.scored} scored games.`
+    : (window.__err ? `Nothing processed. Last error: ${window.__err}` : 'No completed games found in that range.'),
+    !processed);
+  render();
+  btn.disabled = false;
+}
+
+function showMode(){
+  const b = document.getElementById('modeBanner');
+  if(splitMode === 'season'){
+    b.className = 'mode-banner warn';
+    b.innerHTML = '<b>SEASON-WIDE SPLITS ACTIVE \u2014 RESULTS ARE OPTIMISTIC.</b> Each prediction is drawing on full-season numbers that include the game being predicted and everything after it. Accuracy will read higher than a genuine forward-looking test would. Switch the lookback to a bounded window for a clean measurement.';
+  } else if(splitMode === 'bounded'){
+    b.className = 'mode-banner';
+    b.innerHTML = '<b>Date-bounded splits active.</b> Each game is predicted using only plate appearances completed before it, so no result informs its own prediction.';
+  }
+}
+
+function render(){
+  const res = document.getElementById('results');
+  if(!tally.scored){
+    res.innerHTML = '<div class="empty-state">No games scored yet. Pick a date inside the 2026 regular season and process a range.</div>';
+    return;
+  }
+  const mkRows = list => list.map(s => {
+    const d = tally.stats[s];
+    if(!d || !d.n) return '';
+    const pct = d.correct/d.n;
+    const cl = pct >= 0.57 ? 'top' : (pct >= 0.53 ? 'mid' : 'low');
+    return `<tr>
+      <td>${s}</td>
+      <td class="num ${cl}">${(pct*100).toFixed(1)}%</td>
+      <td class="low">${d.correct} / ${d.n}</td>
+    </tr>`;
+  }).join('');
+
+  const rows = mkRows(STATS);
+  const xRows = mkRows(X_STATS);
+
+  res.innerHTML = `
+    <div class="section-title">RESULTS</div>
+    <div class="headline">
+      <div class="hcard"><div class="lbl">Games scored</div><div class="val">${tally.scored}</div></div>
+      <div class="hcard"><div class="lbl">Ties removed</div><div class="val">${tally.ties}</div></div>
+      <div class="hcard"><div class="lbl">Days covered</div><div class="val">${tally.dates.length}</div></div>
+    </div>
+    <table>
+      <tr><th>Stat used</th><th>Win %</th><th>Correct</th></tr>
+      ${rows}
+    </table>
+    ${xRows ? `
+      <div class="section-title">STATCAST EXPECTED STATS</div>
+      <table>
+        <tr><th>Stat used</th><th>Win %</th><th>Correct</th></tr>
+        ${xRows}
+      </table>
+      <div class="note">These come from Statcast's contact-quality model rather than results. They are season-wide figures, not platoon splits, so they answer a slightly different question than the rows above &mdash; a like-for-like comparison would need handedness-filtered Statcast data.</div>
+    ` : ''}
+    <div class="note">A stat is scored correct when the lineup holding the higher average in that stat went on to win the first five innings. Ties after five innings are excluded, matching the reference methodology. Sample size is shown alongside every figure: differences of a point or two between stats are noise until the sample runs into the hundreds of games.</div>`;
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily MLB Projections</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field:#2F6E4D; --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:36px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 18px;line-height:1.5;}
+
+.toolbar{display:flex;gap:8px;margin-bottom:14px;}
+.toolbar input{
+  flex:1;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.toolbar input:focus{border-color:var(--amber);}
+.toolbar button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 16px;cursor:pointer;
+}
+.toolbar button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:16px;}
+.status.err{color:var(--red);}
+
+.games-note{font-size:11.5px;color:var(--dim);margin-bottom:16px;line-height:1.5;}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.prop-label{font-size:12px;color:var(--blue);margin-top:1px;}
+.prob{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prob.strong{color:var(--amber);}
+.prob.lean{color:#5FAE7A;}
+.prob.soft{color:var(--dim);}
+.badge{font-size:9px;letter-spacing:0.5px;margin-top:2px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:#5FAE7A;}
+.toolbar select{
+  flex:1;min-width:110px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+
+.card{
+  background:var(--navy);border:1px solid #263644;border-radius:10px;
+  padding:14px 15px;margin-bottom:10px;
+}
+.card-top{display:flex;align-items:center;gap:11px;cursor:pointer;}
+.avatar{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Teko',sans-serif;font-size:18px;font-weight:600;color:#fff;border:2px solid rgba(255,255,255,0.15);
+}
+.card-main{flex:1;min-width:0;}
+.card-name{font-size:14.5px;font-weight:600;color:var(--chalk);}
+.card-meta{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-proj{text-align:right;flex-shrink:0;}
+.proj-line{font-family:'Teko',sans-serif;font-size:20px;letter-spacing:0.3px;color:var(--amber);line-height:1;}
+.proj-sub{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.5px;}
+.caret{font-size:11px;color:var(--dim);margin-left:4px;transition:transform 0.15s ease;}
+.card.open .caret{transform:rotate(90deg);}
+
+.detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+.detail-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--dim);}
+.detail-row b{color:var(--chalk);font-weight:600;}
+.factor-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.factor-chip{font-size:10.5px;background:rgba(255,255,255,0.05);border-radius:4px;padding:3px 7px;color:var(--dim);}
+.factor-chip.up{color:var(--amber);}
+.factor-chip.down{color:var(--blue);}
+
+.empty-state{
+  text-align:center;color:var(--dim);font-size:13px;padding:40px 20px;
+  border:1px dashed #2A3B48;border-radius:10px;
+}
+
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+.spinner{
+  width:16px;height:16px;border:2px solid #2A3B48;border-top-color:var(--amber);
+  border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>MLB PROJECTIONS &amp; EDGES</h1></div>
+  <p class="sub">Today's MLB slate \u2014 a ranked daily projections overview, plus the batter and pitcher props with the strongest modeled odds. All batter-side numbers include a hitter-quality factor from AVG \u2212 OBP \u2212 SLG (lower/more negative rated as better).</p>
+
+  <div class="toolbar">
+    <input type="text" id="filterInput" placeholder="Filter by player or team...">
+    <select id="categorySelect">
+      <option value="all">All props</option>
+      <option value="H">Hits</option>
+      <option value="TB">Total bases</option>
+      <option value="HR">Home runs</option>
+      <option value="RRBI">Runs + RBI</option>
+      <option value="K">Strikeouts (P)</option>
+      <option value="BB">Walks allowed (P)</option>
+    </select>
+    <button id="refreshBtn">REFRESH</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+  <div class="games-note" id="gamesNote"></div>
+
+  <div class="section-title">DAILY PROJECTIONS</div>
+  <div id="dailyList"></div>
+
+  <div class="section-title">BEST EDGES TODAY</div>
+  <div id="bestList"></div>
+
+  <div class="section-title">ALL BATTER PROPS</div>
+  <div id="batterList"></div>
+
+  <div class="section-title">ALL PITCHER PROPS</div>
+  <div id="pitcherList"></div>
+
+  <p class="footnote">Live data from the MLB Stats API. Hitters are each team's top plate-appearance leaders on the active roster (lineups aren't finalized until close to game time, so this approximates the likely starters). A hitter-quality factor is computed as AVG \u2212 OBP \u2212 SLG: since OBP and SLG normally exceed AVG, this number is negative for nearly every player, and a MORE negative total (OBP+SLG outpacing AVG by more than league-average) is treated as the better/stronger signal, reflecting more walks and extra-base power relative to raw average. That factor is blended into Daily Projections and all batter props alongside matchup, park factor, weather, and home/away. Prop win probabilities are modeled with a Poisson approximation around each player's projected rate. Park factors are approximate reference values; weather uses current venue conditions (neutral for domed parks). Common sportsbook lines are used for props (e.g. 0.5/1.5 hits) but real books may offer different lines, odds, and vig. This is a hobby stat model, not financial or betting advice — please gamble responsibly if at all.</p>
+</div>
+
+<script>
+const LEAGUE_K_RATE = 0.225, LEAGUE_BB_RATE = 0.085;
+const TEAM_ABBR = {108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK_FACTOR = {COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const DOME_TEAMS = new Set([141,139,146,109,117,158,136]); // retractable/domed roofs treated as weather-neutral
+const LEAGUE_AVG = 0.245;
+const LEAGUE_OBP = 0.312, LEAGUE_SLG = 0.400;
+const LEAGUE_STAT_TOTAL = LEAGUE_AVG - LEAGUE_OBP - LEAGUE_SLG; // AVG - OBP - SLG, league-average baseline
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function isoForDate(d){
+  // MLB schedules games by US Eastern date, so always compute the date in
+  // America/New_York regardless of the viewer's own timezone.
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(d); // en-CA locale formats as YYYY-MM-DD
+}
+function todayISO(){ return isoForDate(new Date()); }
+function season(){ return new Date().getFullYear(); }
+
+function avatarColor(name){
+  let hash = 0;
+  for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
+  return `hsl(${Math.abs(hash) % 360}, 45%, 38%)`;
+}
+function initials(name){
+  return name.split(' ').filter(Boolean).map(p=>p[0]).join('').slice(0,2).toUpperCase();
+}
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function poissonPMF(lambda, k){ return Math.exp(-lambda) * Math.pow(lambda,k) / factorial(k); }
+function factorial(n){ let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+function poissonCDF(lambda, k){ let s=0; for(let i=0;i<=k;i++) s+=poissonPMF(lambda,i); return s; }
+function probOver(lambda, line){ return clamp(1 - poissonCDF(lambda, Math.floor(line)), 0, 1); }
+function probUnder(lambda, line){ return clamp(poissonCDF(lambda, Math.floor(line)), 0, 1); }
+
+async function safeJSON(url, label){
+  try{
+    const res = await fetch(url);
+    if(!res.ok){
+      window.__lastError = `${label || 'Request'} failed \u2014 HTTP ${res.status}`;
+      console.error(window.__lastError, url);
+      return null;
+    }
+    return await res.json();
+  }catch(e){
+    window.__lastError = `${label || 'Request'} blocked \u2014 ${e.message}. This usually means the page's host is blocking outbound requests (CSP/CORS).`;
+    console.error(window.__lastError, url);
+    return null;
+  }
+}
+
+function setStatus(text, isErr){
+  const el = document.getElementById('statusLine');
+  el.textContent = text;
+  el.className = 'status' + (isErr ? ' err' : '');
+}
+
+async function loadSlate(){
+  document.getElementById('refreshBtn').disabled = true;
+  window.__lastError = null;
+  ['dailyList','bestList','batterList','pitcherList'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '';
+  });
+  document.getElementById('gamesNote').textContent = '';
+  setStatus('Loading today\u2019s schedule...');
+
+  const yr = season();
+  let date = todayISO();
+  let schedData = await safeJSON(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,venue,probablePitcher`, 'MLB schedule');
+
+  // Safety net: if the primary date comes back empty, check yesterday/tomorrow
+  // (Eastern time) in case of any residual date-boundary drift.
+  if(!schedData || !schedData.dates || !schedData.dates.length || !schedData.dates[0].games.length){
+    const now = new Date();
+    const candidates = [new Date(now.getTime() - 86400000), new Date(now.getTime() + 86400000)];
+    for(const cand of candidates){
+      const candDate = isoForDate(cand);
+      const candData = await safeJSON(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${candDate}&hydrate=team,venue,probablePitcher`);
+      if(candData && candData.dates && candData.dates.length && candData.dates[0].games.length){
+        date = candDate;
+        schedData = candData;
+        break;
+      }
+    }
+  }
+
+  if(!schedData || !schedData.dates || !schedData.dates.length || !schedData.dates[0].games.length){
+    const detail = window.__lastError || 'The MLB API responded, but reported no games for this date.';
+    setStatus(detail, true);
+    document.getElementById('dailyList').innerHTML =
+      `<div class="empty-state">Could not load today\u2019s slate.<br><br>${detail}</div>`;
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+
+  const games = schedData.dates[0].games.filter(g => g.status && (g.status.abstractGameState === 'Preview' || g.status.abstractGameState === 'Live'));
+  if(!games.length){
+    setStatus('Today\u2019s games are already finished.', true);
+    document.getElementById('dailyList').innerHTML = '<div class="empty-state">All of today\u2019s games have wrapped up \u2014 check back tomorrow.</div>';
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+  document.getElementById('gamesNote').textContent = `${games.length} game${games.length===1?'':'s'} today.`;
+
+  // unique venues -> coordinates -> weather
+  setStatus('Loading venues and weather...');
+  const venueMap = {};
+  games.forEach(g => { if(g.venue) venueMap[g.venue.id] = g.venue.name; });
+  const venueIds = Object.keys(venueMap);
+  const venueInfo = {};
+  await Promise.all(venueIds.map(async id => {
+    const v = await safeJSON(`https://statsapi.mlb.com/api/v1/venues/${id}?hydrate=location`);
+    const coords = v && v.venues && v.venues[0] && v.venues[0].location && v.venues[0].location.defaultCoordinates;
+    if(coords){
+      const w = await safeJSON(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`);
+      venueInfo[id] = { temp: w && w.current ? w.current.temperature_2m : null, wind: w && w.current ? w.current.wind_speed_10m : null };
+    }
+  }));
+
+  // rosters + hitting stats, and probable pitcher stats
+  setStatus('Loading rosters and stats...');
+  const teamHitters = {}; // teamId -> array of {name, avg, hits, runs, rbi, gamesPlayed, ab}
+  const teamHittingAgg = {};
+  const teamIds = new Set();
+  games.forEach(g => { teamIds.add(g.teams.home.team.id); teamIds.add(g.teams.away.team.id); });
+
+  await Promise.all([...teamIds].map(async tid => {
+    const [data, teamStatData] = await Promise.all([
+      safeJSON(`https://statsapi.mlb.com/api/v1/teams/${tid}/roster?rosterType=active&hydrate=person(stats(group=[hitting],type=[season],season=${yr}))`),
+      safeJSON(`https://statsapi.mlb.com/api/v1/teams/${tid}/stats?stats=season&group=hitting&season=${yr}`),
+    ]);
+    const roster = (data && data.roster) || [];
+    const hitters = [];
+    roster.forEach(entry => {
+      const person = entry.person;
+      const pos = entry.position && entry.position.abbreviation;
+      if(pos === 'P') return;
+      const statsArr = (person && person.stats) || [];
+      const hittingBlock = statsArr.find(s => s.group && s.group.displayName === 'hitting');
+      const stat = hittingBlock && hittingBlock.splits && hittingBlock.splits[0] && hittingBlock.splits[0].stat;
+      if(!stat || !stat.gamesPlayed) return;
+      hitters.push({
+        id: person.id, name: person.fullName,
+        avg: Number(stat.avg) || 0, obp: Number(stat.obp) || 0, slg: Number(stat.slg) || 0,
+        hits: Number(stat.hits) || 0, runs: Number(stat.runs) || 0, rbi: Number(stat.rbi) || 0,
+        totalBases: Number(stat.totalBases) || 0, homeRuns: Number(stat.homeRuns) || 0,
+        gamesPlayed: Number(stat.gamesPlayed) || 1, ab: Number(stat.atBats) || 0,
+      });
+    });
+    hitters.sort((a,b) => b.ab - a.ab);
+    teamHitters[tid] = hitters.slice(0, 6);
+
+    const tStat = teamStatData && teamStatData.stats && teamStatData.stats[0] && teamStatData.stats[0].splits && teamStatData.stats[0].splits[0] && teamStatData.stats[0].splits[0].stat;
+    const pa = tStat ? (Number(tStat.plateAppearances) || (Number(tStat.atBats||0)+Number(tStat.baseOnBalls||0))) : 0;
+    teamHittingAgg[tid] = {
+      kRate: (tStat && pa) ? Number(tStat.strikeOuts)/pa : LEAGUE_K_RATE,
+      bbRate: (tStat && pa) ? Number(tStat.baseOnBalls)/pa : LEAGUE_BB_RATE,
+    };
+  }));
+
+  // probable pitchers -> pitching stats (fallback to team pitching aggregate)
+  const pitcherCache = {};
+  const teamPitchingCache = {};
+  async function getPitcherProfile(pitcherObj, oppTeamId){
+    if(pitcherObj && pitcherObj.id){
+      if(pitcherCache[pitcherObj.id]) return pitcherCache[pitcherObj.id];
+      const data = await safeJSON(`https://statsapi.mlb.com/api/v1/people/${pitcherObj.id}/stats?stats=season&group=pitching&season=${yr}`);
+      const stat = data && data.stats && data.stats[0] && data.stats[0].splits && data.stats[0].splits[0] && data.stats[0].splits[0].stat;
+      const gs = stat ? (Number(stat.gamesStarted) || 1) : 1;
+      const ip = stat ? (Number(stat.inningsPitched) || (gs*5.3)) : 5.3*gs;
+      const profile = {
+        name: pitcherObj.fullName, avgAgainst: stat ? Number(stat.avg) || LEAGUE_AVG : LEAGUE_AVG, isFallback: false,
+        k9: stat ? (Number(stat.strikeoutsPer9Inn) || 8.0) : 8.0,
+        bb9: stat ? (Number(stat.walksPer9Inn) || 3.0) : 3.0,
+        ipPerStart: gs ? ip/gs : 5.3,
+      };
+      pitcherCache[pitcherObj.id] = profile;
+      return profile;
+    }
+    if(teamPitchingCache[oppTeamId]) return teamPitchingCache[oppTeamId];
+    const data = await safeJSON(`https://statsapi.mlb.com/api/v1/teams/${oppTeamId}/stats?stats=season&group=pitching&season=${yr}`);
+    const stat = data && data.stats && data.stats[0] && data.stats[0].splits && data.stats[0].splits[0] && data.stats[0].splits[0].stat;
+    const profile = {
+      name: 'TBD (team avg)', avgAgainst: stat ? Number(stat.avg) || LEAGUE_AVG : LEAGUE_AVG, isFallback: true,
+      k9: stat ? (Number(stat.strikeoutsPer9Inn) || 8.0) : 8.0,
+      bb9: stat ? (Number(stat.walksPer9Inn) || 3.0) : 3.0,
+      ipPerStart: 5.3,
+    };
+    teamPitchingCache[oppTeamId] = profile;
+    return profile;
+  }
+
+  setStatus('Loading probable pitchers...');
+  const projections = [];
+  const batterProps = [], pitcherProps = [];
+  await Promise.all(games.map(async g => {
+    const homeId = g.teams.home.team.id, awayId = g.teams.away.team.id;
+    const venueId = g.venue ? g.venue.id : null;
+    const weather = venueId ? venueInfo[venueId] : null;
+    const isDome = venueId ? [...teamIds].includes(homeId) && DOME_TEAMS.has(homeId) : false;
+    const parkAbbr = TEAM_ABBR[homeId] || null;
+    const parkFactor = parkAbbr && PARK_FACTOR[parkAbbr] ? PARK_FACTOR[parkAbbr] : 1.0;
+    const venueName = g.venue ? g.venue.name : '';
+
+    const homePitcherObj = g.teams.away.probablePitcher; // away pitcher faces home batters
+    const awayPitcherObj = g.teams.home.probablePitcher; // home pitcher faces away batters
+    const [homeOppPitcher, awayOppPitcher] = await Promise.all([
+      getPitcherProfile(homePitcherObj, awayId),
+      getPitcherProfile(awayPitcherObj, homeId),
+    ]);
+
+    function weatherMult(){
+      if(isDome || !weather || weather.temp == null) return 1.0;
+      let m = 1 + clamp((weather.temp - 70) / 300, -0.05, 0.06);
+      if(weather.wind != null && weather.wind > 12) m += 0.02;
+      return clamp(m, 0.9, 1.1);
+    }
+    const wMult = weatherMult();
+
+    function buildEntries(hitters, teamId, oppAbbr, oppPitcher, isHome, venueName){
+      hitters.forEach(h => {
+        const matchupRaw = (h.avg && LEAGUE_AVG ? (h.avg/LEAGUE_AVG) : 1) * (oppPitcher.avgAgainst/LEAGUE_AVG);
+        const matchupMult = clamp(matchupRaw, 0.6, 1.6);
+        const homeAwayMult = isHome ? 1.03 : 0.97;
+
+        // Quality factor from AVG - OBP - SLG: since OBP and SLG normally exceed AVG,
+        // this total is negative for nearly everyone. A MORE negative total means a
+        // player's OBP+SLG outpaces their AVG by more than league-average (more walks
+        // and extra-base power relative to raw average) — so lower is treated as better,
+        // ranked/boosted accordingly rather than the naive "bigger number wins" reading.
+        const statTotal = h.avg - h.obp - h.slg;
+        const statTotalRatio = LEAGUE_STAT_TOTAL !== 0 ? (statTotal / LEAGUE_STAT_TOTAL) : 1;
+        const qualityMult = clamp(Math.sqrt(clamp(statTotalRatio, 0.5, 2.0)), 0.75, 1.35);
+
+        const combined = clamp(matchupMult * parkFactor * wMult * homeAwayMult * qualityMult, 0.6, 1.9);
+        const dampened = 1 + (combined - 1) * 0.6;
+
+        const hPerG = h.hits / h.gamesPlayed;
+        const rPerG = h.runs / h.gamesPlayed;
+        const rbiPerG = h.rbi / h.gamesPlayed;
+
+        projections.push({
+          name: h.name, teamAbbr: TEAM_ABBR[teamId], oppAbbr, venueName,
+          isHome, opponentPitcher: oppPitcher.name, pitcherFallback: oppPitcher.isFallback,
+          avg: h.avg, obp: h.obp, slg: h.slg, statTotal, qualityMult,
+          matchupMult, parkFactor, weatherMult: wMult, homeAwayMult, isDome,
+          projH: hPerG * combined, projR: rPerG * dampened, projRBI: rbiPerG * dampened,
+        });
+
+        // Same quality-adjusted combined multiplier drives the prop projections too,
+        // so Daily Projections and the props below stay consistent with each other.
+        const projH = (h.hits/h.gamesPlayed) * combined;
+        const projTB = (h.totalBases/h.gamesPlayed) * combined;
+        const projHR = (h.homeRuns/h.gamesPlayed) * combined;
+        const projRRBI = ((h.runs+h.rbi)/h.gamesPlayed) * dampened;
+        const base = { name:h.name, team:TEAM_ABBR[teamId], opp:oppAbbr, isHome, venueName, oppPitcher:oppPitcher.name };
+
+        [[0.5,'H_0.5','Hits Over 0.5',projH],[1.5,'H_1.5','Hits Over 1.5',projH]].forEach(([line,key,label,mean]) => {
+          batterProps.push({...base, key, label, cat:'H', probability: probOver(mean,line), mean, line});
+        });
+        batterProps.push({...base, key:'TB_1.5', label:'Total Bases Over 1.5', cat:'TB', probability: probOver(projTB,1.5), mean:projTB, line:1.5});
+        batterProps.push({...base, key:'HR_0.5', label:'Home Run Over 0.5', cat:'HR', probability: probOver(projHR,0.5), mean:projHR, line:0.5});
+        [[0.5,'RRBI_0.5','Runs+RBI Over 0.5'],[1.5,'RRBI_1.5','Runs+RBI Over 1.5']].forEach(([line,key,label]) => {
+          batterProps.push({...base, key, label, cat:'RRBI', probability: probOver(projRRBI,line), mean:projRRBI, line});
+        });
+      });
+    }
+
+    function addPitcherProps(pitcherObj, teamId, oppTeamId, oppAbbr, isHome){
+      if(!pitcherObj) return;
+      const oppAgg = teamHittingAgg[oppTeamId] || { kRate: LEAGUE_K_RATE, bbRate: LEAGUE_BB_RATE };
+      const oppKAdj = oppAgg.kRate / LEAGUE_K_RATE;
+      const oppBBAdj = oppAgg.bbRate / LEAGUE_BB_RATE;
+      const parkKAdj = clamp(2 - parkFactor, 0.85, 1.12);
+      const weatherKAdj = clamp(2 - wMult, 0.9, 1.1);
+      const homeAwayKMult = isHome ? 1.02 : 0.98;
+      const homeAwayBBMult = isHome ? 0.98 : 1.02;
+      const expectedK = (pitcherObj.k9/9) * pitcherObj.ipPerStart * oppKAdj * parkKAdj * weatherKAdj * homeAwayKMult;
+      const expectedBB = (pitcherObj.bb9/9) * pitcherObj.ipPerStart * oppBBAdj * homeAwayBBMult;
+
+      const base = { name:pitcherObj.name, team:TEAM_ABBR[teamId], opp:oppAbbr, isHome, venueName, oppPitcher:null };
+      [[4.5,'K_4.5','Strikeouts Over 4.5'],[5.5,'K_5.5','Strikeouts Over 5.5']].forEach(([line,key,label]) => {
+        pitcherProps.push({...base, key, label, cat:'K', probability: probOver(expectedK,line), mean:expectedK, line});
+      });
+      [[1.5,'BB_1.5U','Walks Allowed Under 1.5'],[2.5,'BB_2.5U','Walks Allowed Under 2.5']].forEach(([line,key,label]) => {
+        pitcherProps.push({...base, key, label, cat:'BB', probability: probUnder(expectedBB,line), mean:expectedBB, line, under:true});
+      });
+    }
+
+    buildEntries(teamHitters[homeId] || [], homeId, TEAM_ABBR[awayId], homeOppPitcher, true, venueName);
+    buildEntries(teamHitters[awayId] || [], awayId, TEAM_ABBR[homeId], awayOppPitcher, false, venueName);
+    addPitcherProps(g.teams.away.probablePitcher ? homeOppPitcher : null, awayId, homeId, TEAM_ABBR[homeId], false);
+    addPitcherProps(g.teams.home.probablePitcher ? awayOppPitcher : null, homeId, awayId, TEAM_ABBR[awayId], true);
+  }));
+
+  projections.sort((a,b) => (b.projH+b.projR+b.projRBI) - (a.projH+a.projR+a.projRBI));
+  batterProps.sort((a,b) => b.probability - a.probability);
+  pitcherProps.sort((a,b) => b.probability - a.probability);
+  window.__allProjections = projections;
+  window.__batterProps = batterProps;
+  window.__pitcherProps = pitcherProps;
+  renderAll();
+  setStatus(`Loaded ${projections.length} hitter projections and ${batterProps.length + pitcherProps.length} props across ${games.length} game${games.length===1?'':'s'}.`);
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+function factorChip(label, mult){
+  const pct = Math.round((mult-1)*100);
+  const cls = pct > 0 ? 'up' : (pct < 0 ? 'down' : '');
+  const sign = pct > 0 ? '+' : '';
+  return `<div class="factor-chip ${cls}">${label} ${sign}${pct}%</div>`;
+}
+
+function dailyCardHTML(p, i){
+  return `
+    <div class="card" id="daily-${i}">
+      <div class="card-top" onclick="document.getElementById('daily-${i}').classList.toggle('open')">
+        <div class="avatar" style="background:${avatarColor(p.name)};">${initials(p.name)}</div>
+        <div class="card-main">
+          <div class="card-name">${p.name} <span class="caret">\u25B8</span></div>
+          <div class="card-meta">${p.teamAbbr} ${p.isHome ? 'vs' : '@'} ${p.oppAbbr} \u00b7 vs ${p.opponentPitcher}</div>
+        </div>
+        <div class="card-proj">
+          <div class="proj-line">${p.projH.toFixed(1)}H ${p.projR.toFixed(1)}R ${p.projRBI.toFixed(1)}I</div>
+          <div class="proj-sub">PROJECTED</div>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="detail-row"><span>Season AVG / OBP / SLG</span><b>${p.avg.toFixed(3)} / ${p.obp.toFixed(3)} / ${p.slg.toFixed(3)}</b></div>
+        <div class="detail-row"><span>AVG \u2212 OBP \u2212 SLG (lower = better)</span><b>${p.statTotal.toFixed(3)}</b></div>
+        <div class="detail-row"><span>Opposing pitcher</span><b>${p.opponentPitcher}${p.pitcherFallback ? ' (not yet announced \u2014 using team average)' : ''}</b></div>
+        <div class="detail-row"><span>Venue</span><b>${p.venueName || '\u2014'}</b></div>
+        <div class="factor-strip">
+          ${factorChip('Matchup', p.matchupMult)}
+          ${factorChip('Quality (AVG\u2212OBP\u2212SLG)', p.qualityMult)}
+          ${factorChip('Park', p.parkFactor)}
+          ${p.isDome ? '<div class="factor-chip">Weather: dome (neutral)</div>' : factorChip('Weather', p.weatherMult)}
+          ${factorChip(p.isHome ? 'Home' : 'Away', p.homeAwayMult)}
+        </div>
+      </div>
+    </div>`;
+}
+
+function probClass(p){ return p >= 0.65 ? 'strong' : (p >= 0.55 ? 'lean' : 'soft'); }
+function badgeText(p){ return p >= 0.65 ? 'STRONG EDGE' : (p >= 0.55 ? 'LEAN' : ''); }
+
+function propCardHTML(p, idx, prefix){
+  const cls = probClass(p.probability);
+  const pct = Math.round(p.probability*100);
+  const id = `${prefix}-${idx}`;
+  return `
+    <div class="card" id="${id}">
+      <div class="card-top" onclick="document.getElementById('${id}').classList.toggle('open')">
+        <div class="avatar" style="background:${avatarColor(p.name)};">${initials(p.name)}</div>
+        <div class="card-main">
+          <div class="card-name">${p.name} <span class="caret">\u25B8</span></div>
+          <div class="prop-label">${p.label}</div>
+          <div class="card-meta">${p.team} ${p.isHome ? 'vs' : '@'} ${p.opp}${p.oppPitcher ? ' \u00b7 vs ' + p.oppPitcher : ''}</div>
+        </div>
+        <div class="card-right" style="text-align:right;flex-shrink:0;">
+          <div class="prob ${cls}">${pct}%</div>
+          <div class="badge ${cls}">${badgeText(p.probability)}</div>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="detail-row"><span>Modeled mean</span><b>${p.mean.toFixed(2)}</b></div>
+        <div class="detail-row"><span>Line</span><b>${p.under ? 'Under' : 'Over'} ${p.line}</b></div>
+        <div class="detail-row"><span>Venue</span><b>${p.venueName || '\u2014'}</b></div>
+      </div>
+    </div>`;
+}
+
+function renderAll(){
+  const q = document.getElementById('filterInput').value.trim().toLowerCase();
+  const cat = document.getElementById('categorySelect').value;
+
+  const daily = (window.__allProjections || []).filter(p =>
+    !q || p.name.toLowerCase().includes(q) || p.teamAbbr.toLowerCase().includes(q) || p.oppAbbr.toLowerCase().includes(q));
+  document.getElementById('dailyList').innerHTML = daily.length
+    ? daily.map((p,i) => dailyCardHTML(p,i)).join('')
+    : '<div class="empty-state">No hitters match.</div>';
+
+  const batters = (window.__batterProps || []).filter(p =>
+    (!q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q) || p.opp.toLowerCase().includes(q)) &&
+    (cat === 'all' || p.cat === cat));
+  const pitchers = (window.__pitcherProps || []).filter(p =>
+    (!q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q) || p.opp.toLowerCase().includes(q)) &&
+    (cat === 'all' || p.cat === cat));
+  const best = [...batters, ...pitchers].sort((a,b) => b.probability - a.probability).slice(0, 12);
+
+  document.getElementById('bestList').innerHTML = best.length
+    ? best.map((p,i) => propCardHTML(p,i,'best')).join('')
+    : '<div class="empty-state">No props match.</div>';
+  document.getElementById('batterList').innerHTML = batters.length
+    ? batters.slice(0,60).map((p,i) => propCardHTML(p,i,'bat')).join('')
+    : '<div class="empty-state">No batter props match.</div>';
+  document.getElementById('pitcherList').innerHTML = pitchers.length
+    ? pitchers.map((p,i) => propCardHTML(p,i,'pit')).join('')
+    : '<div class="empty-state">No pitcher props match.</div>';
+}
+
+document.getElementById('filterInput').addEventListener('input', renderAll);
+document.getElementById('categorySelect').addEventListener('change', renderAll);
+document.getElementById('refreshBtn').addEventListener('click', loadSlate);
+
+loadSlate();
+</script>
+</body>
+</html>

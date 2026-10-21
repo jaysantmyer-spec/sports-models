@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFB Value Finder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --chalk:#EDEAE0; --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10;
+  --red:#C0433A; --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A; --purple:#9A7FD9;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, #1A2430 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.pulse{width:12px;height:12px;background:var(--green);border-radius:50%;display:inline-block;box-shadow:0 0 0 0 rgba(95,174,122,0.5);animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(95,174,122,0.5);}70%{box-shadow:0 0 0 8px rgba(95,174,122,0);}100%{box-shadow:0 0 0 0 rgba(95,174,122,0);}}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:34px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:16px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;}
+.key-row input{
+  flex:1;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.4;}
+.quota-line{font-size:11px;color:var(--dim);margin-top:8px;}
+
+.scan-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.scan-row select{
+  flex:1;min-width:160px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+.scan-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 18px;cursor:pointer;
+}
+.scan-row button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:16px;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.bet-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.bet-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.bet-main{flex:1;min-width:0;}
+.bet-pick{font-size:14px;font-weight:600;color:var(--chalk);}
+.bet-event{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sport-tag{
+  display:inline-block;font-size:9px;letter-spacing:0.5px;color:var(--purple);
+  background:rgba(154,127,217,0.12);border-radius:3px;padding:1px 5px;margin-right:6px;text-transform:uppercase;
+}
+.bet-right{text-align:right;flex-shrink:0;}
+.edge-pct{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.edge-pct.strong{color:var(--amber);}
+.edge-pct.lean{color:var(--green);}
+.badge{font-size:9px;letter-spacing:0.5px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.bet-card.open .reasons{display:block;}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;}
+.detail-row b{color:var(--chalk);font-weight:600;}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:36px 20px;border:1px dashed #2A3B48;border-radius:10px;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="pulse"></span><h1>CFB VALUE FINDER</h1></div>
+  <p class="sub">Scans real, live college football odds across dozens of US sportsbooks (via The Odds API) for games about to start, and ranks the biggest priced edges \u2014 where one book pays out more than the consensus fair line suggests.</p>
+  <div class="warn-banner">This surfaces pricing gaps between real sportsbooks, not certainties. "Edge" is an estimate, not a guarantee \u2014 and even a real statistical edge can lose. Not betting advice. Gamble responsibly if at all.</div>
+
+  <div class="key-card">
+    <div class="key-label">YOUR ODDS API KEY</div>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your free key from the-odds-api.com">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Stored only in this browser (localStorage), sent only to api.the-odds-api.com. Never shared anywhere else. Get a free key at the-odds-api.com if you don't have one yet.</div>
+    <div class="quota-line" id="quotaLine"></div>
+  </div>
+
+  <div class="scan-row">
+    <select id="sportSelect">
+      <option value="americanfootball_ncaaf">College Football (NCAAF)</option>
+      <option value="upcoming">Upcoming across all sports (cheapest scan)</option>
+    </select>
+    <select id="windowSelect">
+      <option value="60">Starting within 1 hour</option>
+      <option value="30">Starting within 30 min</option>
+      <option value="180">Starting within 3 hours</option>
+      <option value="1440" selected>Starting within 24 hours</option>
+    </select>
+    <button id="scanBtn" disabled>SCAN LIVE ODDS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">RANKED: BIGGEST CFB EDGES \u2014 GAMES STARTING SOON</div>
+  <div id="list"><div class="empty-state">Paste your API key above, then tap Scan.</div></div>
+
+  <p class="footnote">Edge = the consensus "fair" probability (average of all books' odds after removing each book's built-in vig) minus the implied probability of the single best price found. A positive edge means at least one book is currently offering a better payout than the market as a whole thinks is warranted. This can reflect a genuine mispricing, a book being slow to update, or just normal market noise \u2014 it is not a prediction of who wins. Defaults to the NCAAF moneyline market; college football odds can be thin on FCS/smaller-conference games since fewer books post lines on them, which naturally produces fewer comparable edges. The time window filters to games whose scheduled kickoff falls in that range from the moment you scan. Uses your own free-tier API quota (usually 500 requests/month); each scan costs one request. This is a stats/odds-comparison tool, not financial or betting advice.</p>
+</div>
+
+<script>
+const API_BASE = 'https://api.the-odds-api.com/v4';
+let apiKey = localStorage.getItem('oddsApiKey') || '';
+if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+updateScanButton();
+
+document.getElementById('saveKeyBtn').addEventListener('click', async () => {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('oddsApiKey', apiKey);
+  updateScanButton();
+  if(apiKey) await loadSportsList();
+});
+
+function updateScanButton(){
+  document.getElementById('scanBtn').disabled = !apiKey;
+}
+
+async function loadSportsList(){
+  setStatus('Loading available sports...');
+  try{
+    const res = await fetch(`${API_BASE}/sports/?apiKey=${encodeURIComponent(apiKey)}`);
+    if(!res.ok){
+      if(res.status === 401) setStatus('That API key was rejected \u2014 double check you copied it correctly.', true);
+      else setStatus('Could not load sports list.', true);
+      return;
+    }
+    const sports = await res.json();
+    const select = document.getElementById('sportSelect');
+    const ncaaf = sports.find(s => s.key === 'americanfootball_ncaaf');
+    const others = sports.filter(s => !s.has_outrights && s.key !== 'americanfootball_ncaaf');
+    select.innerHTML =
+      (ncaaf ? `<option value="americanfootball_ncaaf" selected>College Football (NCAAF) \u2014 default</option>` : '') +
+      `<option value="upcoming">Upcoming across all sports (cheapest scan)</option>` +
+      others.map(s => `<option value="${s.key}">${s.group} \u2014 ${s.title}</option>`).join('');
+    setStatus('');
+  }catch(e){
+    setStatus('Network error loading sports list.', true);
+  }
+}
+
+function setStatus(text, isErr){
+  const el = document.getElementById('statusLine');
+  el.textContent = text; el.className = 'status' + (isErr ? ' err' : '');
+}
+
+function americanToImplied(price){
+  if(price > 0) return 100 / (price + 100);
+  return (-price) / ((-price) + 100);
+}
+function formatAmerican(price){ return price > 0 ? `+${price}` : `${price}`; }
+
+document.getElementById('scanBtn').addEventListener('click', scanOdds);
+
+async function scanOdds(){
+  if(!apiKey) return;
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  const sportKey = document.getElementById('sportSelect').value;
+  setStatus('Fetching live odds...');
+
+  const windowMinutes = parseInt(document.getElementById('windowSelect').value, 10);
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + windowMinutes*60000);
+
+  try{
+    const timeParams = `&commenceTimeFrom=${now.toISOString().split('.')[0]}Z&commenceTimeTo=${windowEnd.toISOString().split('.')[0]}Z`;
+    const url = `${API_BASE}/sports/${sportKey}/odds/?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=h2h&oddsFormat=american${sportKey === 'upcoming' ? '' : timeParams}`;
+    const res = await fetch(url);
+    const remaining = res.headers.get('x-requests-remaining');
+    const used = res.headers.get('x-requests-used');
+    if(remaining != null) document.getElementById('quotaLine').textContent = `API quota: ${used} used, ${remaining} remaining this period.`;
+
+    if(!res.ok){
+      if(res.status === 401) setStatus('API key rejected. Check it was pasted correctly.', true);
+      else if(res.status === 429) setStatus('Out of API quota for this period.', true);
+      else setStatus('Could not fetch odds right now.', true);
+      document.getElementById('scanBtn').disabled = false;
+      return;
+    }
+
+    const allEvents = await res.json();
+    const events = (allEvents || []).filter(ev => {
+      const t = new Date(ev.commence_time);
+      return t >= now && t <= windowEnd;
+    });
+    if(!events.length){
+      setStatus(`No games found starting in that window (checked ${allEvents ? allEvents.length : 0} events).`, true);
+      document.getElementById('list').innerHTML = '<div class="empty-state">Nothing kicking off in this window right now \u2014 try a wider window above, or scan again closer to game time.</div>';
+      document.getElementById('scanBtn').disabled = false;
+      return;
+    }
+
+    const edges = [];
+    events.forEach(event => {
+      const books = event.bookmakers || [];
+      if(books.length < 2) return; // need at least 2 books to compare
+
+      // gather outcome names (usually 2, sometimes 3 for soccer draw)
+      const outcomeNames = new Set();
+      books.forEach(b => (b.markets||[]).forEach(m => { if(m.key === 'h2h') m.outcomes.forEach(o => outcomeNames.add(o.name)); }));
+
+      // per book, compute de-vigged (normalized) probabilities for this event's h2h market
+      const perBookNorm = []; // [{bookTitle, probs:{name:normProb}, raw:{name:{price, implied}}}]
+      books.forEach(b => {
+        const h2h = (b.markets||[]).find(m => m.key === 'h2h');
+        if(!h2h) return;
+        const raw = {};
+        let sum = 0;
+        h2h.outcomes.forEach(o => {
+          const implied = americanToImplied(o.price);
+          raw[o.name] = { price: o.price, implied };
+          sum += implied;
+        });
+        const probs = {};
+        Object.keys(raw).forEach(name => { probs[name] = raw[name].implied / sum; });
+        perBookNorm.push({ book: b.title, raw, probs });
+      });
+      if(perBookNorm.length < 2) return;
+
+      // consensus fair probability per outcome = average of normalized probs across books
+      const consensus = {};
+      outcomeNames.forEach(name => {
+        const vals = perBookNorm.filter(pb => pb.probs[name] != null).map(pb => pb.probs[name]);
+        if(vals.length) consensus[name] = vals.reduce((a,b)=>a+b,0) / vals.length;
+      });
+
+      // for each outcome, find the single best (highest-payout / lowest-implied) raw price across books
+      outcomeNames.forEach(name => {
+        let best = null;
+        perBookNorm.forEach(pb => {
+          const r = pb.raw[name];
+          if(!r) return;
+          if(!best || r.implied < best.raw.implied) best = { book: pb.book, raw: r };
+        });
+        if(!best || consensus[name] == null) return;
+        const edge = consensus[name] - best.raw.implied;
+        edges.push({
+          sport: event.sport_title || sportKey,
+          event: `${event.away_team} @ ${event.home_team}`,
+          commence: event.commence_time,
+          pick: name,
+          book: best.book,
+          price: best.raw.price,
+          fairProb: consensus[name],
+          edge,
+          numBooks: perBookNorm.length,
+        });
+      });
+    });
+
+    edges.sort((a,b) => b.edge - a.edge);
+    window.__edges = edges.filter(e => e.edge > 0).slice(0, 40);
+    renderList(window.__edges);
+    setStatus(`Scanned ${events.length} event${events.length===1?'':'s'} across ${new Set(edges.map(e=>e.sport)).size} sport${new Set(edges.map(e=>e.sport)).size===1?'':'s'}.`);
+  }catch(e){
+    setStatus('Something went wrong fetching odds.', true);
+  }
+  document.getElementById('scanBtn').disabled = false;
+}
+
+function edgeClass(edge){ return edge >= 0.05 ? 'strong' : (edge >= 0.02 ? 'lean' : ''); }
+function badgeText(edge){ return edge >= 0.05 ? 'STRONG EDGE' : (edge >= 0.02 ? 'LEAN' : ''); }
+
+function renderList(edges){
+  const list = document.getElementById('list');
+  if(!edges.length){
+    list.innerHTML = '<div class="empty-state">No positive-edge prices found in this scan.</div>';
+    return;
+  }
+  list.innerHTML = edges.map((e,i) => `
+    <div class="bet-card" id="edge-${i}" onclick="document.getElementById('edge-${i}').classList.toggle('open')">
+      <div class="bet-top">
+        <div class="bet-main">
+          <div class="bet-pick"><span class="sport-tag">${e.sport}</span>${e.pick}</div>
+          <div class="bet-event">${e.event} \u00b7 best price ${formatAmerican(e.price)} at ${e.book}</div>
+        </div>
+        <div class="bet-right">
+          <div class="edge-pct ${edgeClass(e.edge)}">+${(e.edge*100).toFixed(1)}%</div>
+          <div class="badge ${edgeClass(e.edge)}">${badgeText(e.edge)}</div>
+        </div>
+      </div>
+      <div class="reasons">
+        <div class="detail-row"><span>Consensus fair probability</span><b>${(e.fairProb*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best price implied probability</span><b>${((e.fairProb - e.edge)*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>Best book</span><b>${e.book} (${formatAmerican(e.price)})</b></div>
+        <div class="detail-row"><span>Books compared</span><b>${e.numBooks}</b></div>
+        <div class="detail-row"><span>Kickoff</span><b>${new Date(e.commence).toLocaleString()}</b></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+if(apiKey) loadSportsList();
+</script>
+</body>
+</html>

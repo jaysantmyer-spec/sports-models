@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Match Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --gold:#E8C547; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--gold);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:16px;
+}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:14px;}
+.panel-label{font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;color:var(--amber);margin-bottom:10px;}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pcol{background:var(--navy-light);border:1px solid #2A3B48;border-radius:8px;padding:11px;}
+.pcol h3{font-family:'Teko',sans-serif;font-size:15px;letter-spacing:0.5px;margin:0 0 8px;color:var(--chalk);}
+label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;margin-top:8px;}
+label:first-of-type{margin-top:0;}
+input, select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus, select:focus{border-color:var(--amber);}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+
+.btn{
+  width:100%;margin-top:12px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:18px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:11px;cursor:pointer;
+}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-size:14px;padding:8px;}
+
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.preset{
+  font-size:10.5px;background:rgba(242,169,59,0.1);border:1px solid rgba(242,169,59,0.3);
+  color:var(--amber);border-radius:5px;padding:5px 8px;cursor:pointer;
+}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-row button{
+  flex:1;min-width:64px;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;padding:7px 3px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.rank-row{
+  display:flex;align-items:center;gap:11px;background:var(--navy);border:1px solid #263644;
+  border-radius:8px;padding:10px 12px;margin-bottom:7px;
+}
+.rank-num{font-family:'Teko',sans-serif;font-size:19px;color:var(--dim);width:24px;flex-shrink:0;text-align:center;}
+.rank-main{flex:1;min-width:0;}
+.rank-name{font-size:13px;font-weight:600;color:var(--chalk);}
+.rank-sub{font-size:10.5px;color:var(--dim);margin-top:1px;}
+.rank-tag{font-size:9px;letter-spacing:0.4px;color:var(--blue);margin-top:2px;text-transform:uppercase;}
+.rank-pct{font-family:'Teko',sans-serif;font-size:23px;flex-shrink:0;}
+.rank-pct.strong{color:var(--amber);}
+.rank-pct.lean{color:var(--green);}
+.rank-pct.soft{color:var(--dim);}
+
+.match-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.match-head{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--dim);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:9px;}
+.del{color:var(--red);cursor:pointer;font-size:11px;}
+.matchup-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.p-block{flex:1;text-align:center;}
+.p-name{font-size:14px;font-weight:600;}
+.p-name.fav{color:var(--amber);}
+.p-rank{font-size:10.5px;color:var(--dim);margin-top:1px;}
+.vs{font-family:'Teko',sans-serif;font-size:17px;color:var(--clay);padding:0 4px;}
+
+.proj-strip{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;}
+.proj-chip{font-size:10.5px;background:rgba(255,255,255,0.05);border-radius:4px;padding:4px 8px;color:var(--dim);}
+.proj-chip b{color:var(--chalk);}
+
+.bet{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(255,255,255,0.03);border:1px solid #223140;border-radius:7px;
+  padding:8px 11px;margin-top:7px;
+}
+.bet-main{flex:1;min-width:0;}
+.bet-name{font-size:12.5px;font-weight:600;color:var(--chalk);}
+.bet-sub{font-size:10.5px;color:var(--dim);margin-top:1px;}
+.bet-pct{font-family:'Teko',sans-serif;font-size:21px;flex-shrink:0;}
+.bet-pct.strong{color:var(--amber);}
+.bet-pct.lean{color:var(--green);}
+.bet-pct.soft{color:var(--dim);}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>TENNIS MATCH MODEL</h1></div>
+  <p class="sub">Enter two players' data and this simulates the match 20,000 times to produce percentage predictions for match winner, set betting, total games, and player game totals \u2014 all ranked together.</p>
+  <div class="warn-banner">Model output from the numbers you enter \u2014 not sportsbook odds, and not betting advice. Garbage in, garbage out: the projections are only as good as the inputs. Gamble responsibly if at all.</div>
+
+  <div class="panel">
+    <div class="panel-label">DRAFTKINGS MATCHES</div>
+    <label>The Odds API key (free \u2014 the-odds-api.com)</label>
+    <div style="display:flex;gap:8px;">
+      <input type="password" id="oddsKey" placeholder="Paste your Odds API key" style="flex:1;">
+      <button class="btn" id="saveOddsKeyBtn" style="width:auto;margin-top:0;padding:8px 14px;font-size:15px;">SAVE</button>
+    </div>
+    <div class="hint">Finds only the tennis matches DraftKings is actually pricing, and pulls their real moneyline and total-games lines \u2014 so the model's percentage can be compared directly against DK's own implied probability.</div>
+    <button class="btn ghost" id="loadDKBtn" style="margin-top:10px;">LOAD DRAFTKINGS MATCHES</button>
+    <div class="status" id="dkStatus"></div>
+    <div id="dkList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">LOAD TODAY'S REAL MATCHES</div>
+    <label>Live Tennis API key (free \u2014 livetennisapi.com/subscribe/free)</label>
+    <div style="display:flex;gap:8px;">
+      <input type="password" id="apiKey" placeholder="Paste your free key" style="flex:1;">
+      <button class="btn" id="saveKeyBtn" style="width:auto;margin-top:0;padding:8px 14px;font-size:15px;">SAVE</button>
+    </div>
+    <div class="hint">Stored only in this browser, sent only to api.livetennisapi.com. The free tier covers live + upcoming matches with player rankings, including Challenger and ITF \u2014 which is most of a typical day's slate. Limit is 30 requests/min, 100/day.</div>
+    <button class="btn ghost" id="loadMatchesBtn" style="margin-top:10px;">LOAD TODAY'S MATCHES</button>
+    <div class="status" id="loadStatus"></div>
+    <div id="todayList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">MATCH SETUP</div>
+    <div class="row3">
+      <div>
+        <label>Tour</label>
+        <select id="tour">
+          <option value="atp">ATP (men)</option>
+          <option value="wta">WTA (women)</option>
+        </select>
+      </div>
+      <div>
+        <label>Surface</label>
+        <select id="surface">
+          <option value="hard">Hard</option>
+          <option value="clay">Clay</option>
+          <option value="grass">Grass</option>
+        </select>
+      </div>
+      <div>
+        <label>Format</label>
+        <select id="format">
+          <option value="3">Best of 3</option>
+          <option value="5">Best of 5</option>
+        </select>
+      </div>
+    </div>
+    <label style="margin-top:10px;">Event label (optional)</label>
+    <input type="text" id="eventLabel" placeholder="e.g. ATP Challenger Szczecin \u00b7 R16">
+
+    <div class="pgrid" style="margin-top:12px;">
+      <div class="pcol">
+        <h3>PLAYER 1</h3>
+        <label>Name</label>
+        <input type="text" id="n1" placeholder="Player 1">
+        <label>World ranking</label>
+        <input type="number" id="r1" placeholder="e.g. 85" min="1">
+        <label>Recent form (wins in last 10)</label>
+        <input type="number" id="f1" placeholder="e.g. 6" min="0" max="10">
+        <label>Hold % on serve (optional)</label>
+        <input type="number" id="h1" placeholder="blank = derive from rank" min="1" max="99">
+      </div>
+      <div class="pcol">
+        <h3>PLAYER 2</h3>
+        <label>Name</label>
+        <input type="text" id="n2" placeholder="Player 2">
+        <label>World ranking</label>
+        <input type="number" id="r2" placeholder="e.g. 240" min="1">
+        <label>Recent form (wins in last 10)</label>
+        <input type="number" id="f2" placeholder="e.g. 5" min="0" max="10">
+        <label>Hold % on serve (optional)</label>
+        <input type="number" id="h2" placeholder="blank = derive from rank" min="1" max="99">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>H2H \u2014 P1 wins</label>
+        <input type="number" id="h2h1" placeholder="0" min="0">
+      </div>
+      <div>
+        <label>H2H \u2014 P2 wins</label>
+        <input type="number" id="h2h2" placeholder="0" min="0">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Total games line</label>
+        <input type="number" id="gameLine" step="0.5" placeholder="22.5">
+      </div>
+      <div>
+        <label>P1 game total line</label>
+        <input type="number" id="p1Line" step="0.5" placeholder="11.5">
+      </div>
+    </div>
+
+    <button class="btn" id="runBtn">RUN MODEL &amp; ADD MATCH</button>
+    <div class="hint">Tapping a match above fills this form with the real players, rankings, surface and round \u2014 edit anything before running. Form, H2H and hold % aren't in the free API feed, so those stay manual: filling them in is what sharpens the model most.</div>
+  </div>
+
+  <div class="section-title">RANKED: ALL MODELED BETS</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="ML">Match winner</button>
+    <button data-f="SETS">Set betting</button>
+    <button data-f="GAMES">Total games</button>
+    <button data-f="PLAYER">Player games</button>
+  </div>
+  <div id="rankList"><div class="empty-state">Run the model on a matchup above to start building the ranked list.</div></div>
+
+  <div class="section-title">MATCH BREAKDOWNS</div>
+  <div id="matchList"></div>
+
+  <p class="footnote">How it works: each player's serve-hold probability is either taken from what you enter or derived from world ranking (log-scaled strength difference around a tour-typical baseline \u2014 roughly 80% hold on the ATP side, 65% on the WTA side), then adjusted for recent form, head-to-head history, and surface. The match is then simulated 20,000 times game by game \u2014 real scoring rules including deuce-free game-level holds, 2-game set margins, and tiebreaks at 6-6 \u2014 and every market is counted from those simulated outcomes rather than estimated with a formula. That means set betting, total games, and player game totals are all internally consistent with the match-winner number by construction. Ranking-derived holds are a heuristic, not a measured stat: entering real hold percentages (widely published on tour stat sites) will meaningfully improve accuracy. This is a hobby model for research, not financial or betting advice.</p>
+</div>
+
+<script>
+const SIMS = 20000;
+
+const LTA_BASE = 'https://api.livetennisapi.com/api/public/v1';
+const ODDS_BASE = 'https://api.the-odds-api.com/v4';
+let apiKey = localStorage.getItem('liveTennisApiKey') || '';
+let oddsKey = localStorage.getItem('oddsApiKey') || '';
+let todayMatches = [];
+let dkMatches = [];
+
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function num(id){ const v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); }
+function str(id){ return document.getElementById(id).value.trim(); }
+
+// --- Derive serve hold probabilities -------------------------------------
+function strengthFromRank(rank){ return -Math.log10(Math.max(1, rank || 500)); }
+
+function deriveHolds(cfg){
+  const base = cfg.tour === 'wta' ? 0.65 : 0.80;
+  const s1 = strengthFromRank(cfg.r1), s2 = strengthFromRank(cfg.r2);
+  let diff = s1 - s2;                       // positive => P1 stronger
+
+  // recent form nudge (wins out of 10, centred on 5)
+  const form1 = cfg.f1 == null ? 5 : clamp(cfg.f1, 0, 10);
+  const form2 = cfg.f2 == null ? 5 : clamp(cfg.f2, 0, 10);
+  diff += ((form1 - form2) / 10) * 0.35;
+
+  // head-to-head nudge, weight grows with sample size then caps
+  const m = (cfg.h2h1 || 0) + (cfg.h2h2 || 0);
+  if(m > 0){
+    const share = (cfg.h2h1 || 0) / m;
+    const weight = Math.min(m, 5) / 5;
+    diff += (share - 0.5) * 0.5 * weight;
+  }
+
+  let h1 = base + 0.055 * diff;
+  let h2 = base - 0.055 * diff;
+
+  // surface shifts how much serve dominates overall
+  const surfAdj = cfg.surface === 'grass' ? 0.035 : (cfg.surface === 'clay' ? -0.035 : 0);
+  h1 += surfAdj; h2 += surfAdj;
+
+  return { h1: clamp(h1, 0.35, 0.95), h2: clamp(h2, 0.35, 0.95), derived: true };
+}
+
+// --- Simulation -----------------------------------------------------------
+function simulateSet(h1, h2, tb1, firstServer){
+  let g1 = 0, g2 = 0, server = firstServer;
+  while(true){
+    const holds = Math.random() < (server === 1 ? h1 : h2);
+    if((server === 1) === holds) g1++; else g2++;
+    server = server === 1 ? 2 : 1;
+
+    if(g1 >= 6 && g1 - g2 >= 2) return { g1, g2, winner:1, server };
+    if(g2 >= 6 && g2 - g1 >= 2) return { g1, g2, winner:2, server };
+    if(g1 === 6 && g2 === 6){
+      if(Math.random() < tb1) return { g1:7, g2:6, winner:1, server };
+      return { g1:6, g2:7, winner:2, server };
+    }
+  }
+}
+
+function runModel(cfg){
+  const holds = (cfg.h1Manual != null && cfg.h2Manual != null)
+    ? { h1: cfg.h1Manual/100, h2: cfg.h2Manual/100, derived:false }
+    : deriveHolds(cfg);
+
+  // tiebreak edge scales with the hold gap
+  const tb1 = clamp(0.5 + (holds.h1 - holds.h2) * 1.1, 0.15, 0.85);
+  const setsToWin = cfg.format === 5 ? 3 : 2;
+
+  let p1Match = 0, straight1 = 0, straight2 = 0;
+  const setScoreCount = {};
+  let totalGamesSum = 0, p1GamesSum = 0;
+  const totalGamesArr = new Array(SIMS);
+  const p1GamesArr = new Array(SIMS);
+
+  for(let i = 0; i < SIMS; i++){
+    let s1 = 0, s2 = 0, tg = 0, pg = 0;
+    let firstServer = Math.random() < 0.5 ? 1 : 2;
+    while(s1 < setsToWin && s2 < setsToWin){
+      const set = simulateSet(holds.h1, holds.h2, tb1, firstServer);
+      if(set.winner === 1) s1++; else s2++;
+      tg += set.g1 + set.g2;
+      pg += set.g1;
+      firstServer = firstServer === 1 ? 2 : 1;
+    }
+    if(s1 > s2) p1Match++;
+    const key = `${s1}-${s2}`;
+    setScoreCount[key] = (setScoreCount[key] || 0) + 1;
+    if(s1 === setsToWin && s2 === 0) straight1++;
+    if(s2 === setsToWin && s1 === 0) straight2++;
+    totalGamesSum += tg; p1GamesSum += pg;
+    totalGamesArr[i] = tg; p1GamesArr[i] = pg;
+  }
+
+  function pOver(arr, line){
+    let c = 0;
+    for(let i = 0; i < arr.length; i++) if(arr[i] > line) c++;
+    return c / arr.length;
+  }
+
+  const gameLine = cfg.gameLine != null ? cfg.gameLine : 22.5;
+  const p1Line   = cfg.p1Line   != null ? cfg.p1Line   : 11.5;
+
+  return {
+    holds, tb1,
+    p1Win: p1Match / SIMS,
+    p2Win: 1 - p1Match / SIMS,
+    straight1: straight1 / SIMS,
+    straight2: straight2 / SIMS,
+    setScores: Object.entries(setScoreCount)
+      .map(([k,v]) => ({ score:k, pct:v/SIMS }))
+      .sort((a,b) => b.pct - a.pct),
+    avgTotalGames: totalGamesSum / SIMS,
+    avgP1Games: p1GamesSum / SIMS,
+    avgP2Games: (totalGamesSum - p1GamesSum) / SIMS,
+    gameLine, p1Line,
+    overGames: pOver(totalGamesArr, gameLine),
+    overP1: pOver(p1GamesArr, p1Line),
+  };
+}
+
+// --- Build the bet list for a match --------------------------------------
+function buildBets(cfg, m, dk){
+  const bets = [];
+  const add = (cat, name, sub, pct, price) => {
+    const b = { cat, name, sub, pct, match: `${cfg.n1} vs ${cfg.n2}` };
+    if(price != null){
+      b.price = price;
+      b.implied = americanToImplied(price);
+      b.edge = pct - b.implied;
+    }
+    bets.push(b);
+  };
+
+  // Match winner — surface whichever side is favoured
+  const p1Fav = m.p1Win >= m.p2Win;
+  if(p1Fav) add('ML', `${cfg.n1} to win`, 'Match winner', m.p1Win, dk ? dk.price1 : null);
+  else add('ML', `${cfg.n2} to win`, 'Match winner', m.p2Win, dk ? dk.price2 : null);
+
+  // Set betting
+  const favStraight = p1Fav ? m.straight1 : m.straight2;
+  const favName = p1Fav ? cfg.n1 : cfg.n2;
+  add('SETS', `${favName} in straight sets`, 'Set betting', favStraight);
+  const goesDistance = 1 - m.straight1 - m.straight2;
+  add('SETS', `Match goes the distance`, cfg.format === 5 ? 'Reaches a 5th set' : 'Reaches a 3rd set', goesDistance);
+
+  // Total games — show the stronger side of the line, priced if DK posted it
+  const lineIsDK = dk && dk.totalLine != null && dk.totalLine === m.gameLine;
+  if(m.overGames >= 0.5){
+    add('GAMES', `Total games Over ${m.gameLine}`, `Model mean ${m.avgTotalGames.toFixed(1)} games`,
+        m.overGames, lineIsDK ? dk.overPrice : null);
+  } else {
+    add('GAMES', `Total games Under ${m.gameLine}`, `Model mean ${m.avgTotalGames.toFixed(1)} games`, 1 - m.overGames);
+  }
+
+  // Player game total
+  if(m.overP1 >= 0.5) add('PLAYER', `${cfg.n1} Over ${m.p1Line} games`, `Model mean ${m.avgP1Games.toFixed(1)} games won`, m.overP1);
+  else add('PLAYER', `${cfg.n1} Under ${m.p1Line} games`, `Model mean ${m.avgP1Games.toFixed(1)} games won`, 1 - m.overP1);
+
+  return bets;
+}
+
+// --- State & rendering ----------------------------------------------------
+let matches = [];
+let pendingDK = null;
+
+function pctClass(p){ return p >= 0.65 ? 'strong' : (p >= 0.55 ? 'lean' : 'soft'); }
+
+function render(){
+  // Ranked pooled list
+  const filter = document.querySelector('.filter-row button.active').dataset.f;
+  const all = [];
+  matches.forEach(entry => entry.bets.forEach(b => all.push(b)));
+  const rows = all.filter(b => filter === 'all' || b.cat === filter).sort((a,b) => b.pct - a.pct);
+
+  const labels = { ML:'Match Winner', SETS:'Set Betting', GAMES:'Total Games', PLAYER:'Player Games' };
+  document.getElementById('rankList').innerHTML = rows.length ? rows.map((b,i) => `
+    <div class="rank-row">
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-main">
+        <div class="rank-name">${b.name}</div>
+        <div class="rank-sub">${b.sub} \u00b7 ${b.match}</div>
+        <div class="rank-tag">${labels[b.cat]}${b.price != null ? ` \u00b7 DK ${fmtAmerican(b.price)} \u00b7 ${b.edge >= 0 ? '+' : ''}${(b.edge*100).toFixed(1)}% edge` : ''}</div>
+      </div>
+      <div class="rank-pct ${pctClass(b.pct)}">${Math.round(b.pct*100)}%</div>
+    </div>
+  `).join('') : '<div class="empty-state">No bets in this category yet.</div>';
+
+  // Per-match breakdowns
+  document.getElementById('matchList').innerHTML = matches.length ? matches.map((entry, idx) => {
+    const { cfg, m } = entry;
+    const p1Fav = m.p1Win >= m.p2Win;
+    const topScores = m.setScores.slice(0,3).map(s =>
+      `<div class="proj-chip">${s.score}: <b>${Math.round(s.pct*100)}%</b></div>`).join('');
+    return `
+      <div class="match-card">
+        <div class="match-head">
+          <span>${cfg.event || 'Match'} \u00b7 ${cfg.surface} \u00b7 Best of ${cfg.format}</span>
+          <span class="del" onclick="removeMatch(${idx})">remove</span>
+        </div>
+        <div class="matchup-row">
+          <div class="p-block">
+            <div class="p-name ${p1Fav ? 'fav' : ''}">${cfg.n1}</div>
+            <div class="p-rank">${cfg.r1 ? 'Rank ' + cfg.r1 : ''} \u00b7 ${Math.round(m.p1Win*100)}%</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="p-block">
+            <div class="p-name ${!p1Fav ? 'fav' : ''}">${cfg.n2}</div>
+            <div class="p-rank">${cfg.r2 ? 'Rank ' + cfg.r2 : ''} \u00b7 ${Math.round(m.p2Win*100)}%</div>
+          </div>
+        </div>
+        <div class="proj-strip">
+          <div class="proj-chip">Hold%: <b>${Math.round(m.holds.h1*100)}</b> / <b>${Math.round(m.holds.h2*100)}</b>${m.holds.derived ? ' (derived)' : ' (entered)'}</div>
+          <div class="proj-chip">Proj. total games: <b>${m.avgTotalGames.toFixed(1)}</b></div>
+          <div class="proj-chip">Proj. games: <b>${m.avgP1Games.toFixed(1)}</b> / <b>${m.avgP2Games.toFixed(1)}</b></div>
+        </div>
+        <div class="proj-strip">${topScores}</div>
+        ${entry.bets.map(b => `
+          <div class="bet">
+            <div class="bet-main">
+              <div class="bet-name">${b.name}</div>
+              <div class="bet-sub">${b.sub}${b.price != null ? ` \u00b7 DK ${fmtAmerican(b.price)} (implied ${Math.round(b.implied*100)}%) \u00b7 ${b.edge >= 0 ? '+' : ''}${(b.edge*100).toFixed(1)}% edge` : ''}</div>
+            </div>
+            <div class="bet-pct ${pctClass(b.pct)}">${Math.round(b.pct*100)}%</div>
+          </div>
+        `).join('')}
+      </div>`;
+  }).join('') : '<div class="empty-state">No matches modeled yet.</div>';
+}
+
+function removeMatch(i){ matches.splice(i,1); render(); }
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  const cfg = {
+    tour: str('tour') || document.getElementById('tour').value,
+    surface: document.getElementById('surface').value,
+    format: Number(document.getElementById('format').value),
+    event: str('eventLabel'),
+    n1: str('n1') || 'Player 1', n2: str('n2') || 'Player 2',
+    r1: num('r1'), r2: num('r2'),
+    f1: num('f1'), f2: num('f2'),
+    h1Manual: num('h1'), h2Manual: num('h2'),
+    h2h1: num('h2h1') || 0, h2h2: num('h2h2') || 0,
+    gameLine: num('gameLine'), p1Line: num('p1Line'),
+  };
+  cfg.tour = document.getElementById('tour').value;
+
+  if(cfg.r1 == null && cfg.h1Manual == null){
+    alert('Enter at least a world ranking (or a hold %) for Player 1.');
+    return;
+  }
+  if(cfg.r2 == null && cfg.h2Manual == null){
+    alert('Enter at least a world ranking (or a hold %) for Player 2.');
+    return;
+  }
+
+  const m = runModel(cfg);
+  // Only attach DK odds if the names on screen still match what was loaded,
+  // so hand-edited matchups never inherit another match's prices.
+  const dk = (pendingDK && nameKey(pendingDK.n1) === nameKey(cfg.n1) && nameKey(pendingDK.n2) === nameKey(cfg.n2))
+    ? pendingDK : null;
+  matches.unshift({ cfg, m, bets: buildBets(cfg, m, dk) });
+  render();
+  window.scrollTo({ top: document.getElementById('rankList').offsetTop - 60, behavior:'smooth' });
+});
+
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// --- DraftKings odds via The Odds API -------------------------------------
+if(oddsKey) document.getElementById('oddsKey').value = oddsKey;
+
+document.getElementById('saveOddsKeyBtn').addEventListener('click', () => {
+  oddsKey = document.getElementById('oddsKey').value.trim();
+  localStorage.setItem('oddsApiKey', oddsKey);
+  setDKStatus(oddsKey ? 'Key saved. Tap "Load DraftKings matches".' : 'Key cleared.');
+});
+
+function setDKStatus(text, isErr){
+  const el = document.getElementById('dkStatus');
+  el.textContent = text;
+  el.className = 'status' + (isErr ? ' err' : '');
+}
+
+function americanToImplied(price){
+  return price > 0 ? 100/(price+100) : (-price)/((-price)+100);
+}
+function fmtAmerican(price){ return price > 0 ? `+${price}` : `${price}`; }
+
+// DraftKings and the stats feed format names differently ("N. Djokovic" vs
+// "Novak Djokovic"), so match on surname plus first initial.
+function nameKey(name){
+  const clean = (name || '').toLowerCase().replace(/[^a-z\s.]/g,'').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if(!parts.length) return '';
+  const last = parts[parts.length-1].replace(/\./g,'');
+  const first = parts[0].replace(/\./g,'')[0] || '';
+  return `${last}|${first}`;
+}
+
+document.getElementById('loadDKBtn').addEventListener('click', async () => {
+  if(!oddsKey){ setDKStatus('Paste and save your Odds API key first.', true); return; }
+  setDKStatus('Finding tennis events DraftKings is pricing...');
+  document.getElementById('dkList').innerHTML = '';
+  try{
+    const sportsRes = await fetch(`${ODDS_BASE}/sports/?apiKey=${encodeURIComponent(oddsKey)}`);
+    if(sportsRes.status === 401) throw new Error('Odds API key rejected.');
+    if(!sportsRes.ok) throw new Error(`Could not load sports list (HTTP ${sportsRes.status}).`);
+    const sports = await sportsRes.json();
+    const tennisKeys = sports.filter(s => s.key.startsWith('tennis_') && !s.has_outrights).map(s => s.key);
+
+    if(!tennisKeys.length){
+      setDKStatus('No tennis tournaments are currently active on The Odds API. Its tennis coverage is Grand Slams, Masters 1000 and 500-level events \u2014 Challenger and ITF are not included, so on many days this comes back empty.', true);
+      return;
+    }
+
+    const found = [];
+    for(const key of tennisKeys){
+      const url = `${ODDS_BASE}/sports/${key}/odds/?apiKey=${encodeURIComponent(oddsKey)}`
+        + `&regions=us&markets=h2h,totals&bookmakers=draftkings&oddsFormat=american`;
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const events = await res.json();
+      events.forEach(ev => {
+        const dk = (ev.bookmakers || []).find(b => b.key === 'draftkings');
+        if(!dk) return;
+        const h2h = (dk.markets || []).find(m => m.key === 'h2h');
+        const totals = (dk.markets || []).find(m => m.key === 'totals');
+        if(!h2h) return;
+        const o1 = h2h.outcomes.find(o => o.name === ev.home_team);
+        const o2 = h2h.outcomes.find(o => o.name === ev.away_team);
+        if(!o1 || !o2) return;
+        const over = totals && totals.outcomes.find(o => o.name === 'Over');
+        found.push({
+          tournament: ev.sport_title || key,
+          commence: ev.commence_time,
+          n1: ev.home_team, n2: ev.away_team,
+          price1: o1.price, price2: o2.price,
+          totalLine: over ? over.point : null,
+          overPrice: over ? over.price : null,
+        });
+      });
+    }
+
+    dkMatches = found;
+    if(!dkMatches.length){
+      setDKStatus('Tennis events exist, but DraftKings has no priced singles matches on them right now.', true);
+      return;
+    }
+    renderDKList();
+    setDKStatus(`Found ${dkMatches.length} match${dkMatches.length===1?'':'es'} priced by DraftKings.`);
+  }catch(e){
+    setDKStatus(e.message, true);
+  }
+});
+
+function renderDKList(){
+  const html = dkMatches.map((d, i) => `
+    <div class="rank-row" style="cursor:pointer;" onclick="loadDKMatch(${i})">
+      <div class="rank-main">
+        <div class="rank-name">${d.n1} vs ${d.n2}</div>
+        <div class="rank-sub">DK ${fmtAmerican(d.price1)} / ${fmtAmerican(d.price2)}${d.totalLine != null ? ' \u00b7 total ' + d.totalLine : ''}</div>
+        <div class="rank-tag">${d.tournament} \u00b7 ${new Date(d.commence).toLocaleString()}</div>
+      </div>
+      <div class="rank-pct soft" style="font-size:15px;">LOAD</div>
+    </div>`).join('');
+  document.getElementById('dkList').innerHTML =
+    html + `<button class="btn" id="modelAllDKBtn" style="margin-top:10px;">MODEL ALL ${dkMatches.length} DK MATCHES</button>`;
+  document.getElementById('modelAllDKBtn').addEventListener('click', modelAllDK);
+}
+
+// Pull rankings out of the Live Tennis API feed when the same match is there.
+function rankingsFor(n1, n2){
+  const k1 = nameKey(n1), k2 = nameKey(n2);
+  for(const m of todayMatches){
+    const a = nameKey(m.players.p1.name), b = nameKey(m.players.p2.name);
+    if(a === k1 && b === k2) return { r1: m.players.p1.ranking, r2: m.players.p2.ranking, surface: m.surface, round: m.round };
+    if(a === k2 && b === k1) return { r1: m.players.p2.ranking, r2: m.players.p1.ranking, surface: m.surface, round: m.round };
+  }
+  return null;
+}
+
+function cfgFromDK(d){
+  const tour = tourFromTournament(d.tournament);
+  const merged = rankingsFor(d.n1, d.n2);
+  return {
+    tour,
+    surface: normSurface(merged ? merged.surface : ''),
+    format: formatFor(d.tournament, tour),
+    event: d.tournament + (merged && merged.round ? ' \u00b7 ' + merged.round : ''),
+    n1: d.n1, n2: d.n2,
+    r1: merged ? merged.r1 : null,
+    r2: merged ? merged.r2 : null,
+    f1: null, f2: null, h1Manual: null, h2Manual: null,
+    h2h1: 0, h2h2: 0,
+    gameLine: d.totalLine != null ? d.totalLine : (tour === 'wta' ? 21.5 : 22.5),
+    p1Line: 11.5,
+    dk: d,
+  };
+}
+
+function loadDKMatch(i){
+  const c = cfgFromDK(dkMatches[i]);
+  document.getElementById('tour').value = c.tour;
+  document.getElementById('surface').value = c.surface;
+  document.getElementById('format').value = String(c.format);
+  document.getElementById('eventLabel').value = c.event;
+  document.getElementById('n1').value = c.n1;
+  document.getElementById('r1').value = c.r1 || '';
+  document.getElementById('n2').value = c.n2;
+  document.getElementById('r2').value = c.r2 || '';
+  ['f1','f2','h1','h2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('h2h1').value = 0;
+  document.getElementById('h2h2').value = 0;
+  document.getElementById('gameLine').value = c.gameLine;
+  document.getElementById('p1Line').value = c.p1Line;
+  pendingDK = c.dk;
+  setDKStatus(`Loaded ${c.n1} vs ${c.n2}.` + (c.r1 == null ? ' No ranking found for this match \u2014 add hold % or form by hand for a meaningful model.' : ''), c.r1 == null);
+  document.querySelector('.panel-label').scrollIntoView({ behavior:'smooth' });
+}
+
+function modelAllDK(){
+  let added = 0, skipped = 0;
+  dkMatches.forEach(d => {
+    const cfg = cfgFromDK(d);
+    if(cfg.r1 == null || cfg.r2 == null){ skipped++; return; }
+    const res = runModel(cfg);
+    matches.unshift({ cfg, m: res, bets: buildBets(cfg, res, d) });
+    added++;
+  });
+  render();
+  setDKStatus(
+    `Modeled ${added} DraftKings match${added===1?'':'es'}.` +
+    (skipped ? ` Skipped ${skipped} with no ranking available \u2014 load those individually and add hold % or form.` : ''),
+    skipped > 0
+  );
+  window.scrollTo({ top: document.getElementById('rankList').offsetTop - 60, behavior:'smooth' });
+}
+
+// --- Live Tennis API: load today's real matches ---------------------------
+if(apiKey) document.getElementById('apiKey').value = apiKey;
+
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  apiKey = document.getElementById('apiKey').value.trim();
+  localStorage.setItem('liveTennisApiKey', apiKey);
+  setLoadStatus(apiKey ? 'Key saved. Tap "Load today\u2019s matches".' : 'Key cleared.');
+});
+
+function setLoadStatus(text, isErr){
+  const el = document.getElementById('loadStatus');
+  el.textContent = text;
+  el.className = 'status' + (isErr ? ' err' : '');
+}
+
+function tourFromTournament(t){
+  return /wta|women/i.test(t || '') ? 'wta' : 'atp';
+}
+function normSurface(s){
+  const v = (s || '').toLowerCase();
+  if(v.includes('clay')) return 'clay';
+  if(v.includes('grass')) return 'grass';
+  return 'hard';
+}
+// Grand Slam men's singles is best of 5; everything else best of 3.
+function formatFor(tournament, tour){
+  const slam = /australian open|roland garros|french open|wimbledon|us open/i.test(tournament || '');
+  return (slam && tour === 'atp') ? 5 : 3;
+}
+
+async function ltaFetch(path){
+  const res = await fetch(`${LTA_BASE}${path}`, { headers: { 'X-API-Key': apiKey } });
+  if(res.status === 401) throw new Error('API key rejected \u2014 check it was pasted correctly.');
+  if(res.status === 403) throw new Error('That endpoint needs a paid tier on your key.');
+  if(res.status === 429) throw new Error('Rate limit hit (free tier: 30/min, 100/day). Wait a moment and retry.');
+  if(!res.ok) throw new Error(`Request failed (HTTP ${res.status}).`);
+  return res.json();
+}
+
+document.getElementById('loadMatchesBtn').addEventListener('click', async () => {
+  if(!apiKey){ setLoadStatus('Paste and save your free API key first.', true); return; }
+  setLoadStatus('Loading today\u2019s matches...');
+  document.getElementById('todayList').innerHTML = '';
+  try{
+    const [upcoming, live] = await Promise.all([
+      ltaFetch('/matches?status=upcoming&limit=100').catch(() => ({ data: [] })),
+      ltaFetch('/matches?status=live&limit=100').catch(() => ({ data: [] })),
+    ]);
+    const raw = [...(upcoming.data || []), ...(live.data || [])];
+
+    // Singles only — doubles entries carry a "/" in the player name.
+    todayMatches = raw.filter(m => {
+      const p1 = m.players && m.players.p1 && m.players.p1.name;
+      const p2 = m.players && m.players.p2 && m.players.p2.name;
+      return p1 && p2 && !p1.includes('/') && !p2.includes('/');
+    });
+
+    if(!todayMatches.length){
+      setLoadStatus('No live or upcoming singles matches returned right now.', true);
+      document.getElementById('todayList').innerHTML =
+        '<div class="empty-state">Nothing on the feed at the moment \u2014 try again closer to match times.</div>';
+      return;
+    }
+    renderTodayList();
+    setLoadStatus(`Loaded ${todayMatches.length} singles match${todayMatches.length===1?'':'es'}. Tap one to load it, or model them all.`);
+  }catch(e){
+    setLoadStatus(e.message, true);
+  }
+});
+
+function renderTodayList(){
+  const html = todayMatches.map((m, i) => {
+    const p1 = m.players.p1, p2 = m.players.p2;
+    const r1 = p1.ranking ? `#${p1.ranking}` : 'unranked';
+    const r2 = p2.ranking ? `#${p2.ranking}` : 'unranked';
+    return `
+      <div class="rank-row" style="cursor:pointer;" onclick="loadMatch(${i})">
+        <div class="rank-main">
+          <div class="rank-name">${p1.name} vs ${p2.name}</div>
+          <div class="rank-sub">${r1} vs ${r2} \u00b7 ${m.tournament || ''}</div>
+          <div class="rank-tag">${m.status || ''} \u00b7 ${m.surface || 'surface n/a'} \u00b7 ${m.round || ''}</div>
+        </div>
+        <div class="rank-pct soft" style="font-size:15px;">LOAD</div>
+      </div>`;
+  }).join('');
+  document.getElementById('todayList').innerHTML =
+    html + `<button class="btn" id="modelAllBtn" style="margin-top:10px;">MODEL ALL ${todayMatches.length} MATCHES</button>`;
+  document.getElementById('modelAllBtn').addEventListener('click', modelAll);
+}
+
+function cfgFromMatch(m){
+  const tour = tourFromTournament(m.tournament);
+  const p1 = m.players.p1, p2 = m.players.p2;
+  return {
+    tour, surface: normSurface(m.surface),
+    format: formatFor(m.tournament, tour),
+    event: [m.tournament, m.round].filter(Boolean).join(' \u00b7 '),
+    n1: p1.name, n2: p2.name,
+    r1: p1.ranking || null, r2: p2.ranking || null,
+    f1: null, f2: null,
+    h1Manual: null, h2Manual: null,
+    h2h1: 0, h2h2: 0,
+    gameLine: tour === 'wta' ? 21.5 : 22.5,
+    p1Line: 11.5,
+  };
+}
+
+function loadMatch(i){
+  const c = cfgFromMatch(todayMatches[i]);
+  pendingDK = null;
+  document.getElementById('tour').value = c.tour;
+  document.getElementById('surface').value = c.surface;
+  document.getElementById('format').value = String(c.format);
+  document.getElementById('eventLabel').value = c.event;
+  document.getElementById('n1').value = c.n1;
+  document.getElementById('r1').value = c.r1 || '';
+  document.getElementById('n2').value = c.n2;
+  document.getElementById('r2').value = c.r2 || '';
+  document.getElementById('f1').value = '';
+  document.getElementById('f2').value = '';
+  document.getElementById('h1').value = '';
+  document.getElementById('h2').value = '';
+  document.getElementById('h2h1').value = 0;
+  document.getElementById('h2h2').value = 0;
+  document.getElementById('gameLine').value = c.gameLine;
+  document.getElementById('p1Line').value = c.p1Line;
+  document.querySelector('.panel-label').scrollIntoView({ behavior:'smooth' });
+}
+
+function modelAll(){
+  // Only model matches where both players carry a ranking — without one the
+  // hold derivation has nothing real to work from and would be a coin flip.
+  let added = 0, skipped = 0;
+  todayMatches.forEach(m => {
+    const cfg = cfgFromMatch(m);
+    if(cfg.r1 == null || cfg.r2 == null){ skipped++; return; }
+    const res = runModel(cfg);
+    matches.unshift({ cfg, m: res, bets: buildBets(cfg, res) });
+    added++;
+  });
+  render();
+  setLoadStatus(
+    `Modeled ${added} match${added===1?'':'es'}.` +
+    (skipped ? ` Skipped ${skipped} where a player had no ranking \u2014 load those individually and enter hold % or form by hand.` : ''),
+    skipped > 0
+  );
+  window.scrollTo({ top: document.getElementById('rankList').offsetTop - 60, behavior:'smooth' });
+}
+
+render();
+</script>
+</body>
+</html>

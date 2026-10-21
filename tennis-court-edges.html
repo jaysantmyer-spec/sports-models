@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Prop Edges</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --clay:#B5713F; --grass:#3E7A4A; --grass-dark:#254A2E; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --gold:#E8C547; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--grass-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--gold);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:8px;
+}
+.snap-banner{
+  background:rgba(127,179,217,0.08);border:1px solid rgba(127,179,217,0.3);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--blue);line-height:1.5;margin-bottom:18px;
+}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+.filter-row{display:flex;gap:8px;margin-bottom:10px;}
+.filter-row button{
+  flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);
+  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;
+}
+.filter-row button.active{background:rgba(242,169,59,0.15);border-color:var(--amber);color:var(--amber);}
+
+.rank-row{
+  display:flex;align-items:center;gap:12px;background:var(--navy);border:1px solid #263644;
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;
+}
+.rank-num{font-family:'Teko',sans-serif;font-size:20px;color:var(--dim);width:22px;flex-shrink:0;}
+.rank-main{flex:1;min-width:0;}
+.rank-name{font-size:13.5px;font-weight:600;color:var(--chalk);}
+.rank-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.rank-tag{font-size:9px;letter-spacing:0.5px;color:var(--blue);margin-top:2px;text-transform:uppercase;}
+.rank-pct{font-family:'Teko',sans-serif;font-size:24px;color:var(--amber);flex-shrink:0;}
+
+.match-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.match-head{font-size:11px;color:var(--dim);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;}
+.matchup-row{display:flex;align-items:center;gap:10px;}
+.p-block{flex:1;text-align:center;}
+.p-name{font-size:14.5px;font-weight:600;}
+.p-name.fav{color:var(--amber);}
+.p-rank{font-size:11px;color:var(--dim);margin-top:1px;}
+.vs{font-family:'Teko',sans-serif;font-size:18px;color:var(--clay);padding:0 4px;}
+
+.prop-card{
+  background:rgba(255,255,255,0.03);border:1px solid #223140;border-radius:8px;
+  padding:10px 12px;margin-top:10px;cursor:pointer;
+}
+.prop-top{display:flex;justify-content:space-between;align-items:center;}
+.prop-name{font-size:13px;font-weight:600;color:var(--chalk);}
+.prop-sub{font-size:11px;color:var(--dim);margin-top:1px;}
+.prop-pct{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prop-pct.strong{color:var(--amber);}
+.prop-pct.lean{color:var(--green);}
+.badge{font-size:9px;letter-spacing:0.5px;text-align:right;margin-top:2px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.reasons{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.prop-card.open .reasons{display:block;}
+.reasons ul{margin:0;padding-left:16px;}
+.reasons li{margin-bottom:4px;}
+.reasons b{color:var(--chalk);}
+
+.parlay-card{
+  background:linear-gradient(160deg, rgba(242,169,59,0.12) 0%, var(--navy) 55%);
+  border:1px solid rgba(242,169,59,0.4);border-radius:12px;padding:18px 16px;margin-top:10px;
+}
+.parlay-title{font-family:'Teko',sans-serif;font-size:22px;letter-spacing:0.5px;color:var(--amber);margin-bottom:4px;}
+.parlay-note{font-size:11px;color:var(--dim);margin-bottom:10px;}
+.leg{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.leg:last-child{border-bottom:none;}
+.leg-name{color:var(--chalk);}
+.leg-prop{color:var(--dim);font-size:11px;display:block;}
+.leg-pct{font-family:'Teko',sans-serif;font-size:18px;color:var(--amber);}
+.parlay-total{
+  display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;
+  border-top:1px dashed rgba(242,169,59,0.4);
+}
+.parlay-total-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--chalk);}
+.parlay-total-pct{font-family:'Teko',sans-serif;font-size:32px;color:var(--amber);}
+
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>COURT EDGES</h1></div>
+  <p class="sub">Today's most analyzable ATP matches \u2014 match-winner AND straight-sets props, modeled from ranking, H2H, current-season form, and market pricing.</p>
+  <div class="warn-banner">Modeled probabilities from public rankings/results and market pricing context \u2014 not real sportsbook lines, and not betting advice. Gamble responsibly if at all.</div>
+  <div class="snap-banner">One-time researched snapshot (Sept 15, 2026). The Szczecin Challenger drew a stronger-than-usual field this week after bigger names withdrew from other events, which is why it dominates today's most analyzable matches. Ask again on a future day for a fresh read.</div>
+
+  <div class="section-title">RANKED: ALL FAVORABLE PROPS</div>
+  <div class="filter-row">
+    <button class="active" data-f="all">All</button>
+    <button data-f="ML">Match winner</button>
+    <button data-f="SETS">Straight sets</button>
+  </div>
+  <div id="rankList"></div>
+
+  <div class="section-title">MATCH BREAKDOWNS</div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Facundo Diaz Acosta</div><div class="p-rank">Rank 72</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Daniel Elahi Galan</div><div class="p-rank">Rank 392</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Facundo Diaz Acosta to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">85%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Diaz Acosta leads 2-0 all-time.</li>
+          <li><b>Ranking gap:</b> massive \u2014 72 vs 392, a career-high 47 for Diaz Acosta against a 392-ranked opponent.</li>
+          <li><b>2026 form:</b> Diaz Acosta 49-17 overall, 48-13 specifically on clay \u2014 excellent surface record.</li>
+          <li><b>Surface:</b> both the tournament and the head-to-head history are on clay, Diaz Acosta's best surface.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Diaz Acosta wins in straight sets</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">57%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Derived from the match-win probability using the standard best-of-3 relationship (assumes each set is an independent, similarly-weighted coin flip at that win rate) \u2014 not a separate market read.</li>
+          <li>The size of the ranking and form gap supports a routine, low-drama win.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Laslo Djere</div><div class="p-rank">Rank 183</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Johan Nikles</div><div class="p-rank">Rank 397</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Laslo Djere to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">80%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting, no history.</li>
+          <li><b>Profile:</b> Djere is a former ATP Top-30 player; ranking gap (183 vs 397) is substantial.</li>
+          <li><b>2026 form:</b> 25-15 overall, 21-10 on clay, and just won a title (Oeiras 4 Challenger) two weeks ago.</li>
+          <li><b>Recency:</b> lost a tight 3-setter in his most recent match (Genoa semifinal) \u2014 sharp form, not rust.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Djere wins in straight sets</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">51%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Derived from the match-win probability via the same best-of-3 model as above.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Kilian Feldbausch</div><div class="p-rank">Rank 270</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Kai Wehnelt</div><div class="p-rank">Lower-ranked</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Kilian Feldbausch to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">76%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> this is their 2nd career meeting (result of the 1st not confirmed in what we found).</li>
+          <li><b>Market context:</b> pre-match pricing had Feldbausch as a heavy favorite.</li>
+          <li><b>Confidence note:</b> Wehnelt's ranking/form data was thinner in what we found \u2014 slightly lower confidence than the Diaz Acosta or Djere picks.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Feldbausch wins in straight sets</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">46%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Derived from the match-win probability via the best-of-3 model.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Zdenek Kolar</div><div class="p-rank">Rank 173</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Ivan Gakhov</div><div class="p-rank">Rank 453</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Zdenek Kolar to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct strong">70%</div><div class="badge strong">STRONG EDGE</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> Kolar leads 2-0, most recently winning 6-3 6-4 at the 2023 Rovereto Challenger.</li>
+          <li><b>Ranking gap:</b> 173 vs 453, and Kolar is a former ATP Top-100 player who's actually won this exact tournament before (2021).</li>
+          <li><b>2026 form:</b> Kolar 22-28 (17-20 clay) \u2014 middling, and lost his most recent match, so this isn't a pure form-based pick.</li>
+          <li><b>Why it still leans Kolar:</b> the ranking gap and a clean 2-0 head-to-head outweigh his so-so recent record against this specific, much lower-ranked opponent.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Kolar wins in straight sets</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">41%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Derived from the match-win probability via the best-of-3 model.</li>
+          <li>Kolar's shakier current form (lost last match) is exactly why this is meaningfully lower than his match-win number.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Marco Cecchinato</div><div class="p-rank">Rank 163</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Henri Squire</div><div class="p-rank">Rank 238</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Marco Cecchinato to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct lean">62%</div><div class="badge lean">LEAN</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting.</li>
+          <li><b>Profile:</b> Cecchinato is the most accomplished player in the entire draw \u2014 a career-high of world No. 16 and a 2018 French Open semifinal that included a win over Djokovic.</li>
+          <li><b>2026 form:</b> Cecchinato 38-26 (37-23 clay) vs Squire's 27-28 (19-20 clay) \u2014 clear edge.</li>
+          <li><b>Confidence note:</b> ranking gap here (163 vs 238) is the smallest of today's picks, which caps this as a lean rather than a strong edge.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Cecchinato wins in straight sets</div><div class="prop-sub">Set winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct" style="color:var(--dim);">33%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li>Derived from the match-win probability via the best-of-3 model \u2014 a genuine coin-flip-adjacent match rarely ends in a quick straight-sets sweep.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-card">
+    <div class="match-head">ATP Challenger 100 \u00b7 Szczecin, Poland \u00b7 1st Round \u00b7 Clay</div>
+    <div class="matchup-row">
+      <div class="p-block"><div class="p-name fav">Tiago Pereira</div><div class="p-rank">Favorite</div></div>
+      <div class="vs">VS</div>
+      <div class="p-block"><div class="p-name">Filip Pieczonka</div><div class="p-rank">Underdog</div></div>
+    </div>
+    <div class="prop-card" onclick="this.classList.toggle('open')">
+      <div class="prop-top">
+        <div><div class="prop-name">Tiago Pereira to win</div><div class="prop-sub">Match winner</div></div>
+        <div style="text-align:right;"><div class="prop-pct" style="color:var(--dim);">58%</div><div class="badge">&nbsp;</div></div>
+      </div>
+      <div class="reasons">
+        <ul>
+          <li><b>H2H:</b> first-ever meeting.</li>
+          <li><b>Market context:</b> pre-match pricing had a modest Pereira lean, the closest match of today's group.</li>
+          <li><b>Confidence note:</b> limited public ranking/form data for both players \u2014 the lowest-confidence pick on this list.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">HIGHLY FAVORABLE PARLAY</div>
+  <div class="parlay-card">
+    <div class="parlay-title">TOP-3 EDGE PARLAY</div>
+    <div class="parlay-note">One leg per match, highest-probability pick from each \u2014 avoids stacking correlated bets from the same match.</div>
+    <div class="leg">
+      <div><div class="leg-name">Facundo Diaz Acosta ML</div><div class="leg-prop">vs Daniel Elahi Galan</div></div>
+      <div class="leg-pct">85%</div>
+    </div>
+    <div class="leg">
+      <div><div class="leg-name">Laslo Djere ML</div><div class="leg-prop">vs Johan Nikles</div></div>
+      <div class="leg-pct">80%</div>
+    </div>
+    <div class="leg">
+      <div><div class="leg-name">Kilian Feldbausch ML</div><div class="leg-prop">vs Kai Wehnelt</div></div>
+      <div class="leg-pct">76%</div>
+    </div>
+    <div class="parlay-total">
+      <div class="parlay-total-label">COMBINED HIT PROBABILITY</div>
+      <div class="parlay-total-pct" id="parlayPct">52%</div>
+    </div>
+  </div>
+
+  <p class="footnote">Straight-sets probabilities are derived from each match-win probability using the standard best-of-3 independent-set relationship (P(match) = 3p\u00b2 \u2212 2p\u00b3, solved for p, then straight-sets = p\u00b2) \u2014 not a separately sourced market number. Combined parlay probability multiplies each leg's probability together, assuming independence; a real book's parlay price would include their own odds and vig, not reflected here. Today's slate leaned heavily on the Szczecin Challenger since it had the strongest concentration of well-documented, ranked players; other matches today (UTR Pro Tennis Tour, smaller ITF-adjacent events) had little to no public data and were left out rather than guessed at. This is a hobby stats exercise, not financial or betting advice.</p>
+</div>
+
+<script>
+const ranked = [
+  { name:'Facundo Diaz Acosta', prop:'Match winner vs Elahi Galan', pct:85, cat:'ML' },
+  { name:'Laslo Djere', prop:'Match winner vs Johan Nikles', pct:80, cat:'ML' },
+  { name:'Kilian Feldbausch', prop:'Match winner vs Kai Wehnelt', pct:76, cat:'ML' },
+  { name:'Diaz Acosta', prop:'Straight sets vs Elahi Galan', pct:57, cat:'SETS' },
+  { name:'Djere', prop:'Straight sets vs Nikles', pct:51, cat:'SETS' },
+  { name:'Feldbausch', prop:'Straight sets vs Wehnelt', pct:46, cat:'SETS' },
+  { name:'Kolar', prop:'Straight sets vs Gakhov', pct:41, cat:'SETS' },
+  { name:'Marco Cecchinato', prop:'Straight sets vs Squire', pct:33, cat:'SETS' },
+  { name:'Zdenek Kolar', prop:'Match winner vs Ivan Gakhov', pct:70, cat:'ML' },
+  { name:'Marco Cecchinato', prop:'Match winner vs Henri Squire', pct:62, cat:'ML' },
+  { name:'Tiago Pereira', prop:'Match winner vs Filip Pieczonka', pct:58, cat:'ML' },
+].sort((a,b) => b.pct - a.pct);
+
+function renderRank(filter){
+  const rows = ranked.filter(r => filter === 'all' || r.cat === filter);
+  document.getElementById('rankList').innerHTML = rows.map((r,i) => `
+    <div class="rank-row">
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-main">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-sub">${r.prop}</div>
+        <div class="rank-tag">${r.cat === 'ML' ? 'Match Winner' : 'Straight Sets'}</div>
+      </div>
+      <div class="rank-pct">${r.pct}%</div>
+    </div>
+  `).join('');
+}
+renderRank('all');
+
+document.querySelectorAll('.filter-row button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRank(btn.dataset.f);
+  });
+});
+
+const legs = [0.85, 0.80, 0.76];
+document.getElementById('parlayPct').textContent = Math.round(legs.reduce((a,b)=>a*b,1)*100) + '%';
+</script>
+</body>
+</html>

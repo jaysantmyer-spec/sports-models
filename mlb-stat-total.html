@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Stat Total</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field:#2F6E4D; --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A; --dim:#7C93A3;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+.formula{
+  font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);
+  background:var(--navy);border:1px solid #263644;border-radius:8px;padding:10px 12px;margin-bottom:16px;
+}
+
+.toolbar{display:flex;gap:8px;margin-bottom:10px;}
+.toolbar input{
+  flex:1;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.toolbar button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 16px;cursor:pointer;
+}
+.toolbar button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:16px;}
+.status.err{color:var(--red);}
+
+.game-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.row{display:flex;align-items:center;gap:10px;background:var(--navy);border:1px solid #263644;border-radius:8px;padding:9px 12px;margin-bottom:6px;}
+.rank-num{font-family:'Teko',sans-serif;font-size:18px;color:var(--dim);width:22px;flex-shrink:0;text-align:center;}
+.row-main{flex:1;min-width:0;}
+.row-name{font-size:13.5px;font-weight:600;}
+.row-meta{font-size:10.5px;color:var(--dim);margin-top:1px;}
+.row-total{font-family:'Teko',sans-serif;font-size:20px;color:var(--amber);flex-shrink:0;}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>MLB STAT TOTAL</h1></div>
+  <p class="sub">Today's MLB players, ranked by a simple combined stat total \u2014 grouped by the game they're playing in.</p>
+  <div class="formula">TOTAL = AVG \u2212 OBP \u2212 SLG \u2212 OPS</div>
+
+  <div class="toolbar">
+    <input type="text" id="filterInput" placeholder="Filter by player or team...">
+    <button id="refreshBtn">LOAD SLATE</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div id="content"></div>
+
+  <p class="footnote">Season stats from the MLB Stats API. Total is computed exactly as AVG minus OBP minus SLG minus OPS, per current-season numbers. Since OBP, SLG, and OPS are all typically larger numbers than AVG, this total is negative for essentially every player \u2014 it's ranked from highest (least negative) to lowest (most negative) exactly as requested, not adjusted or reinterpreted. Hitters only (non-pitchers with recorded plate appearances this season).</p>
+</div>
+
+<script>
+function isoForDate(d){
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(d);
+}
+function todayISO(){ return isoForDate(new Date()); }
+function season(){ return new Date().getFullYear(); }
+async function safeJSON(url){
+  try{ const res = await fetch(url); if(!res.ok) return null; return await res.json(); }catch(e){ return null; }
+}
+function setStatus(text, isErr){
+  const el = document.getElementById('statusLine');
+  el.textContent = text; el.className = 'status' + (isErr ? ' err' : '');
+}
+
+async function loadSlate(){
+  document.getElementById('refreshBtn').disabled = true;
+  document.getElementById('content').innerHTML = '';
+  setStatus('Loading today\u2019s schedule...');
+
+  const yr = season();
+  let date = todayISO();
+  let schedData = await safeJSON(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,venue`);
+  if(!schedData || !schedData.dates || !schedData.dates.length || !schedData.dates[0].games.length){
+    const now = new Date();
+    for(const cand of [new Date(now.getTime()-86400000), new Date(now.getTime()+86400000)]){
+      const candDate = isoForDate(cand);
+      const candData = await safeJSON(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${candDate}&hydrate=team,venue`);
+      if(candData && candData.dates && candData.dates.length && candData.dates[0].games.length){ date = candDate; schedData = candData; break; }
+    }
+  }
+  if(!schedData || !schedData.dates || !schedData.dates.length || !schedData.dates[0].games.length){
+    setStatus('No MLB games found for today.', true);
+    document.getElementById('content').innerHTML = '<div class="empty-state">No games scheduled today.</div>';
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+
+  const games = schedData.dates[0].games.filter(g => g.status && (g.status.abstractGameState === 'Preview' || g.status.abstractGameState === 'Live'));
+  if(!games.length){
+    setStatus('Today\u2019s games are already finished.', true);
+    document.getElementById('content').innerHTML = '<div class="empty-state">All of today\u2019s games have wrapped up.</div>';
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+
+  setStatus(`Loading rosters and stats for ${games.length} game(s)...`);
+  const teamIds = new Set();
+  games.forEach(g => { teamIds.add(g.teams.home.team.id); teamIds.add(g.teams.away.team.id); });
+  const teamHitters = {};
+
+  await Promise.all([...teamIds].map(async tid => {
+    const data = await safeJSON(`https://statsapi.mlb.com/api/v1/teams/${tid}/roster?rosterType=active&hydrate=person(stats(group=[hitting],type=[season],season=${yr}))`);
+    const roster = (data && data.roster) || [];
+    const hitters = [];
+    roster.forEach(entry => {
+      const person = entry.person, pos = entry.position && entry.position.abbreviation;
+      if(pos === 'P') return;
+      const block = ((person && person.stats) || []).find(s => s.group && s.group.displayName === 'hitting');
+      const stat = block && block.splits && block.splits[0] && block.splits[0].stat;
+      if(!stat || !stat.plateAppearances) return;
+      const avg = Number(stat.avg) || 0, obp = Number(stat.obp) || 0, slg = Number(stat.slg) || 0, ops = Number(stat.ops) || 0;
+      hitters.push({ name: person.fullName, avg, obp, slg, ops, total: avg - obp - slg - ops });
+    });
+    hitters.sort((a,b) => b.total - a.total);
+    teamHitters[tid] = hitters;
+  }));
+
+  window.__games = games;
+  window.__teamHitters = teamHitters;
+  window.__teamNames = {};
+  games.forEach(g => {
+    window.__teamNames[g.teams.home.team.id] = g.teams.home.team.name;
+    window.__teamNames[g.teams.away.team.id] = g.teams.away.team.name;
+  });
+
+  renderAll();
+  setStatus(`Loaded stats for ${games.length} game${games.length===1?'':'s'}.`);
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+function renderAll(){
+  const q = document.getElementById('filterInput').value.trim().toLowerCase();
+  const games = window.__games || [];
+  const teamHitters = window.__teamHitters || {};
+  const teamNames = window.__teamNames || {};
+
+  if(!games.length){
+    document.getElementById('content').innerHTML = '<div class="empty-state">No games loaded yet.</div>';
+    return;
+  }
+
+  const html = games.map(g => {
+    const homeId = g.teams.home.team.id, awayId = g.teams.away.team.id;
+    const homeName = teamNames[homeId], awayName = teamNames[awayId];
+    let combined = [
+      ...(teamHitters[awayId]||[]).map(h => ({...h, team: awayName})),
+      ...(teamHitters[homeId]||[]).map(h => ({...h, team: homeName})),
+    ];
+    if(q) combined = combined.filter(h => h.name.toLowerCase().includes(q) || h.team.toLowerCase().includes(q));
+    combined.sort((a,b) => b.total - a.total);
+    if(!combined.length) return '';
+
+    const rows = combined.map((h,i) => `
+      <div class="row">
+        <div class="rank-num">#${i+1}</div>
+        <div class="row-main">
+          <div class="row-name">${h.name}</div>
+          <div class="row-meta">${h.team} \u00b7 AVG ${h.avg.toFixed(3)} \u00b7 OBP ${h.obp.toFixed(3)} \u00b7 SLG ${h.slg.toFixed(3)} \u00b7 OPS ${h.ops.toFixed(3)}</div>
+        </div>
+        <div class="row-total">${h.total.toFixed(3)}</div>
+      </div>
+    `).join('');
+
+    return `<div class="game-title">${awayName} @ ${homeName}</div>${rows}`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = html.trim() ? html : '<div class="empty-state">No players match.</div>';
+}
+
+document.getElementById('filterInput').addEventListener('input', renderAll);
+document.getElementById('refreshBtn').addEventListener('click', loadSlate);
+loadSlate();
+</script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalshi Edge Tracker</title>
+<style>
+:root{--bg:#0b0f14;--card:#121923;--line:#1f2a38;--txt:#e6edf3;--mut:#8b9bb0;--acc:#38bdf8;--good:#34d399;--bad:#f87171;--warn:#fbbf24;--chip:#1b2535}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:14px;padding-bottom:60px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:16px 0 8px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin:10px 0 14px;flex-wrap:wrap}
+.tab{padding:8px 12px;border-radius:8px;background:var(--chip);color:var(--mut);cursor:pointer;font-size:13px;border:1px solid var(--line)}
+.tab.on{background:var(--acc);color:#001;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label{font-size:12px;color:var(--mut)}
+input,select{background:#0e141c;color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:8px;font-size:14px}
+input[type=number]{width:80px}
+button{background:var(--acc);color:#001;border:0;border-radius:8px;padding:9px 13px;font-weight:600;font-size:14px;cursor:pointer}
+button.sec{background:var(--chip);color:var(--txt);border:1px solid var(--line)}
+button.sm{padding:5px 9px;font-size:12px}
+button:disabled{opacity:.5}
+.status{font-size:12px;color:var(--mut);margin-top:6px;white-space:pre-wrap}
+.err{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:11px;text-transform:uppercase}
+.g{color:var(--good)}.b{color:var(--bad)}.w{color:var(--warn)}
+.pill{display:inline-block;padding:2px 7px;border-radius:999px;font-size:11px;background:var(--chip)}
+.pill.g{background:#0f3a2c}.pill.b{background:#3a1515}.pill.w{background:#3a2d0f}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.stat{display:inline-block;min-width:90px;margin:4px 10px 4px 0}.stat b{display:block;font-size:18px}.stat span{font-size:11px;color:var(--mut)}
+.note{font-size:12px;color:var(--mut);border-left:3px solid var(--warn);padding-left:8px;margin:8px 0}
+.wrap{overflow-x:auto}
+details summary{cursor:pointer;color:var(--mut);font-size:13px}
+</style>
+</head>
+<body>
+<h1>Kalshi Edge Tracker</h1>
+<div class="sub">Paper-trading only. Finds weather-market mispricing, Kalshi↔Polymarket arbitrage, and grades every logged pick by result, CLV and Brier. No money until the log proves an edge.</div>
+
+<div class="tabs">
+  <div class="tab on" data-t="weather">Weather Edge</div>
+  <div class="tab" data-t="arb">Arbitrage</div>
+  <div class="tab" data-t="log">Log &amp; Results</div>
+</div>
+
+<!-- ================= WEATHER ================= -->
+<div id="t-weather">
+<div class="card">
+  <div class="row">
+    <label>Cities</label>
+    <select id="wCity"><option value="ALL">All</option></select>
+    <label>Min edge (pts)</label><input type="number" id="wEdge" value="8" step="1">
+    <label>Max days out</label><input type="number" id="wLead" value="3" step="1">
+    <button id="wRun">Scan</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label><input type="checkbox" id="wUseLearned" checked> use learned bias/σ from graded log (needs ≥10 per city)</label>
+  </div>
+  <div class="status" id="wStatus">Open markets come from Kalshi's public API (no key). Forecast high comes from Open-Meteo at the official NWS station for each city. Model = normal distribution centered on forecast; width grows with lead time.</div>
+</div>
+<div id="wOut"></div>
+</div>
+
+<!-- ================= ARB ================= -->
+<div id="t-arb" style="display:none">
+<div class="card">
+  <div class="row">
+    <label>Min title match</label><input type="number" id="aJac" value="0.45" step="0.05" min="0" max="1">
+    <label>Min margin %</label><input type="number" id="aMargin" value="1" step="0.5">
+    <label>Kalshi pages</label><input type="number" id="aPages" value="5" step="1">
+    <button id="aRun">Find arbs</button>
+  </div>
+  <div class="note">Match is on titles + resolution date only. Before touching money, read BOTH rulebooks — "Will X happen by Oct 31" and "Will X happen in October" are different contracts. Polymarket also requires a crypto wallet and has gas/withdrawal costs not modeled here.</div>
+  <div class="status" id="aStatus"></div>
+</div>
+<div id="aOut"></div>
+</div>
+
+<!-- ================= LOG ================= -->
+<div id="t-log" style="display:none">
+<div class="card">
+  <div class="row">
+    <button id="lGrade">Grade finished markets</button>
+    <button class="sec" id="lExport">Export JSON</button>
+    <button class="sec" id="lImport">Import JSON</button>
+    <input type="file" id="lFile" accept=".json" style="display:none">
+    <button class="sec" id="lClear">Clear log</button>
+  </div>
+  <div class="status" id="lStatus"></div>
+</div>
+<div class="card" id="lSummary"></div>
+<div class="card" id="lLearned"></div>
+<div class="wrap card" id="lTable"></div>
+</div>
+
+<script>
+/* ---------- constants ---------- */
+const K = 'https://api.elections.kalshi.com/trade-api/v2';
+const GAMMA = 'https://gamma-api.polymarket.com';
+const CLOB = 'https://clob.polymarket.com';
+const LOGKEY = 'kalshiEdgeLog_v1';
+// official NWS observation sites used for Kalshi settlement
+const STATION = {
+  KXHIGHNY:  {city:'New York (Central Park)', lat:40.7789, lon:-73.9692},
+  KXHIGHCHI: {city:'Chicago (Midway)',        lat:41.7868, lon:-87.7522},
+  KXHIGHMIA: {city:'Miami (MIA)',             lat:25.7959, lon:-80.2870},
+  KXHIGHLAX: {city:'Los Angeles (LAX)',       lat:33.9425, lon:-118.4081},
+  KXHIGHDEN: {city:'Denver (DIA)',            lat:39.8561, lon:-104.6737},
+  KXHIGHAUS: {city:'Austin (Bergstrom)',      lat:30.1945, lon:-97.6699},
+  KXHIGHPHIL:{city:'Philadelphia (PHL)',      lat:39.8729, lon:-75.2437},
+  KXHIGHDAL: {city:'Dallas (DFW)',            lat:32.8998, lon:-97.0403},
+};
+const MON = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const fmtP = p => (p*100).toFixed(1)+'%';
+const fee = p => 0.07*p*(1-p);            // Kalshi taker fee per contract ($)
+function Phi(z){ // normal CDF
+  const t=1/(1+0.2316419*Math.abs(z));
+  const d=0.3989423*Math.exp(-z*z/2);
+  let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+  return z>0?1-p:p;
+}
+const PROXIES=['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+async function getJSON(url,opts){
+  let lastErr;
+  for(const pre of ['',...PROXIES]){
+    try{
+      const r = await fetch(pre?pre+encodeURIComponent(url):url,opts);
+      if(!r.ok) throw new Error(`${r.status}`);
+      return await r.json();
+    }catch(e){ lastErr=e; }
+  }
+  throw new Error(`${lastErr.message} — ${url.slice(0,70)} (blocked direct + via proxy; if you are in the Claude in-app viewer, open the hosted copy instead)`);
+}
+function price(m,key){ // dollars, fallback cents
+  const d = m[key+'_dollars']; if(d!=null && d!=='') return parseFloat(d);
+  const c = m[key]; if(c!=null) return c/100;
+  return null;
+}
+function tickerDate(t){
+  const r=/-(\d{2})([A-Z]{3})(\d{2})/.exec(t); if(!r) return null;
+  return new Date(2000+ +r[1], MON[r[2]], +r[3]);
+}
+function bracket(m){
+  const t=m.ticker, st=(m.strike_type||'').toLowerCase();
+  if(st==='between' && m.floor_strike!=null && m.cap_strike!=null) return {lo:+m.floor_strike, hi:+m.cap_strike, label:`${m.floor_strike}–${m.cap_strike}°`};
+  if(st==='greater' && m.floor_strike!=null) return {lo:+m.floor_strike, hi:Infinity, label:`>${m.floor_strike}°`};
+  if(st==='less' && m.cap_strike!=null) return {lo:-Infinity, hi:+m.cap_strike, label:`<${m.cap_strike}°`};
+  let r=/-B(\d+(?:\.\d+)?)$/.exec(t); if(r){const c=+r[1]; return {lo:c-0.5, hi:c+0.5, label:`${c-0.5}–${c+0.5}°`};}
+  r=/-T(\d+(?:\.\d+)?)$/.exec(t); if(r) return {lo:+r[1], hi:Infinity, label:`>${r[1]}°`};
+  return null;
+}
+function loadLog(){ try{return JSON.parse(localStorage.getItem(LOGKEY)||'[]');}catch(e){return [];} }
+function saveLog(l){ localStorage.setItem(LOGKEY, JSON.stringify(l)); }
+function daysBetween(a,b){ return Math.round((b-a)/864e5); }
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+  ['weather','arb','log'].forEach(k=>$('t-'+k).style.display = k===t.dataset.t?'':'none');
+  if(t.dataset.t==='log') renderLog();
+});
+for(const s in STATION){ const o=document.createElement('option'); o.value=s; o.textContent=STATION[s].city; $('wCity').appendChild(o); }
+
+/* ---------- learned calibration ---------- */
+function learned(){
+  // per-series forecast error from graded weather bets: actual high is unknown directly,
+  // but a graded bracket gives us whether actual landed in [lo,hi]. We approximate with
+  // the stored forecast error when the user grades against a known observed high, else skip.
+  const out={}; const log=loadLog().filter(b=>b.kind==='weather'&&b.obsHigh!=null);
+  const by={}; log.forEach(b=>{(by[b.series]=by[b.series]||[]).push(b.obsHigh-b.forecast);});
+  for(const s in by){ const e=by[s]; if(e.length<10) continue;
+    const mu=e.reduce((a,b)=>a+b,0)/e.length;
+    const sd=Math.sqrt(e.reduce((a,b)=>a+(b-mu)**2,0)/(e.length-1));
+    out[s]={bias:mu, sd:Math.max(1.2,sd), n:e.length};
+  }
+  return out;
+}
+
+/* ---------- WEATHER SCAN ---------- */
+async function fetchForecast(st){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&forecast_days=7`;
+  const j=await getJSON(u); const o={};
+  j.daily.time.forEach((d,i)=>o[d]=j.daily.temperature_2m_max[i]); return o;
+}
+async function fetchMarkets(series){
+  const j=await getJSON(`${K}/markets?series_ticker=${series}&status=open&limit=200`);
+  return j.markets||[];
+}
+$('wRun').onclick=async()=>{
+  const sel=$('wCity').value, minEdge=+$('wEdge').value/100, maxLead=+$('wLead').value;
+  const useL=$('wUseLearned').checked, L=learned();
+  const series=sel==='ALL'?Object.keys(STATION):[sel];
+  $('wStatus').textContent='Fetching…'; $('wOut').innerHTML='';
+  const rows=[]; const errs=[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(const s of series){
+    try{
+      const [fc,ms]=await Promise.all([fetchForecast(STATION[s]), fetchMarkets(s)]);
+      for(const m of ms){
+        const d=tickerDate(m.ticker); const br=bracket(m); if(!d||!br) continue;
+        const lead=daysBetween(today,d); if(lead<0||lead>maxLead) continue;
+        const key=d.toISOString().slice(0,10); const f=fc[key]; if(f==null) continue;
+        const cal=(useL&&L[s])?L[s]:null;
+        const mu=f+(cal?cal.bias:0);
+        const sigma=cal?cal.sd*(1+0.15*lead):2.4+0.6*lead;
+        const p=Phi((br.hi-mu)/sigma)-Phi((br.lo-mu)/sigma);
+        const yAsk=price(m,'yes_ask'), nAsk=price(m,'no_ask'), last=price(m,'last_price');
+        const cand=[];
+        if(yAsk!=null&&yAsk>0&&yAsk<1) cand.push({side:'YES',ask:yAsk,p:p});
+        if(nAsk!=null&&nAsk>0&&nAsk<1) cand.push({side:'NO',ask:nAsk,p:1-p});
+        for(const c of cand){
+          const edge=c.p-c.ask; const ev=c.p*(1-c.ask)-(1-c.p)*c.ask-fee(c.ask);
+          rows.push({series:s,city:STATION[s].city,ticker:m.ticker,title:m.title||m.ticker,date:key,lead,bracket:br.label,forecast:f,mu,sigma,side:c.side,ask:c.ask,p:c.p,edge,ev,last,cal:!!cal});
+        }
+      }
+    }catch(e){ errs.push(`${s}: ${e.message}`); }
+  }
+  rows.sort((a,b)=>b.ev-a.ev);
+  const show=rows.filter(r=>r.edge>=minEdge);
+  $('wStatus').innerHTML=`${rows.length} priced sides across ${series.length} series · ${show.length} above ${(minEdge*100).toFixed(0)} pt edge`+(errs.length?`<div class="err">${errs.join('<br>')}</div>`:'');
+  if(!show.length){ $('wOut').innerHTML='<div class="card">No edges above threshold. That is the normal result most days — weather markets are efficient near settlement.</div>'; return; }
+  let h='<div class="wrap card"><table><tr><th>City</th><th>Date</th><th>Bracket</th><th>Fcst</th><th>Side</th><th>Ask</th><th>Model</th><th>Edge</th><th>EV/$</th><th></th></tr>';
+  show.forEach((r,i)=>{
+    h+=`<tr><td>${r.city}${r.cal?' <span class="pill g">cal</span>':''}</td><td>${r.date}<br><span class="mono">${r.lead}d</span></td><td>${r.bracket}</td><td>${r.forecast.toFixed(0)}°<br><span class="mono">σ${r.sigma.toFixed(1)}</span></td><td><b>${r.side}</b></td><td>${(r.ask*100).toFixed(0)}¢</td><td>${fmtP(r.p)}</td><td class="${r.edge>0?'g':'b'}">+${(r.edge*100).toFixed(1)}</td><td class="${r.ev>0?'g':'b'}">${(r.ev*100).toFixed(1)}¢</td><td><button class="sm" data-i="${i}">log</button></td></tr>`;
+  });
+  h+='</table></div>';
+  $('wOut').innerHTML=h;
+  $('wOut').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+    const r=show[+b.dataset.i]; const log=loadLog();
+    if(log.some(x=>x.ticker===r.ticker&&x.side===r.side)){ b.textContent='dup'; return; }
+    log.push({id:Date.now()+Math.random(),kind:'weather',series:r.series,city:r.city,ticker:r.ticker,title:r.title,date:r.date,bracket:r.bracket,lo:null,forecast:r.forecast,sigma:r.sigma,side:r.side,entry:r.ask,modelP:r.p,marketP:r.side==='YES'?r.ask:1-r.ask,loggedAt:new Date().toISOString(),result:null});
+    saveLog(log); b.textContent='logged ✓'; b.disabled=true;
+  });
+};
+
+/* ---------- ARBITRAGE ---------- */
+const STOP=new Set('will the a an of to in on by for and or at is be before after than with from this that it its what who win wins market yes no above below over under more less'.split(' '));
+const toks=s=>new Set((s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!STOP.has(w)&&w.length>1));
+function jaccard(a,b){ let i=0; a.forEach(w=>{if(b.has(w))i++;}); const u=a.size+b.size-i; return u?i/u:0; }
+async function kalshiAll(pages){
+  let out=[],cursor='';
+  for(let i=0;i<pages;i++){
+    const j=await getJSON(`${K}/markets?status=open&limit=200${cursor?'&cursor='+cursor:''}`);
+    out=out.concat(j.markets||[]); cursor=j.cursor; if(!cursor) break;
+  }
+  return out;
+}
+async function polyAll(){
+  let out=[],off=0;
+  for(let i=0;i<6;i++){
+    const j=await getJSON(`${GAMMA}/markets?closed=false&active=true&limit=500&offset=${off}`);
+    if(!j.length) break; out=out.concat(j); off+=500; if(j.length<500) break;
+  }
+  return out.filter(m=>{ try{ return JSON.parse(m.outcomes||'[]').length===2; }catch(e){return false;} });
+}
+async function clobAsk(tokenId){
+  try{ const j=await getJSON(`${CLOB}/price?token_id=${tokenId}&side=buy`); return parseFloat(j.price); }catch(e){ return null; }
+}
+$('aRun').onclick=async()=>{
+  const minJ=+$('aJac').value, minM=+$('aMargin').value/100, pages=+$('aPages').value;
+  $('aStatus').textContent='Loading Kalshi + Polymarket market lists…'; $('aOut').innerHTML='';
+  let ks,ps;
+  try{ [ks,ps]=await Promise.all([kalshiAll(pages),polyAll()]); }
+  catch(e){ $('aStatus').innerHTML=`<span class="err">${e.message}</span>`; return; }
+  $('aStatus').textContent=`${ks.length} Kalshi · ${ps.length} Polymarket binary markets. Matching…`;
+  const pT=ps.map(p=>({m:p,t:toks(p.question||p.title),d:p.endDate?new Date(p.endDate):null}));
+  const pairs=[];
+  for(const k of ks){
+    const kt=toks(k.title); if(kt.size<2) continue;
+    const kd=k.close_time?new Date(k.close_time):null;
+    let best=null;
+    for(const p of pT){
+      if(kd&&p.d&&Math.abs(kd-p.d)>1.5*864e5) continue;
+      const j=jaccard(kt,p.t); if(j>=minJ&&(!best||j>best.j)) best={j,p};
+    }
+    if(best) pairs.push({k,p:best.p.m,j:best.j});
+  }
+  pairs.sort((a,b)=>b.j-a.j);
+  const top=pairs.slice(0,60);
+  $('aStatus').textContent=`${pairs.length} title matches. Pulling Polymarket order books for top ${top.length}…`;
+  const res=[];
+  for(const pr of top){
+    let ids=[]; try{ ids=JSON.parse(pr.p.clobTokenIds||'[]'); }catch(e){}
+    if(ids.length!==2) continue;
+    const [pyAsk,pnAsk]=await Promise.all([clobAsk(ids[0]),clobAsk(ids[1])]);
+    const kY=price(pr.k,'yes_ask'), kN=price(pr.k,'no_ask');
+    if([pyAsk,pnAsk,kY,kN].some(v=>v==null||!(v>0&&v<1))) continue;
+    const legA=kY+fee(kY)+pnAsk;   // Kalshi YES + Poly NO
+    const legB=pyAsk+kN+fee(kN);   // Poly YES + Kalshi NO
+    const bestLeg=legA<legB?{name:'Kalshi YES + Poly NO',cost:legA}:{name:'Poly YES + Kalshi NO',cost:legB};
+    res.push({...pr,kY,kN,pyAsk,pnAsk,leg:bestLeg,margin:1-bestLeg.cost});
+  }
+  res.sort((a,b)=>b.margin-a.margin);
+  const arbs=res.filter(r=>r.margin>=minM);
+  $('aStatus').textContent=`${res.length} pairs fully priced · ${arbs.length} with margin ≥ ${(minM*100).toFixed(1)}%`;
+  let h='<div class="wrap card"><table><tr><th>Kalshi</th><th>Polymarket</th><th>Match</th><th>K yes/no</th><th>P yes/no</th><th>Best leg</th><th>Margin</th><th></th></tr>';
+  (arbs.length?arbs:res.slice(0,15)).forEach((r,i)=>{
+    h+=`<tr><td>${r.k.title}<br><span class="mono">${r.k.ticker}</span></td><td>${r.p.question||r.p.title}</td><td>${(r.j*100).toFixed(0)}%</td><td>${(r.kY*100).toFixed(0)}/${(r.kN*100).toFixed(0)}¢</td><td>${(r.pyAsk*100).toFixed(0)}/${(r.pnAsk*100).toFixed(0)}¢</td><td>${r.leg.name}<br><span class="mono">cost $${r.leg.cost.toFixed(3)}</span></td><td class="${r.margin>0?'g':'b'}"><b>${(r.margin*100).toFixed(2)}%</b></td><td><button class="sm" data-i="${i}">log</button></td></tr>`;
+  });
+  h+='</table>'+(arbs.length?'':'<div class="note">No true arbs right now — showing closest pairs. Real cross-platform arbs are rare and usually close within minutes.</div>')+'</div>';
+  $('aOut').innerHTML=h;
+  const list=arbs.length?arbs:res.slice(0,15);
+  $('aOut').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+    const r=list[+b.dataset.i]; const log=loadLog();
+    log.push({id:Date.now()+Math.random(),kind:'arb',ticker:r.k.ticker,title:r.k.title,polyQ:r.p.question||r.p.title,leg:r.leg.name,cost:r.leg.cost,margin:r.margin,loggedAt:new Date().toISOString(),result:null});
+    saveLog(log); b.textContent='logged ✓'; b.disabled=true;
+  });
+};
+
+/* ---------- LOG & RESULTS ---------- */
+$('lGrade').onclick=async()=>{
+  const log=loadLog(); let n=0,errs=0;
+  $('lStatus').textContent='Checking results…';
+  for(const b of log){
+    if(b.result!=null) continue;
+    try{
+      const j=await getJSON(`${K}/markets/${b.ticker}`); const m=j.market||j;
+      const last=price(m,'last_price'); if(last!=null) b.lastPrice=last;
+      const r=(m.result||'').toLowerCase();
+      if(r==='yes'||r==='no'){
+        b.result=r; n++;
+        if(b.kind==='weather'){
+          const won=(b.side==='YES'&&r==='yes')||(b.side==='NO'&&r==='no');
+          b.win=won; b.pnl=won?(1-b.entry-fee(b.entry)):(-b.entry-fee(b.entry));
+          // CLV: where did the price settle vs our entry (signed in our favor)
+          if(last!=null) b.clv=b.side==='YES'?(last-b.entry):((1-last)-b.entry);
+          const y=won?1:0; b.brierModel=(b.modelP-y)**2; b.brierMarket=(b.marketP-y)**2;
+        } else if(b.kind==='arb'){ b.win=true; b.pnl=b.margin; }
+      }
+    }catch(e){ errs++; }
+  }
+  saveLog(log); $('lStatus').textContent=`Graded ${n} new · ${errs} errors`; renderLog();
+};
+function renderLog(){
+  const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result);
+  const sum=(a,k)=>a.reduce((s,b)=>s+(b[k]||0),0);
+  const wins=w.filter(b=>b.win).length;
+  const bm=w.length?sum(w,'brierModel')/w.length:null, bk=w.length?sum(w,'brierMarket')/w.length:null;
+  const clvs=w.filter(b=>b.clv!=null); const clv=clvs.length?sum(clvs,'clv')/clvs.length:null;
+  $('lSummary').innerHTML=`<h2 style="margin-top:0">Weather picks</h2>
+   <div class="stat"><b>${log.filter(b=>b.kind==='weather').length}</b><span>logged</span></div>
+   <div class="stat"><b>${w.length}</b><span>graded</span></div>
+   <div class="stat"><b>${w.length?((wins/w.length)*100).toFixed(0)+'%':'—'}</b><span>win rate</span></div>
+   <div class="stat"><b class="${sum(w,'pnl')>=0?'g':'b'}">${w.length?(sum(w,'pnl')>=0?'+':'')+sum(w,'pnl').toFixed(2):'—'}</b><span>P&amp;L per $1 stake</span></div>
+   <div class="stat"><b class="${clv>0?'g':'b'}">${clv!=null?(clv*100).toFixed(1)+'¢':'—'}</b><span>avg CLV</span></div>
+   <div class="stat"><b>${bm!=null?bm.toFixed(4):'—'}</b><span>Brier model</span></div>
+   <div class="stat"><b>${bk!=null?bk.toFixed(4):'—'}</b><span>Brier market</span></div>
+   <div class="note">Edge is real only if: CLV stays positive AND Brier model &lt; Brier market over 100+ picks. Win rate alone proves nothing.</div>`;
+  const L=learned(); const keys=Object.keys(L);
+  $('lLearned').innerHTML=`<h2 style="margin-top:0">Learned forecast error</h2>`+(keys.length?'<table><tr><th>City</th><th>n</th><th>bias</th><th>σ</th></tr>'+keys.map(s=>`<tr><td>${STATION[s]?STATION[s].city:s}</td><td>${L[s].n}</td><td>${L[s].bias>=0?'+':''}${L[s].bias.toFixed(2)}°</td><td>${L[s].sd.toFixed(2)}°</td></tr>`).join('')+'</table>':'<div class="status">Needs ≥10 picks per city with an observed high entered. Tap a graded row\'s "obs" field to enter the actual settled high (from the market title/NWS).</div>');
+  let h='<table><tr><th>When</th><th>Market</th><th>Pick</th><th>Entry</th><th>Model</th><th>Result</th><th>P&amp;L</th><th>CLV</th><th>Obs °F</th><th></th></tr>';
+  log.slice().reverse().forEach(b=>{
+    const res=b.result?`<span class="pill ${b.win?'g':'b'}">${b.result.toUpperCase()}</span>`:'<span class="pill w">open</span>';
+    h+=`<tr><td class="mono">${b.loggedAt.slice(5,16).replace('T',' ')}</td><td>${b.kind==='arb'?'ARB: ':''}${b.title}<br><span class="mono">${b.kind==='weather'?b.bracket+' · '+b.date:b.leg}</span></td><td>${b.kind==='weather'?b.side:(b.margin*100).toFixed(2)+'%'}</td><td>${b.kind==='weather'?(b.entry*100).toFixed(0)+'¢':'$'+b.cost.toFixed(3)}</td><td>${b.modelP!=null?fmtP(b.modelP):'—'}</td><td>${res}</td><td class="${b.pnl>0?'g':b.pnl<0?'b':''}">${b.pnl!=null?(b.pnl>=0?'+':'')+b.pnl.toFixed(2):'—'}</td><td class="${b.clv>0?'g':b.clv<0?'b':''}">${b.clv!=null?(b.clv*100).toFixed(0)+'¢':'—'}</td><td>${b.kind==='weather'?`<input type="number" style="width:60px" data-obs="${b.id}" value="${b.obsHigh??''}" placeholder="°F">`:''}</td><td><button class="sm sec" data-del="${b.id}">✕</button></td></tr>`;
+  });
+  $('lTable').innerHTML=h+'</table>';
+  $('lTable').querySelectorAll('input[data-obs]').forEach(i=>i.onchange=()=>{ const l=loadLog(); const b=l.find(x=>String(x.id)===i.dataset.obs); if(b){ b.obsHigh=i.value===''?null:+i.value; saveLog(l); renderLog(); } });
+  $('lTable').querySelectorAll('button[data-del]').forEach(x=>x.onclick=()=>{ saveLog(loadLog().filter(b=>String(b.id)!==x.dataset.del)); renderLog(); });
+}
+$('lExport').onclick=()=>{ const a=document.createElement('a'); a.href='data:application/json,'+encodeURIComponent(JSON.stringify(loadLog(),null,1)); a.download='kalshi-edge-log.json'; a.click(); };
+$('lImport').onclick=()=>$('lFile').click();
+$('lFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const inc=JSON.parse(r.result); const cur=loadLog(); const ids=new Set(cur.map(b=>String(b.id))); inc.forEach(b=>{ if(!ids.has(String(b.id))) cur.push(b); }); saveLog(cur); renderLog(); $('lStatus').textContent=`Imported. ${cur.length} total.`; }catch(err){ $('lStatus').innerHTML='<span class="err">Bad file</span>'; } }; r.readAsText(f); };
+$('lClear').onclick=()=>{ if(confirm('Delete all logged picks?')){ saveLog([]); renderLog(); } };
+renderLog();
+</script>
+</body>
+</html>

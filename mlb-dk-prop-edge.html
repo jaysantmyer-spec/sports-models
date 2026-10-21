@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB DK Prop Edge</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --field:#2F6E4D; --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.35);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:#E0A69F;line-height:1.5;margin-bottom:12px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;}
+.key-row input{
+  flex:1;min-width:140px;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.4;}
+.quota-line{font-size:11px;color:var(--dim);margin-top:8px;}
+
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.toolbar select{
+  flex:1;min-width:110px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 8px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;
+}
+.toolbar input{
+  flex:2;min-width:140px;background:var(--navy);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.toolbar button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:17px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 16px;cursor:pointer;
+}
+.toolbar button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:32px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.card-top{display:flex;align-items:center;gap:11px;}
+.avatar{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Teko',sans-serif;font-size:16px;font-weight:600;color:#fff;border:2px solid rgba(255,255,255,0.15);
+}
+.card-main{flex:1;min-width:0;}
+.card-name{font-size:14px;font-weight:600;color:var(--chalk);}
+.prop-label{font-size:12px;color:var(--blue);margin-top:1px;}
+.card-meta{font-size:10.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-right{text-align:right;flex-shrink:0;}
+.prob{font-family:'Teko',sans-serif;font-size:24px;line-height:1;}
+.prob.strong{color:var(--amber);}
+.prob.lean{color:var(--green);}
+.prob.soft{color:var(--dim);}
+.badge{font-size:9px;letter-spacing:0.5px;}
+.badge.strong{color:var(--amber);}
+.badge.lean{color:var(--green);}
+
+.detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11px;color:var(--dim);}
+.card.open .detail{display:block;}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;}
+.detail-row b{color:var(--chalk);font-weight:600;}
+.factor-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.factor-chip{font-size:10px;background:rgba(255,255,255,0.05);border-radius:4px;padding:3px 7px;color:var(--dim);}
+.factor-chip.up{color:var(--amber);}
+.factor-chip.down{color:var(--blue);}
+.factor-chip.na{opacity:0.6;font-style:italic;}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>MLB DK PROP EDGE</h1></div>
+  <p class="sub">Today's DraftKings player prop lines (-120 to -1200), checked against a deep model: batter-vs-pitcher, platoon vs lefties, home/away, day/night, park, weather, OPS, and WHIP.</p>
+  <div class="warn-banner">This compares your own model's probability to DraftKings' actual current price on each prop \u2014 not a certainty. Not betting advice. Gamble responsibly if at all.</div>
+
+  <div class="key-card">
+    <div class="key-label">YOUR ODDS API KEY</div>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your free key from the-odds-api.com">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Stored only in this browser, sent only to api.the-odds-api.com. If you've used this key in another app on this device, it should already be filled in.</div>
+    <div class="quota-line" id="quotaLine"></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="filterInput" placeholder="Filter by player or team...">
+    <select id="categorySelect">
+      <option value="all">All props</option>
+      <option value="H">Hits</option>
+      <option value="TB">Total bases</option>
+      <option value="HR">Home runs</option>
+      <option value="RBI">RBI</option>
+      <option value="R">Runs</option>
+      <option value="K">Strikeouts (P)</option>
+      <option value="BB">Walks allowed (P)</option>
+    </select>
+    <button id="refreshBtn" disabled>LOAD SLATE + DK PROPS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">DRAFTKINGS PROPS RANKED BY MODEL EDGE</div>
+  <div id="list"><div class="empty-state">Paste your Odds API key, then tap Load.</div></div>
+
+  <p class="footnote">Model probability blends: batter AVG vs the opposing starter's average allowed against that batter's specific throwing-hand side (falls back to overall average if no platoon split is available), batter OPS and pitcher WHIP as secondary quality multipliers, each player's own home/away split, the pitcher's day/night split matched to today's actual game time, an approximate park factor, and current venue weather (neutral for domed parks). "Edge" is model probability minus DraftKings' implied probability from their price. Only DraftKings lines priced between -120 and -1200 are shown, per your request. Hitters are each team's top plate-appearance leaders (lineups aren't finalized this far ahead). Uses your own Odds API quota \u2014 this pulls DraftKings player props per game, which is quota-heavier than a plain odds scan, so expect it to use more of your monthly allowance per run. This is a hobby stats model, not financial or betting advice.</p>
+</div>
+
+<script>
+const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
+const SPORT_KEY = 'baseball_mlb';
+let apiKey = localStorage.getItem('oddsApiKey') || '';
+if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+updateLoadButton();
+function updateLoadButton(){ document.getElementById('refreshBtn').disabled = !apiKey; }
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('oddsApiKey', apiKey);
+  updateLoadButton();
+});
+
+const TEAM_ABBR = {108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'};
+const PARK_FACTOR = {COL:1.15,BOS:1.06,CIN:1.05,TEX:1.04,PHI:1.03,BAL:1.02,NYY:1.02,CWS:1.01,ARI:1.01,MIL:1.00,WSH:1.00,LAA:1.00,TOR:0.99,ATL:0.99,HOU:0.99,MIN:0.99,CHC:0.98,KC:0.98,STL:0.98,DET:0.97,LAD:0.97,NYM:0.97,CLE:0.97,PIT:0.96,TB:0.96,SD:0.95,MIA:0.95,SF:0.94,SEA:0.94,ATH:0.98};
+const DOME_TEAMS = new Set([141,139,146,109,117,158,136]);
+const LEAGUE_AVG = 0.245, LEAGUE_OPS = 0.735, LEAGUE_WHIP = 1.31, LEAGUE_K_RATE = 0.225, LEAGUE_BB_RATE = 0.085;
+const MIN_SPLIT_PA = 15;
+const MIN_DK_PRICE = -1200, MAX_DK_PRICE = -120; // "-120 through -1200"
+
+function isoForDate(d){
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(d);
+}
+function todayISO(){ return isoForDate(new Date()); }
+function season(){ return new Date().getFullYear(); }
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function avatarColor(name){ let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); return `hsl(${Math.abs(h)%360}, 45%, 38%)`; }
+function initials(name){ return name.split(' ').filter(Boolean).map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+async function safeJSON(url, opts){
+  try{ const res = await fetch(url, opts); if(!res.ok) return null; return await res.json(); }catch(e){ return null; }
+}
+function setStatus(text, isErr){ const el = document.getElementById('statusLine'); el.textContent = text; el.className = 'status' + (isErr ? ' err' : ''); }
+function poissonPMF(l,k){ return Math.exp(-l)*Math.pow(l,k)/factorial(k); }
+function factorial(n){ let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+function poissonCDF(l,k){ let s=0; for(let i=0;i<=k;i++) s+=poissonPMF(l,i); return s; }
+function probOver(l,line){ return clamp(1-poissonCDF(l,Math.floor(line)),0,1); }
+function probUnder(l,line){ return clamp(poissonCDF(l,Math.floor(line)),0,1); }
+function americanToImplied(price){ return price>0 ? 100/(price+100) : (-price)/((-price)+100); }
+function formatAmerican(price){ return price>0 ? `+${price}` : `${price}`; }
+
+async function fetchSplit(personId, group, sitCode, yr){
+  const data = await safeJSON(`https://statsapi.mlb.com/api/v1/people/${personId}/stats?stats=statSplits&group=${group}&sitCodes=${sitCode}&season=${yr}`);
+  const stat = data && data.stats && data.stats[0] && data.stats[0].splits && data.stats[0].splits[0] && data.stats[0].splits[0].stat;
+  return stat || null;
+}
+function splitRatio(splitStat, seasonVal, field, paField){
+  if(!splitStat) return 1.0;
+  const pa = Number(splitStat[paField]) || 0;
+  if(pa < MIN_SPLIT_PA) return 1.0;
+  const v = Number(splitStat[field]);
+  if(!v || !seasonVal) return 1.0;
+  return clamp(v/seasonVal, 0.6, 1.6);
+}
+
+async function loadSlate(){
+  if(!apiKey) return;
+  document.getElementById('refreshBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  setStatus('Loading today\u2019s MLB schedule...');
+
+  const yr = season(), date = todayISO();
+  const schedData = await safeJSON(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,venue,probablePitcher`);
+  if(!schedData || !schedData.dates || !schedData.dates.length || !schedData.dates[0].games.length){
+    setStatus('No MLB games found for today.', true);
+    document.getElementById('list').innerHTML = '<div class="empty-state">No games scheduled today.</div>';
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+  const games = schedData.dates[0].games.filter(g => g.status && (g.status.abstractGameState === 'Preview' || g.status.abstractGameState === 'Live'));
+  if(!games.length){
+    setStatus('Today\u2019s games are already finished.', true);
+    document.getElementById('list').innerHTML = '<div class="empty-state">All of today\u2019s games have wrapped up.</div>';
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+
+  setStatus(`Loading venues/weather for ${games.length} game(s)...`);
+  const venueMap = {};
+  games.forEach(g => { if(g.venue) venueMap[g.venue.id] = g.venue.name; });
+  const venueInfo = {};
+  await Promise.all(Object.keys(venueMap).map(async id => {
+    const v = await safeJSON(`https://statsapi.mlb.com/api/v1/venues/${id}?hydrate=location`);
+    const coords = v && v.venues && v.venues[0] && v.venues[0].location && v.venues[0].location.defaultCoordinates;
+    if(coords){
+      const w = await safeJSON(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`);
+      venueInfo[id] = { temp: w && w.current ? w.current.temperature_2m : null, wind: w && w.current ? w.current.wind_speed_10m : null };
+    }
+  }));
+
+  setStatus('Loading rosters, OPS, and batting side...');
+  const teamIds = new Set();
+  games.forEach(g => { teamIds.add(g.teams.home.team.id); teamIds.add(g.teams.away.team.id); });
+  const teamHitters = {}, teamHittingAgg = {};
+  await Promise.all([...teamIds].map(async tid => {
+    const [rosterData, teamStatData] = await Promise.all([
+      safeJSON(`https://statsapi.mlb.com/api/v1/teams/${tid}/roster?rosterType=active&hydrate=person(stats(group=[hitting],type=[season],season=${yr}))`),
+      safeJSON(`https://statsapi.mlb.com/api/v1/teams/${tid}/stats?stats=season&group=hitting&season=${yr}`),
+    ]);
+    const roster = (rosterData && rosterData.roster) || [];
+    const hitters = [];
+    roster.forEach(entry => {
+      const person = entry.person, pos = entry.position && entry.position.abbreviation;
+      if(pos === 'P') return;
+      const block = ((person && person.stats) || []).find(s => s.group && s.group.displayName === 'hitting');
+      const stat = block && block.splits && block.splits[0] && block.splits[0].stat;
+      if(!stat || !stat.gamesPlayed) return;
+      hitters.push({
+        id: person.id, name: person.fullName, batSide: (person.batSide && person.batSide.code) || 'R',
+        avg: Number(stat.avg)||0, ops: Number(stat.ops)||LEAGUE_OPS,
+        hits: Number(stat.hits)||0, runs: Number(stat.runs)||0, rbi: Number(stat.rbi)||0,
+        homeRuns: Number(stat.homeRuns)||0, totalBases: Number(stat.totalBases)||0,
+        gamesPlayed: Number(stat.gamesPlayed)||1, ab: Number(stat.atBats)||0,
+      });
+    });
+    hitters.sort((a,b) => b.ab - a.ab);
+    teamHitters[tid] = hitters.slice(0, 6);
+    const tStat = teamStatData && teamStatData.stats && teamStatData.stats[0] && teamStatData.stats[0].splits && teamStatData.stats[0].splits[0] && teamStatData.stats[0].splits[0].stat;
+    const pa = tStat ? (Number(tStat.plateAppearances) || (Number(tStat.atBats||0)+Number(tStat.baseOnBalls||0))) : 0;
+    teamHittingAgg[tid] = { kRate: (tStat && pa) ? Number(tStat.strikeOuts)/pa : LEAGUE_K_RATE, bbRate: (tStat && pa) ? Number(tStat.baseOnBalls)/pa : LEAGUE_BB_RATE };
+  }));
+
+  setStatus('Loading probable pitchers and splits (WHIP, platoon, day/night)...');
+  const pitcherCache = {};
+  async function getPitcherProfile(pitcherObj, dayNight){
+    if(!pitcherObj || !pitcherObj.id) return null;
+    if(pitcherCache[pitcherObj.id]) return pitcherCache[pitcherObj.id];
+    const data = await safeJSON(`https://statsapi.mlb.com/api/v1/people/${pitcherObj.id}/stats?stats=season&group=pitching&season=${yr}`);
+    const stat = data && data.stats && data.stats[0] && data.stats[0].splits && data.stats[0].splits[0] && data.stats[0].splits[0].stat;
+    if(!stat){ pitcherCache[pitcherObj.id] = null; return null; }
+    const gs = Number(stat.gamesStarted) || 1;
+    const ip = Number(stat.inningsPitched) || (gs*5.3);
+    const seasonAvgAgainst = Number(stat.avg) || LEAGUE_AVG;
+    const seasonWhip = Number(stat.whip) || LEAGUE_WHIP;
+    const [vl, vr, dn] = await Promise.all([
+      fetchSplit(pitcherObj.id, 'pitching', 'vl', yr),
+      fetchSplit(pitcherObj.id, 'pitching', 'vr', yr),
+      dayNight ? fetchSplit(pitcherObj.id, 'pitching', dayNight, yr) : Promise.resolve(null),
+    ]);
+    const profile = {
+      name: pitcherObj.fullName, id: pitcherObj.id, avgAgainst: seasonAvgAgainst, whip: seasonWhip,
+      k9: Number(stat.strikeoutsPer9Inn) || 8.0, bb9: Number(stat.walksPer9Inn) || 3.0,
+      ipPerStart: gs ? ip/gs : 5.3,
+      avgAgainstVsL: vl && Number(vl.avg) ? Number(vl.avg) : null,
+      avgAgainstVsR: vr && Number(vr.avg) ? Number(vr.avg) : null,
+      dayNightMult: dn ? splitRatio(dn, seasonAvgAgainst, 'avg', 'battersFaced') : 1.0,
+      dayNightAvailable: !!dn,
+    };
+    pitcherCache[pitcherObj.id] = profile;
+    return profile;
+  }
+
+  // playerModel: name (lowercased) -> { means:{H,TB,HR,RBI,R,K,BB}, meta:{...} }
+  const playerModel = {};
+  const eventMeta = []; // {gameId, oddsApiEventLookupKey: away@home, commence}
+
+  await Promise.all(games.map(async g => {
+    const homeId = g.teams.home.team.id, awayId = g.teams.away.team.id;
+    const venueId = g.venue ? g.venue.id : null;
+    const weather = venueId ? venueInfo[venueId] : null;
+    const isDome = DOME_TEAMS.has(homeId);
+    const parkAbbr = TEAM_ABBR[homeId] || null;
+    const parkFactor = (parkAbbr && PARK_FACTOR[parkAbbr]) ? PARK_FACTOR[parkAbbr] : 1.0;
+    const venueName = g.venue ? g.venue.name : '';
+    const dayNightCode = g.dayNight === 'day' ? 'day' : (g.dayNight === 'night' ? 'night' : null);
+
+    function weatherMult(){
+      if(isDome || !weather || weather.temp == null) return 1.0;
+      let m = 1 + clamp((weather.temp-70)/300, -0.05, 0.06);
+      if(weather.wind != null && weather.wind > 12) m += 0.02;
+      return clamp(m, 0.9, 1.1);
+    }
+    const wMult = weatherMult();
+
+    const [homeOppPitcher, awayOppPitcher] = await Promise.all([
+      getPitcherProfile(g.teams.away.probablePitcher, dayNightCode),
+      getPitcherProfile(g.teams.home.probablePitcher, dayNightCode),
+    ]);
+
+    async function processHitters(hitters, teamId, oppAbbr, oppPitcher, isHome){
+      await Promise.all(hitters.map(async h => {
+        const hAwaySplit = await fetchSplit(h.id, 'hitting', isHome ? 'h' : 'a', yr);
+        const homeAwayMult = splitRatio(hAwaySplit, h.ops, 'ops', 'plateAppearances');
+        let pAvgAgainst = oppPitcher ? oppPitcher.avgAgainst : LEAGUE_AVG;
+        let platoonNote = 'season avg (no platoon split)';
+        if(oppPitcher){
+          if(h.batSide === 'L' && oppPitcher.avgAgainstVsL != null){ pAvgAgainst = oppPitcher.avgAgainstVsL; platoonNote = 'vs LHB split'; }
+          else if(h.batSide !== 'L' && oppPitcher.avgAgainstVsR != null){ pAvgAgainst = oppPitcher.avgAgainstVsR; platoonNote = 'vs RHB split'; }
+        }
+        const matchupMult = clamp((h.avg/LEAGUE_AVG) * (pAvgAgainst/LEAGUE_AVG), 0.6, 1.6);
+        const opsFactor = Math.sqrt(clamp(h.ops/LEAGUE_OPS, 0.7, 1.4));
+        const whipFactor = oppPitcher ? Math.sqrt(clamp(oppPitcher.whip/LEAGUE_WHIP, 0.8, 1.3)) : 1.0;
+        const dayNightMult = oppPitcher ? oppPitcher.dayNightMult : 1.0;
+        const combined = clamp(matchupMult * opsFactor * whipFactor * dayNightMult * homeAwayMult * parkFactor * wMult, 0.5, 2.0);
+        const dampened = 1 + (combined-1)*0.6;
+
+        playerModel[h.name.toLowerCase()] = {
+          displayName: h.name, isPitcher: false,
+          means: {
+            H: (h.hits/h.gamesPlayed)*combined,
+            TB: (h.totalBases/h.gamesPlayed)*combined,
+            HR: (h.homeRuns/h.gamesPlayed)*combined,
+            RBI: (h.rbi/h.gamesPlayed)*dampened,
+            R: (h.runs/h.gamesPlayed)*dampened,
+          },
+          meta: {
+            teamAbbr: TEAM_ABBR[teamId], oppAbbr, isHome, venueName,
+            opponentPitcher: oppPitcher ? oppPitcher.name : 'TBD', batSide: h.batSide,
+            avg: h.avg, ops: h.ops, platoonNote, matchupMult, opsFactor: opsFactor*opsFactor,
+            pitcherWhip: oppPitcher ? oppPitcher.whip : null, dayNightMult, dayNightAvailable: oppPitcher ? oppPitcher.dayNightAvailable : false,
+            homeAwayMult, parkFactor, weatherMult: wMult, isDome,
+          },
+        };
+      }));
+    }
+
+    function processPitcher(pitcherObj, teamId, oppTeamId, oppAbbr, isHome){
+      if(!pitcherObj) return;
+      const oppAgg = teamHittingAgg[oppTeamId] || { kRate: LEAGUE_K_RATE, bbRate: LEAGUE_BB_RATE };
+      const oppKAdj = oppAgg.kRate / LEAGUE_K_RATE, oppBBAdj = oppAgg.bbRate / LEAGUE_BB_RATE;
+      const parkKAdj = clamp(2 - parkFactor, 0.85, 1.12);
+      const weatherKAdj = clamp(2 - wMult, 0.9, 1.1);
+      const homeAwayKMult = isHome ? 1.02 : 0.98, homeAwayBBMult = isHome ? 0.98 : 1.02;
+      const expectedK = (pitcherObj.k9/9) * pitcherObj.ipPerStart * oppKAdj * parkKAdj * weatherKAdj * homeAwayKMult * pitcherObj.dayNightMult;
+      const expectedBB = (pitcherObj.bb9/9) * pitcherObj.ipPerStart * oppBBAdj * homeAwayBBMult;
+      playerModel[pitcherObj.name.toLowerCase()] = {
+        displayName: pitcherObj.name, isPitcher: true,
+        means: { K: expectedK, BB: expectedBB },
+        meta: { teamAbbr: TEAM_ABBR[teamId], oppAbbr, isHome, venueName, whip: pitcherObj.whip, dayNightMult: pitcherObj.dayNightMult, dayNightAvailable: pitcherObj.dayNightAvailable },
+      };
+    }
+
+    await Promise.all([
+      processHitters(teamHitters[homeId] || [], homeId, TEAM_ABBR[awayId], homeOppPitcher, true),
+      processHitters(teamHitters[awayId] || [], awayId, TEAM_ABBR[homeId], awayOppPitcher, false),
+    ]);
+    processPitcher(g.teams.away.probablePitcher ? homeOppPitcher : null, awayId, homeId, TEAM_ABBR[homeId], false);
+    processPitcher(g.teams.home.probablePitcher ? awayOppPitcher : null, homeId, awayId, TEAM_ABBR[awayId], true);
+
+    eventMeta.push({ homeTeam: g.teams.home.team.name, awayTeam: g.teams.away.team.name, commence: g.gameDate });
+  }));
+
+  // ---- Fetch DraftKings odds events for MLB, then match to our player model ----
+  setStatus('Fetching DraftKings player props...');
+  const eventsRes = await fetch(`${ODDS_API_BASE}/sports/${SPORT_KEY}/events?apiKey=${encodeURIComponent(apiKey)}`);
+  if(eventsRes.headers) updateQuota(eventsRes);
+  if(!eventsRes.ok){
+    setStatus(eventsRes.status === 401 ? 'Odds API key rejected.' : 'Could not load DraftKings events list.', true);
+    document.getElementById('refreshBtn').disabled = false;
+    return;
+  }
+  const dkEvents = await eventsRes.json();
+
+  const MARKET_MAP = {
+    batter_hits: 'H', batter_total_bases: 'TB', batter_home_runs: 'HR',
+    batter_rbis: 'RBI', batter_runs_scored: 'R',
+    pitcher_strikeouts: 'K', pitcher_walks: 'BB',
+  };
+  const marketsParam = Object.keys(MARKET_MAP).join(',');
+
+  const allProps = [];
+  let matchedEvents = 0;
+  await Promise.all((dkEvents || []).map(async ev => {
+    const url = `${ODDS_API_BASE}/sports/${SPORT_KEY}/events/${ev.id}/odds?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=${marketsParam}&bookmakers=draftkings&oddsFormat=american`;
+    const res = await fetch(url);
+    if(res.headers) updateQuota(res);
+    if(!res.ok) return;
+    const data = await res.json();
+    const dk = (data.bookmakers || []).find(b => b.key === 'draftkings');
+    if(!dk) return;
+    matchedEvents++;
+    (dk.markets || []).forEach(m => {
+      const cat = MARKET_MAP[m.key];
+      if(!cat) return;
+      (m.outcomes || []).forEach(o => {
+        const price = o.price;
+        if(price > MAX_DK_PRICE || price < MIN_DK_PRICE) return; // outside -120..-1200
+        const playerName = o.description || o.name;
+        const model = playerModel[(playerName||'').toLowerCase()];
+        if(!model || model.means[cat] == null) return;
+        const mean = model.means[cat];
+        const side = (o.name === 'Under') ? 'under' : 'over';
+        const point = o.point != null ? o.point : 0.5;
+        const modelProb = side === 'over' ? probOver(mean, point) : probUnder(mean, point);
+        const dkImplied = americanToImplied(price);
+        allProps.push({
+          name: model.displayName, isPitcher: model.isPitcher, cat,
+          label: `${cat === 'BB' ? 'Walks Allowed' : cat === 'K' ? 'Strikeouts' : cat} ${side === 'over' ? 'Over' : 'Under'} ${point}`,
+          price, book: 'DraftKings', modelProb, dkImplied, edge: modelProb - dkImplied,
+          mean, meta: model.meta,
+        });
+      });
+    });
+  }));
+
+  window.__allProps = allProps.sort((a,b) => b.modelProb - a.modelProb);
+  renderAll();
+  setStatus(`Matched ${allProps.length} DraftKings prop${allProps.length===1?'':'s'} (priced -120 to -1200) across ${matchedEvents} game(s) to the model.`);
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+function updateQuota(res){
+  const remaining = res.headers.get('x-requests-remaining');
+  const used = res.headers.get('x-requests-used');
+  if(remaining != null) document.getElementById('quotaLine').textContent = `API quota: ${used} used, ${remaining} remaining this period.`;
+}
+
+function probClass(p){ return p >= 0.65 ? 'strong' : (p >= 0.55 ? 'lean' : 'soft'); }
+function badgeText(p){ return p >= 0.65 ? 'STRONG' : (p >= 0.55 ? 'LEAN' : ''); }
+
+function cardHTML(p, idx){
+  const cls = probClass(p.modelProb);
+  return `
+    <div class="card" id="dk-${idx}" onclick="document.getElementById('dk-${idx}').classList.toggle('open')">
+      <div class="card-top">
+        <div class="avatar" style="background:${avatarColor(p.name)};">${initials(p.name)}</div>
+        <div class="card-main">
+          <div class="card-name">${p.name}</div>
+          <div class="prop-label">${p.label}</div>
+          <div class="card-meta">${p.meta.teamAbbr} ${p.meta.isHome?'vs':'@'} ${p.meta.oppAbbr} \u00b7 ${formatAmerican(p.price)} DK${p.meta.opponentPitcher ? ' \u00b7 vs '+p.meta.opponentPitcher : ''}</div>
+        </div>
+        <div class="card-right">
+          <div class="prob ${cls}">${Math.round(p.modelProb*100)}%</div>
+          <div class="badge ${cls}">${p.edge>0?'+':''}${(p.edge*100).toFixed(1)}% edge</div>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="detail-row"><span>Model probability</span><b>${(p.modelProb*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>DraftKings implied probability</span><b>${(p.dkImplied*100).toFixed(1)}%</b></div>
+        <div class="detail-row"><span>DK price</span><b>${formatAmerican(p.price)}</b></div>
+        <div class="detail-row"><span>Modeled mean</span><b>${p.mean.toFixed(2)}</b></div>
+        ${!p.isPitcher ? `<div class="detail-row"><span>Season AVG / OPS</span><b>${p.meta.avg.toFixed(3)} / ${p.meta.ops.toFixed(3)}</b></div>` : ''}
+        ${!p.isPitcher ? `<div class="detail-row"><span>Matchup basis</span><b>${p.meta.platoonNote}</b></div>` : ''}
+        <div class="factor-strip">
+          ${!p.isPitcher ? factorChip('Matchup', p.meta.matchupMult) : ''}
+          ${!p.isPitcher ? factorChip('OPS quality', Math.sqrt(p.meta.opsFactor)) : ''}
+          ${factorChip('Day/Night', p.meta.dayNightMult, p.meta.dayNightAvailable)}
+          ${!p.isPitcher ? factorChip('Home/Away', p.meta.homeAwayMult) : ''}
+          ${!p.isPitcher ? (p.meta.isDome ? '<div class="factor-chip">Weather: dome</div>' : factorChip('Weather', p.meta.weatherMult)) : ''}
+          ${!p.isPitcher ? factorChip('Park', p.meta.parkFactor) : ''}
+        </div>
+      </div>
+    </div>`;
+}
+function factorChip(label, mult, available){
+  if(available === false) return `<div class="factor-chip na">${label}: n/a</div>`;
+  const pct = Math.round((mult-1)*100);
+  const cls = pct > 0 ? 'up' : (pct < 0 ? 'down' : '');
+  return `<div class="factor-chip ${cls}">${label} ${pct>0?'+':''}${pct}%</div>`;
+}
+
+function renderAll(){
+  const q = document.getElementById('filterInput').value.trim().toLowerCase();
+  const cat = document.getElementById('categorySelect').value;
+  const rows = (window.__allProps || []).filter(p =>
+    (!q || p.name.toLowerCase().includes(q) || p.meta.teamAbbr.toLowerCase().includes(q) || p.meta.oppAbbr.toLowerCase().includes(q)) &&
+    (cat === 'all' || p.cat === cat));
+  document.getElementById('list').innerHTML = rows.length ? rows.slice(0,80).map((p,i) => cardHTML(p,i)).join('') : '<div class="empty-state">No DraftKings props in this price range/category matched the model.</div>';
+}
+document.getElementById('filterInput').addEventListener('input', renderAll);
+document.getElementById('categorySelect').addEventListener('change', renderAll);
+document.getElementById('refreshBtn').addEventListener('click', loadSlate);
+</script>
+</body>
+</html>

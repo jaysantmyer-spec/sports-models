@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MD Property Value Finder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --brick:#B5713F; --slate:#3E5A6E; --slate-dark:#1F3240; --chalk:#EDEAE0;
+  --amber:#F2A93B; --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--slate-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.house{width:14px;height:12px;background:var(--brick);clip-path:polygon(50% 0%, 100% 45%, 100% 100%, 0% 100%, 0% 45%);display:inline-block;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:2px 0 14px;line-height:1.5;}
+
+.warn-banner{
+  background:rgba(127,179,217,0.08);border:1px solid rgba(127,179,217,0.3);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--blue);line-height:1.5;margin-bottom:16px;
+}
+
+.key-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.key-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;}
+.key-row input{
+  flex:1;min-width:140px;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.key-row input:focus{border-color:var(--amber);}
+.key-row button{
+  background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:16px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:0 14px;cursor:pointer;white-space:nowrap;
+}
+.key-note{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.4;}
+.quota-line{font-size:11px;color:var(--dim);margin-top:8px;}
+
+.search-card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:16px;}
+.search-label{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:8px;}
+.search-grid{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;}
+.search-grid input, .search-grid select{
+  background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%;
+}
+.search-row2{display:flex;gap:8px;}
+.search-row2 input{
+  flex:1;background:var(--navy-light);border:1px solid #2A3B48;color:var(--chalk);
+  padding:10px 12px;border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;
+}
+.search-card button{
+  width:100%;margin-top:10px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;
+  font-size:18px;letter-spacing:0.5px;font-weight:600;border-radius:6px;padding:11px;cursor:pointer;
+}
+.search-card button:disabled{background:#3A3A2E;color:#6B6B5E;}
+
+.status{font-size:12.5px;color:var(--dim);margin-bottom:14px;min-height:32px;line-height:1.5;}
+.status.err{color:var(--red);}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:19px;letter-spacing:1px;color:var(--amber);
+  margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #263644;
+}
+
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.card-main{flex:1;min-width:0;}
+.card-addr{font-size:13.5px;font-weight:600;color:var(--chalk);}
+.card-meta{font-size:11.5px;color:var(--dim);margin-top:2px;}
+.card-right{text-align:right;flex-shrink:0;}
+.card-price{font-family:'Teko',sans-serif;font-size:22px;line-height:1;color:var(--chalk);}
+.value-badge{font-size:11px;font-weight:600;margin-top:2px;}
+.value-badge.good{color:var(--green);}
+.value-badge.high{color:var(--red);}
+.value-badge.mid{color:var(--dim);}
+
+.detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #223140;font-size:11.5px;color:var(--dim);}
+.card.open .detail{display:block;}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;}
+.detail-row b{color:var(--chalk);font-weight:600;}
+.feature-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.feature-tag{font-size:10px;background:rgba(255,255,255,0.05);border-radius:4px;padding:3px 7px;color:var(--dim);}
+
+.empty-state{text-align:center;color:var(--dim);font-size:13px;padding:30px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:11px;color:#556670;margin-top:26px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="house"></span><h1>MD VALUE FINDER</h1></div>
+  <p class="sub">Search active Maryland listings and see which ones are priced well below comparable homes nearby \u2014 filterable by bedrooms and feature keywords.</p>
+  <div class="warn-banner">Raw MLS access is restricted to licensed brokers/agents \u2014 no public API exists for that. This uses RentCast, which aggregates active listings and public property records nationwide (including Maryland) as the closest legitimate alternative.</div>
+
+  <div class="key-card">
+    <div class="key-label">YOUR RENTCAST API KEY</div>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your free key from rentcast.io">
+      <button id="saveKeyBtn">SAVE</button>
+    </div>
+    <div class="key-note">Stored only in this browser, sent only to api.rentcast.io. Free plan: 50 requests/month, up to 500 listings per request \u2014 plenty for a single city/zip search.</div>
+    <div class="quota-line" id="quotaLine"></div>
+  </div>
+
+  <div class="search-card">
+    <div class="search-label">SEARCH</div>
+    <div class="search-grid">
+      <input type="text" id="cityInput" placeholder="City (e.g. Rockville, Columbia, Annapolis)">
+      <input type="text" id="zipInput" placeholder="or ZIP code">
+    </div>
+    <div class="search-row2">
+      <select id="bedroomsSelect">
+        <option value="">Any bedrooms</option>
+        <option value="0">Studio</option>
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+        <option value="4">4+</option>
+        <option value="5">5+</option>
+      </select>
+      <input type="text" id="keywordInput" placeholder="Feature keyword (e.g. garage, pool, waterfront)">
+    </div>
+    <button id="searchBtn" disabled>SEARCH LISTINGS</button>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="section-title">RESULTS \u2014 BEST VALUE FIRST</div>
+  <div id="list"><div class="empty-state">Paste your API key, enter a Maryland city or ZIP, then search.</div></div>
+
+  <p class="footnote">"Value" is computed by comparing each listing's price-per-square-foot to the median price-per-square-foot of other listings with the same bedroom count found in this same search \u2014 not a formal appraisal or automated valuation model. A listing showing far below median could be genuinely underpriced, or could reflect condition issues, an unusual lot, or incomplete data \u2014 always verify independently. Keyword search checks whatever description and feature text RentCast provides for each listing, which varies by source and isn't guaranteed to be complete. This is a research tool, not real estate advice.</p>
+</div>
+
+<script>
+const API_BASE = 'https://api.rentcast.io/v1';
+let apiKey = localStorage.getItem('rentcastApiKey') || '';
+if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+updateSearchButton();
+
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('rentcastApiKey', apiKey);
+  updateSearchButton();
+});
+function updateSearchButton(){ document.getElementById('searchBtn').disabled = !apiKey; }
+
+function setStatus(text, isErr){
+  const el = document.getElementById('statusLine');
+  el.textContent = text; el.className = 'status' + (isErr ? ' err' : '');
+}
+function fmtMoney(n){ return n != null ? '$' + Math.round(n).toLocaleString() : '\u2014'; }
+function updateQuota(res){
+  // RentCast doesn't always expose quota headers publicly documented; guard gracefully.
+  const remaining = res.headers.get('x-ratelimit-remaining') || res.headers.get('x-requests-remaining');
+  if(remaining != null) document.getElementById('quotaLine').textContent = `API requests remaining this period: ${remaining}`;
+}
+
+function median(arr){
+  if(!arr.length) return null;
+  const s = [...arr].sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length % 2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+
+function collectSearchableText(listing){
+  const parts = [];
+  if(listing.description) parts.push(listing.description);
+  if(Array.isArray(listing.features)) parts.push(listing.features.join(' '));
+  if(listing.propertyType) parts.push(listing.propertyType);
+  if(listing.architectureType) parts.push(listing.architectureType);
+  // Fallback: sweep any other string-valued fields in case the schema varies
+  Object.keys(listing).forEach(k => {
+    if(typeof listing[k] === 'string' && !parts.includes(listing[k])) parts.push(listing[k]);
+  });
+  return parts.join(' ').toLowerCase();
+}
+
+async function searchListings(){
+  if(!apiKey) return;
+  document.getElementById('searchBtn').disabled = true;
+  document.getElementById('list').innerHTML = '';
+  const city = document.getElementById('cityInput').value.trim();
+  const zip = document.getElementById('zipInput').value.trim();
+  const bedrooms = document.getElementById('bedroomsSelect').value;
+  const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+
+  if(!city && !zip){
+    setStatus('Enter a Maryland city or ZIP code to search.', true);
+    document.getElementById('searchBtn').disabled = false;
+    return;
+  }
+  setStatus('Searching RentCast listings...');
+
+  try{
+    const params = new URLSearchParams({ status: 'Active', limit: '500' });
+    if(zip){ params.set('zipCode', zip); } else { params.set('city', city); params.set('state', 'MD'); }
+    if(bedrooms !== ''){ params.set('bedrooms', `${bedrooms}:20`); } // min:max range, no real upper bound
+
+    const res = await fetch(`${API_BASE}/listings/sale?${params.toString()}`, {
+      headers: { 'X-Api-Key': apiKey, 'Accept': 'application/json' },
+    });
+    updateQuota(res);
+
+    if(!res.ok){
+      if(res.status === 401) setStatus('API key rejected. Check it was pasted correctly.', true);
+      else if(res.status === 429) setStatus('Out of RentCast API quota for this period.', true);
+      else setStatus(`Could not fetch listings (status ${res.status}).`, true);
+      document.getElementById('searchBtn').disabled = false;
+      return;
+    }
+
+    let listings = await res.json();
+    if(!Array.isArray(listings)) listings = [];
+    if(!listings.length){
+      setStatus('No active listings found for that search.', true);
+      document.getElementById('list').innerHTML = '<div class="empty-state">Try a different city/ZIP or widen the bedroom filter.</div>';
+      document.getElementById('searchBtn').disabled = false;
+      return;
+    }
+
+    // Compute price-per-sqft and group by bedroom count for local medians
+    const withPPSF = listings.map(l => {
+      const sqft = Number(l.squareFootage) || null;
+      const price = Number(l.price) || null;
+      const ppsf = (sqft && price) ? price/sqft : null;
+      return { raw: l, sqft, price, ppsf, beds: l.bedrooms != null ? Number(l.bedrooms) : null };
+    }).filter(l => l.price != null);
+
+    const groups = {};
+    withPPSF.forEach(l => {
+      const key = l.beds != null ? l.beds : 'unknown';
+      if(!groups[key]) groups[key] = [];
+      if(l.ppsf != null) groups[key].push(l.ppsf);
+    });
+    const groupMedian = {};
+    Object.keys(groups).forEach(k => { groupMedian[k] = median(groups[k]); });
+
+    let results = withPPSF.map(l => {
+      const key = l.beds != null ? l.beds : 'unknown';
+      const med = groupMedian[key];
+      const pctVsMedian = (med && l.ppsf) ? ((l.ppsf - med) / med) : null;
+      return { ...l, medianPpsf: med, pctVsMedian, searchText: collectSearchableText(l.raw) };
+    });
+
+    if(keyword){
+      results = results.filter(l => l.searchText.includes(keyword));
+    }
+
+    // Rank: most below local median first (best value), listings without enough data pushed to bottom
+    results.sort((a,b) => {
+      const av = a.pctVsMedian != null ? a.pctVsMedian : 1;
+      const bv = b.pctVsMedian != null ? b.pctVsMedian : 1;
+      return av - bv;
+    });
+
+    window.__results = results;
+    renderList(results);
+    setStatus(`Found ${listings.length} active listing${listings.length===1?'':'s'}${keyword ? `, ${results.length} matching "${keyword}"` : ''}.`);
+  }catch(e){
+    setStatus('Something went wrong fetching listings.', true);
+  }
+  document.getElementById('searchBtn').disabled = false;
+}
+
+function valueBadge(pct){
+  if(pct == null) return { cls:'mid', text:'No comp data' };
+  if(pct <= -0.15) return { cls:'good', text:`${Math.round(pct*100)}% below area median` };
+  if(pct >= 0.15) return { cls:'high', text:`+${Math.round(pct*100)}% above area median` };
+  return { cls:'mid', text:`${pct>=0?'+':''}${Math.round(pct*100)}% vs area median` };
+}
+
+function renderList(results){
+  const list = document.getElementById('list');
+  if(!results.length){
+    list.innerHTML = '<div class="empty-state">No listings match this search/keyword.</div>';
+    return;
+  }
+  list.innerHTML = results.slice(0, 100).map((l, i) => {
+    const raw = l.raw;
+    const badge = valueBadge(l.pctVsMedian);
+    const addr = [raw.addressLine1 || raw.formattedAddress, raw.city, raw.state, raw.zipCode].filter(Boolean).join(', ');
+    return `
+      <div class="card" id="prop-${i}" onclick="document.getElementById('prop-${i}').classList.toggle('open')">
+        <div class="card-top">
+          <div class="card-main">
+            <div class="card-addr">${addr || 'Address unavailable'}</div>
+            <div class="card-meta">${l.beds != null ? l.beds+' bd' : '\u2014'} \u00b7 ${raw.bathrooms != null ? raw.bathrooms+' ba' : '\u2014'} \u00b7 ${l.sqft ? l.sqft.toLocaleString()+' sqft' : '\u2014'}</div>
+          </div>
+          <div class="card-right">
+            <div class="card-price">${fmtMoney(l.price)}</div>
+            <div class="value-badge ${badge.cls}">${badge.text}</div>
+          </div>
+        </div>
+        <div class="detail">
+          <div class="detail-row"><span>Price per sqft</span><b>${l.ppsf ? '$'+l.ppsf.toFixed(0) : '\u2014'}</b></div>
+          <div class="detail-row"><span>Area median ($/sqft, same bed count)</span><b>${l.medianPpsf ? '$'+l.medianPpsf.toFixed(0) : '\u2014'}</b></div>
+          <div class="detail-row"><span>Property type</span><b>${raw.propertyType || '\u2014'}</b></div>
+          <div class="detail-row"><span>Days on market</span><b>${raw.daysOnMarket != null ? raw.daysOnMarket : '\u2014'}</b></div>
+          <div class="detail-row"><span>Listed date</span><b>${raw.listedDate ? new Date(raw.listedDate).toLocaleDateString() : '\u2014'}</b></div>
+          ${raw.description ? `<div class="detail-row" style="display:block;"><span>Description</span><div style="color:var(--chalk);margin-top:4px;">${raw.description}</div></div>` : ''}
+          ${Array.isArray(raw.features) && raw.features.length ? `<div class="feature-tags">${raw.features.map(f=>`<div class="feature-tag">${f}</div>`).join('')}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('searchBtn').addEventListener('click', searchListings);
+</script>
+</body>
+</html>

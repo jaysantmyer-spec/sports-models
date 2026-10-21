@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Slate Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --field-dark:#1F4C34; --dirt:#B5713F; --chalk:#EDEAE0; --amber:#F2A93B;
+  --navy:#16232E; --navy-light:#1E2F3D; --ink:#0B0F10; --red:#C0433A;
+  --blue:#7FB3D9; --dim:#7C93A3; --green:#5FAE7A; --purple:#9A7FD9;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--field-dark) 0%, var(--ink) 60%);
+  color:var(--chalk); font-family:'Inter',sans-serif; min-height:100vh; padding:24px 14px 60px;
+}
+.wrap{max-width:720px;margin:0 auto;}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.diamond{width:13px;height:13px;background:var(--dirt);transform:rotate(45deg);display:inline-block;border-radius:2px;}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:12px 13px;margin-bottom:13px;font-size:11.5px;color:var(--dim);line-height:1.8;}
+.chain .step{color:var(--chalk);}
+.chain b{color:var(--amber);}
+.chain .arrow{color:var(--dim);padding:0 4px;}
+
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;}
+input,select{
+  width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);
+  padding:8px 9px;border-radius:5px;font-size:13.5px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.btn{
+  width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;
+  font-family:'Teko',sans-serif;font-size:17px;letter-spacing:0.5px;font-weight:600;
+  border-radius:6px;padding:10px;cursor:pointer;
+}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.hint{font-size:10.5px;color:var(--dim);margin-top:7px;line-height:1.45;}
+.status{font-size:12px;color:var(--dim);margin:10px 0;min-height:17px;line-height:1.5;}
+.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,0.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}
+.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+
+.section-title{
+  font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);
+  margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;
+}
+
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,0.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;}
+.cprob{text-align:right;flex-shrink:0;}
+.cprob .v{font-family:'Teko',sans-serif;font-size:25px;line-height:1;color:var(--amber);}
+.cprob .l{font-size:8.5px;color:var(--dim);letter-spacing:0.5px;}
+
+.bars{margin-top:10px;}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar .nm{font-size:11px;width:92px;flex-shrink:0;color:var(--chalk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar .tr{flex:1;background:rgba(255,255,255,0.06);border-radius:3px;height:14px;overflow:hidden;}
+.bar .fl{height:100%;background:var(--amber);opacity:0.7;}
+.bar .pc{font-family:'Teko',sans-serif;font-size:14px;width:44px;text-align:right;flex-shrink:0;}
+
+.flag{font-size:10.5px;border-radius:5px;padding:6px 9px;margin-top:8px;line-height:1.55;}
+.flag.over{background:rgba(154,127,217,0.12);color:var(--purple);}
+.flag.neutral{background:rgba(255,255,255,0.03);color:var(--dim);}
+
+.odds{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;}
+.odds input{padding:7px 8px;font-size:13px;}
+.odds label{font-size:9px;}
+
+.rec{margin-top:9px;padding:10px 11px;border-radius:6px;font-size:12px;line-height:1.6;}
+.rec.go{background:rgba(95,174,122,0.1);border-left:3px solid var(--green);}
+.rec.no{background:rgba(255,255,255,0.03);border-left:3px solid #2A3B48;color:var(--dim);}
+.rec b{color:var(--amber);}
+
+.detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid #223140;}
+.card.open .detail{display:block;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+td{padding:5px 3px;border-bottom:1px solid #1B2836;color:var(--chalk);}
+td.k{color:var(--dim);width:56%;}
+.work{background:var(--ink);border:1px solid #2A3B48;border-radius:6px;padding:9px 10px;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:9px;}
+.work b{color:var(--chalk);}
+
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.warn{background:rgba(192,67,58,0.1);border:1px solid rgba(192,67,58,0.4);border-radius:8px;padding:11px 12px;font-size:11.5px;color:#E8B4AE;line-height:1.65;margin-top:14px;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="diamond"></span><h1>DAILY SLATE MODEL</h1></div>
+  <p class="sub">Every matchup today, run through the blended pipeline and ranked by edge.</p>
+
+  <div class="chain">
+    <span class="step"><b>1.</b> BaseRuns = (A&times;B)&divide;(B+C) + D</span> <span class="arrow">&mdash;</span> deserved runs, scored and allowed, stripped of sequencing luck<br>
+    <span class="step"><b>2.</b> W = BR&sup2;<sub>scored</sub> &divide; (BR&sup2;<sub>scored</sub> + BR&sup2;<sub>allowed</sub>)</span> <span class="arrow">&mdash;</span> adjusted Pythagorean win rate<br>
+    <span class="step"><b>3.</b> P = W<sub>A</sub>(1&minus;W<sub>B</sub>) &divide; [W<sub>A</sub>(1&minus;W<sub>B</sub>) + (1&minus;W<sub>A</sub>)W<sub>B</sub>]</span> <span class="arrow">&mdash;</span> Log 5 matchup probability
+  </div>
+
+  <div class="panel">
+    <div class="plabel">RUN THE SLATE</div>
+    <div class="g3">
+      <div><label>Date</label><input type="date" id="dt"></div>
+      <div><label>ML edge threshold</label>
+        <select id="mlThresh">
+          <option value="0.02">2 pts</option>
+          <option value="0.03" selected>3 pts</option>
+          <option value="0.05">5 pts</option>
+        </select>
+      </div>
+      <div><label>Sequencing flag</label>
+        <select id="seqThresh">
+          <option value="15">15 runs</option>
+          <option value="25" selected>25 runs</option>
+          <option value="40">40 runs</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="run">RUN SLATE</button>
+    <div class="prog"><div id="bar"></div></div>
+    <div class="status" id="st"></div>
+    <div class="hint">No API key required. Enter moneylines per game to see edges and recommendations; leave them blank for model output only.</div>
+  </div>
+
+  <div id="out"></div>
+
+  <div class="warn">
+    <b>Bankroll note.</b> Even a mathematically sound model loses roughly 40&ndash;45% of the time to variance. Never wager money you cannot afford to lose.
+  </div>
+
+  <p class="footnote">BaseRuns and Log 5 are implemented exactly as specified, with no change to their coefficients. Total bases allowed are reconstructed from hits, doubles, triples and home runs surrendered, since the pitching side does not publish the figure. Caught stealing and grounded-into-double-play totals are frequently absent from the pitching feed. Treating them as zero would understate outs on the defensive side only and systematically inflate BaseRuns allowed, dragging every team's rating down by roughly eight points of win percentage; since no team allows zero of either across a season, a zero there is read as missing and estimated from at-bats at league-typical rates so both sides stay symmetric. Values actually supplied are never overwritten, and the estimate is skipped below 500 at-bats where a true zero is plausible. Log 5 here produces a full-game probability from season-long team quality; it does not account for the starting pitchers in a given game, so it is a baseline rather than a game-specific price, and a heavy mismatch of starters can legitimately move a real line well away from it. The sequencing flag compares actual runs to BaseRuns across the season to date: it identifies teams whose results have diverged from their underlying performance, which is a statement about the past and a tendency going forward, not a projection for today's game. Fair odds are the model probability expressed in American terms with no margin applied, so any real market price will sit worse than fair. Team statistics come from the MLB Stats API.</p>
+</div>
+
+<script>
+const MLB='https://statsapi.mlb.com/api/v1';
+
+function iso(d){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }
+document.getElementById('dt').value=iso(new Date());
+
+function v(id){ const x=document.getElementById(id).value.trim(); return x===''?null:Number(x); }
+function setS(t,e){ const el=document.getElementById('st'); el.textContent=t; el.className='status'+(e?' err':''); }
+function setBar(p){ document.getElementById('bar').style.width=Math.round(p*100)+'%'; }
+async function getJSON(u,l){
+  try{ const r=await fetch(u); if(!r.ok){ window.__err=`${l}: HTTP ${r.status}`; return null; } return await r.json(); }
+  catch(e){ window.__err=`${l}: ${e.message}`; return null; }
+}
+function amToImp(p){ return p>0?100/(p+100):(-p)/((-p)+100); }
+function fmtAm(p){ return p>0?`+${p}`:`${p}`; }
+function probToAm(p){
+  if(p<=0||p>=1) return null;
+  return p>=0.5 ? Math.round(-100*p/(1-p)) : Math.round(100*(1-p)/p);
+}
+
+// ---- The three formulas ----
+function baseRuns(s){
+  const A=s.H+s.BB+s.HBP-s.HR;
+  const B=(1.4*s.TB)-(0.6*s.H)-(3*s.HR)+(0.1*s.BB);
+  const C=s.AB-s.H+s.CS+s.GIDP;
+  const D=s.HR;
+  if(B+C===0) return null;
+  return {A,B,C,D,runs:(A*B)/(B+C)+D};
+}
+function pyth(rs,ra){ const d=rs*rs+ra*ra; return d===0?null:(rs*rs)/d; }
+function log5(a,b){ const den=a*(1-b)+(1-a)*b; return den===0?null:(a*(1-b))/den; }
+
+function tbFrom(st){
+  const h=Number(st.hits)||0,d2=Number(st.doubles)||0,t3=Number(st.triples)||0,hr=Number(st.homeRuns)||0;
+  return h+d2+(2*t3)+(3*hr);
+}
+// The pitching feed frequently omits caught-stealing and GIDP. Defaulting them
+// to zero understates outs on the defensive side only, which inflates BaseRuns
+// allowed and drags every team's rating down. No team allows zero of either
+// across a season, so a zero here means missing, not real: estimate from at-bats
+// at league-typical rates to keep both sides of the ledger symmetric.
+function pull(st,group){
+  const ab=Number(st.atBats)||0;
+  let cs=Number(st.caughtStealing)||0;
+  let gidp=Number(st.groundIntoDoublePlay)||0;
+  let estimated=false;
+  if(group==='pitching' && cs===0 && gidp===0 && ab>500){
+    cs=Math.round(ab*0.0055);
+    gidp=Math.round(ab*0.0200);
+    estimated=true;
+  }
+  return {
+    H:Number(st.hits)||0, BB:Number(st.baseOnBalls)||0,
+    HBP:Number(group==='pitching'?st.hitBatsmen:st.hitByPitch)||0,
+    HR:Number(st.homeRuns)||0, TB:Number(st.totalBases)||tbFrom(st),
+    AB:ab, CS:cs, GIDP:gidp, estimated,
+    runs:Number(st.runs)||0,
+  };
+}
+const cache=new Map();
+async function teamStats(tid,season,group){
+  const k=`${tid}|${season}|${group}`;
+  if(cache.has(k)) return cache.get(k);
+  const d=await getJSON(`${MLB}/teams/${tid}/stats?stats=season&group=${group}&season=${season}`,'team');
+  const st=d&&d.stats&&d.stats[0]&&d.stats[0].splits&&d.stats[0].splits[0]&&d.stats[0].splits[0].stat;
+  const val=st?pull(st,group):null;
+  cache.set(k,val);
+  return val;
+}
+
+let slate=[];
+
+document.getElementById('run').addEventListener('click',async()=>{
+  const btn=document.getElementById('run');
+  btn.disabled=true; setBar(0);
+  document.getElementById('out').innerHTML='';
+  window.__err=null; slate=[];
+
+  const date=document.getElementById('dt').value;
+  const season=Number(date.slice(0,4));
+  setS('Loading slate...');
+
+  const sc=await getJSON(`${MLB}/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`,'schedule');
+  const games=((sc&&sc.dates&&sc.dates[0]&&sc.dates[0].games)||[])
+    .filter(g=>g.status&&(g.status.abstractGameState==='Preview'||g.status.abstractGameState==='Live'));
+
+  if(!games.length){
+    setS(window.__err?`Could not load. ${window.__err}`:'No upcoming games on this date.',true);
+    document.getElementById('out').innerHTML='<div class="empty">Nothing scheduled, or the slate has finished.</div>';
+    btn.disabled=false; return;
+  }
+
+  for(let i=0;i<games.length;i++){
+    const g=games[i];
+    setS(`Computing game ${i+1} of ${games.length}...`);
+    setBar((i+1)/games.length);
+    const aId=g.teams.away.team.id, hId=g.teams.home.team.id;
+    const [aOff,aDef,hOff,hDef]=await Promise.all([
+      teamStats(aId,season,'hitting'), teamStats(aId,season,'pitching'),
+      teamStats(hId,season,'hitting'), teamStats(hId,season,'pitching'),
+    ]);
+    if(!aOff||!aDef||!hOff||!hDef) continue;
+
+    const aBRs=baseRuns(aOff), aBRa=baseRuns(aDef);
+    const hBRs=baseRuns(hOff), hBRa=baseRuns(hDef);
+    if(!aBRs||!aBRa||!hBRs||!hBRa) continue;
+
+    const aW=pyth(aBRs.runs,aBRa.runs), hW=pyth(hBRs.runs,hBRa.runs);
+    if(aW==null||hW==null) continue;
+    const pAway=log5(aW,hW);
+    if(pAway==null) continue;
+
+    slate.push({
+      id:i,
+      away:g.teams.away.team.name, home:g.teams.home.team.name,
+      awaySP:g.teams.away.probablePitcher?g.teams.away.probablePitcher.fullName:'TBD',
+      homeSP:g.teams.home.probablePitcher?g.teams.home.probablePitcher.fullName:'TBD',
+      aOff,aDef,hOff,hDef,aBRs,aBRa,hBRs,hBRa,aW,hW,
+      pAway, pHome:1-pAway,
+      aSeq:aBRs.runs-aOff.runs,   // positive => scored fewer than deserved
+      hSeq:hBRs.runs-hOff.runs,
+    });
+  }
+
+  if(!slate.length){
+    setS(window.__err?`No games computed. ${window.__err}`:'No games had usable team statistics.',true);
+    document.getElementById('out').innerHTML='<div class="empty">Could not compute any matchups.</div>';
+    btn.disabled=false; return;
+  }
+
+  setBar(1);
+  setS(`${slate.length} matchup${slate.length===1?'':'s'} computed. Enter moneylines to price them.`);
+  render();
+  btn.disabled=false;
+});
+
+function render(){
+  const seqT=Number(document.getElementById('seqThresh').value);
+  // Re-rendering rebuilds the cards, so capture anything already typed first.
+  const saved={};
+  slate.forEach(s=>{
+    const a=document.getElementById(`oa-${s.id}`), h=document.getElementById(`oh-${s.id}`);
+    if(a||h) saved[s.id]={a:a?a.value:'', h:h?h.value:''};
+  });
+
+  document.getElementById('out').innerHTML =
+    `<div class="section-title">MATCHUPS</div>` +
+    slate.map(s=>card(s,seqT)).join('');
+
+  Object.keys(saved).forEach(id=>{
+    const a=document.getElementById(`oa-${id}`), h=document.getElementById(`oh-${id}`);
+    if(a) a.value=saved[id].a;
+    if(h) h.value=saved[id].h;
+    if(saved[id].a!==''||saved[id].h!=='') price(Number(id));
+  });
+}
+
+// Changing a threshold used to do nothing until the slate was re-run.
+document.getElementById('seqThresh').addEventListener('change',()=>{ if(slate.length) render(); });
+document.getElementById('mlThresh').addEventListener('change',()=>{
+  slate.forEach(s=>{
+    const a=document.getElementById(`oa-${s.id}`), h=document.getElementById(`oh-${s.id}`);
+    if((a&&a.value.trim()!=='')||(h&&h.value.trim()!=='')) price(s.id);
+  });
+});
+
+function card(s,seqT){
+  const favName = s.pAway>=0.5 ? s.away : s.home;
+  const favPct  = Math.max(s.pAway,s.pHome);
+
+  // Sequencing flags: a team scoring well under BaseRuns has been unlucky.
+  const flags=[];
+  [[s.away,s.aSeq],[s.home,s.hSeq]].forEach(([nm,gap])=>{
+    if(Math.abs(gap)>=seqT){
+      flags.push(gap>0
+        ? `<div class="flag over"><b>${nm}</b> have scored ${gap.toFixed(0)} runs fewer than BaseRuns says they deserved. Offence has been undervalued by results &mdash; their team total and overs are where that shows up.</div>`
+        : `<div class="flag neutral"><b>${nm}</b> have scored ${Math.abs(gap).toFixed(0)} runs more than deserved. Results have flattered them; unders are the side that benefits if it corrects.</div>`);
+    }
+  });
+  if(!flags.length) flags.push('<div class="flag neutral">Neither offence shows a sequencing gap past the threshold.</div>');
+
+  return `
+  <div class="card" id="c-${s.id}">
+    <div class="chead" onclick="document.getElementById('c-${s.id}').classList.toggle('open')">
+      <div>
+        <div class="cmatch">${s.away} @ ${s.home}</div>
+        <div class="csub">${s.awaySP} vs ${s.homeSP}</div>
+      </div>
+      <div class="cprob">
+        <div class="v">${(favPct*100).toFixed(1)}%</div>
+        <div class="l">${favName.toUpperCase().slice(0,12)}</div>
+      </div>
+    </div>
+
+    <div class="bars">
+      <div class="bar">
+        <div class="nm">${s.away}</div>
+        <div class="tr"><div class="fl" style="width:${(s.pAway*100).toFixed(0)}%"></div></div>
+        <div class="pc">${(s.pAway*100).toFixed(1)}%</div>
+      </div>
+      <div class="bar">
+        <div class="nm">${s.home}</div>
+        <div class="tr"><div class="fl" style="width:${(s.pHome*100).toFixed(0)}%"></div></div>
+        <div class="pc">${(s.pHome*100).toFixed(1)}%</div>
+      </div>
+    </div>
+
+    ${flags.join('')}
+
+    <div class="odds">
+      <div><label>${s.away} ML</label><input type="number" id="oa-${s.id}" placeholder="${fmtAm(probToAm(s.pAway))}" oninput="price(${s.id})"></div>
+      <div><label>${s.home} ML</label><input type="number" id="oh-${s.id}" placeholder="${fmtAm(probToAm(s.pHome))}" oninput="price(${s.id})"></div>
+    </div>
+    <div id="r-${s.id}"></div>
+
+    <div class="detail">
+      <table>
+        <tr><td class="k">${s.away} BaseRuns scored</td><td>${s.aBRs.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${s.aOff.runs})</span></td></tr>
+        <tr><td class="k">${s.away} BaseRuns allowed</td><td>${s.aBRa.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${s.aDef.runs})</span></td></tr>
+        <tr><td class="k">${s.home} BaseRuns scored</td><td>${s.hBRs.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${s.hOff.runs})</span></td></tr>
+        <tr><td class="k">${s.home} BaseRuns allowed</td><td>${s.hBRa.runs.toFixed(1)} <span style="color:var(--dim)">(actual ${s.hDef.runs})</span></td></tr>
+      </table>
+      <div class="work">
+        Adjusted Pythagorean<br>
+        ${s.away}: ${s.aBRs.runs.toFixed(1)}&sup2; &divide; (${s.aBRs.runs.toFixed(1)}&sup2; + ${s.aBRa.runs.toFixed(1)}&sup2;) = <b>${s.aW.toFixed(4)}</b><br>
+        ${s.home}: ${s.hBRs.runs.toFixed(1)}&sup2; &divide; (${s.hBRs.runs.toFixed(1)}&sup2; + ${s.hBRa.runs.toFixed(1)}&sup2;) = <b>${s.hW.toFixed(4)}</b>
+      </div>
+      <div class="work">
+        Log 5<br>
+        ${s.aW.toFixed(4)} &times; ${(1-s.hW).toFixed(4)} = <b>${(s.aW*(1-s.hW)).toFixed(4)}</b><br>
+        ${(1-s.aW).toFixed(4)} &times; ${s.hW.toFixed(4)} = <b>${((1-s.aW)*s.hW).toFixed(4)}</b><br>
+        ${s.away} probability = <b>${s.pAway.toFixed(4)}</b>
+      </div>
+      <div class="work">
+        Fair odds &mdash; ${s.away} <b>${fmtAm(probToAm(s.pAway))}</b> &middot; ${s.home} <b>${fmtAm(probToAm(s.pHome))}</b><br>
+        No margin applied, so a real market price will always sit worse than these.
+      </div>
+    </div>
+  </div>`;
+}
+
+function price(id){
+  const s=slate.find(x=>x.id===id);
+  const t=Number(document.getElementById('mlThresh').value);
+  const oa=v(`oa-${id}`), oh=v(`oh-${id}`);
+  const out=[];
+  let anyPlay=false;
+
+  [[s.away,oa,s.pAway],[s.home,oh,s.pHome]].forEach(([nm,price,p])=>{
+    if(price==null) return;
+    const imp=amToImp(price), edge=p-imp;
+    if(edge>=t){
+      anyPlay=true;
+      out.push(`<div class="rec go"><b>Play ${nm} ML ${fmtAm(price)}</b> &mdash; model ${(p*100).toFixed(1)}% against ${(imp*100).toFixed(1)}% implied, edge +${(edge*100).toFixed(1)} points. Fair price ${fmtAm(probToAm(p))}.</div>`);
+    } else {
+      out.push(`<div class="rec no">${nm} ${fmtAm(price)}: model ${(p*100).toFixed(1)}% vs ${(imp*100).toFixed(1)}% implied (${edge>=0?'+':''}${(edge*100).toFixed(1)} pts). Below the ${(t*100).toFixed(0)}-point threshold.</div>`);
+    }
+  });
+
+  document.getElementById(`r-${id}`).innerHTML=out.join('');
+  document.getElementById(`c-${id}`).classList.toggle('play',anyPlay);
+}
+</script>
+</body>
+</html>
