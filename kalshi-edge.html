@@ -60,7 +60,7 @@ details summary{cursor:pointer;color:var(--mut);font-size:13px}
   <div class="row" style="margin-top:8px">
     <label><input type="checkbox" id="wUseLearned" checked> use learned bias/σ from graded log (needs ≥10 per city)</label>
   </div>
-  <div class="status" id="wStatus">Open markets come from Kalshi's public API (no key). Forecast high comes from Open-Meteo at the official NWS station for each city. Model = normal distribution centered on forecast; width grows with lead time.</div>
+  <div class="status" id="wStatus">Open markets come from Kalshi's public API (no key). Forecast high comes from Open-Meteo at the official NWS station for each city. Model = normal distribution around the forecast (σ ${'3.2'}° base, wider with lead). Same-day markets use the observed high so far: the day's high can only go up from there. Confidence is capped at 75% until the graded log earns more. The market has live thermometers too — same-day "edges" are usually the model being late, not the market being wrong.</div>
 </div>
 <div id="wOut"></div>
 </div>
@@ -236,10 +236,17 @@ function learned(){
 
 /* ---------- WEATHER SCAN ---------- */
 async function fetchForecast(st){
-  const u=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&forecast_days=7`;
-  const j=await getJSON(u); const o={};
-  j.daily.time.forEach((d,i)=>o[d]=j.daily.temperature_2m_max[i]); return o;
+  // daily forecast highs + today's hourly track so same-day markets use the OBSERVED high so far
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&daily=temperature_2m_max&hourly=temperature_2m&current=temperature_2m&temperature_unit=fahrenheit&timezone=auto&forecast_days=7`;
+  const j=await getJSON(u); const o={daily:{},obsHigh:null,obsNow:null,obsHour:null};
+  j.daily.time.forEach((d,i)=>o.daily[d]=j.daily.temperature_2m_max[i]);
+  if(j.current&&j.hourly){ const nowT=j.current.time; const todayKey=nowT.slice(0,10); let hi=-999,hr=null;
+    j.hourly.time.forEach((t,i)=>{ if(t.slice(0,10)===todayKey&&t<=nowT&&j.hourly.temperature_2m[i]!=null){ if(j.hourly.temperature_2m[i]>hi){hi=j.hourly.temperature_2m[i];hr=t.slice(11,16);} } });
+    o.obsNow=j.current.temperature_2m; if(o.obsNow>hi){hi=o.obsNow;hr=nowT.slice(11,16);}
+    if(hi>-999){ o.obsHigh=hi; o.obsHour=hr; } o.todayKey=todayKey; o.nowHour=+nowT.slice(11,13); }
+  return o;
 }
+const SIG0=3.2, SIG_LEAD=0.6, P_CAP=0.75;   // wider base error; cap displayed confidence until the log earns more
 async function fetchMarkets(series){
   return liveOrSnap(async()=>{ const j=await getJSON(`${K}/markets?series_ticker=${series}&status=open&limit=200`); return j.markets||[]; },
                     async()=>{ const evs=await snapCategory('Climate and Weather'); const out=[]; evs.forEach(e=>e.markets.forEach(m=>{ if(m.ticker.startsWith(series+'-')) out.push(m); })); return out; });
@@ -257,18 +264,30 @@ $('wRun').onclick=async()=>{
       for(const m of ms){
         const d=tickerDate(m.ticker); const br=bracket(m); if(!d||!br) continue;
         const lead=daysBetween(today,d); if(lead<0||lead>maxLead) continue;
-        const key=d.toISOString().slice(0,10); const f=fc[key]; if(f==null) continue;
+        const key=d.toISOString().slice(0,10); const f=fc.daily[key]; if(f==null) continue;
         const cal=(useL&&L[s])?L[s]:null;
-        const mu=f+(cal?cal.bias:0);
-        const sigma=cal?cal.sd*(1+0.15*lead):2.4+0.6*lead;
-        const p=Phi((br.hi-mu)/sigma)-Phi((br.lo-mu)/sigma);
+        let mu=f+(cal?cal.bias:0);
+        let sigma=cal?cal.sd*(1+0.15*lead):SIG0+SIG_LEAD*lead;
+        let obs=null;
+        if(lead===0&&fc.todayKey===key&&fc.obsHigh!=null){
+          obs=fc.obsHigh;
+          // late in the day the remaining upside is small: shrink the forecast error for what is still to come
+          const left=Math.max(0,18-fc.nowHour); sigma=Math.max(1.0,sigma*Math.min(1,left/10+0.15));
+          mu=Math.max(mu,obs);
+        }
+        // day's high = max(observed so far, remaining-day draw ~ N(mu,sigma))
+        let p;
+        if(obs!=null&&obs>br.hi) p=0;
+        else if(obs!=null&&obs>=br.lo) p=Phi((br.hi-mu)/sigma);
+        else p=Phi((br.hi-mu)/sigma)-Phi((br.lo-mu)/sigma);
+        p=Math.min(Math.max(p,1-P_CAP),P_CAP);
         const yAsk=price(m,'yes_ask'), nAsk=price(m,'no_ask'), last=price(m,'last_price');
         const cand=[];
         if(yAsk!=null&&yAsk>0&&yAsk<1) cand.push({side:'YES',ask:yAsk,p:p});
         if(nAsk!=null&&nAsk>0&&nAsk<1) cand.push({side:'NO',ask:nAsk,p:1-p});
         for(const c of cand){
           const edge=c.p-c.ask; const ev=c.p*(1-c.ask)-(1-c.p)*c.ask-fee(c.ask);
-          rows.push({series:s,city:STATION[s].city,ticker:m.ticker,title:m.title||m.ticker,date:key,lead,bracket:br.label,forecast:f,mu,sigma,side:c.side,ask:c.ask,p:c.p,edge,ev,last,cal:!!cal});
+          rows.push({series:s,city:STATION[s].city,ticker:m.ticker,title:m.title||m.ticker,date:key,lead,bracket:br.label,forecast:f,obs,obsHour:fc.obsHour,mu,sigma,side:c.side,ask:c.ask,p:c.p,edge,ev,last,cal:!!cal});
         }
       }
     }catch(e){ errs.push(`${STATION[s].city} (${s}): ${e.message}`); }
@@ -279,14 +298,14 @@ $('wRun').onclick=async()=>{
   if(!show.length){ $('wOut').innerHTML='<div class="card">No edges above threshold. That is the normal result most days — weather markets are efficient near settlement.</div>'; return; }
   let h='<div class="wrap card"><table><tr><th>City</th><th>Date</th><th>Bracket</th><th>Fcst</th><th>Side</th><th>Ask</th><th>Model</th><th>Edge</th><th>EV/$</th><th></th></tr>';
   show.forEach((r,i)=>{
-    h+=`<tr><td>${r.city}${r.cal?' <span class="pill g">cal</span>':''}</td><td>${r.date}<br><span class="mono">${r.lead}d</span></td><td>${r.bracket}</td><td>${r.forecast.toFixed(0)}°<br><span class="mono">σ${r.sigma.toFixed(1)}</span></td><td><b>${r.side}</b></td><td>${(r.ask*100).toFixed(0)}¢</td><td>${fmtP(r.p)}</td><td class="${r.edge>0?'g':'b'}">+${(r.edge*100).toFixed(1)}</td><td class="${r.ev>0?'g':'b'}">${(r.ev*100).toFixed(1)}¢</td><td><button class="sm" data-i="${i}">log</button></td></tr>`;
+    h+=`<tr><td>${r.city}${r.cal?' <span class="pill g">cal</span>':''}</td><td>${r.date}<br><span class="mono">${r.lead}d</span></td><td>${r.bracket}</td><td>${r.forecast.toFixed(0)}°${r.obs!=null?`<br><span class="mono g">obs ${r.obs.toFixed(0)}° @${r.obsHour}</span>`:''}<br><span class="mono">σ${r.sigma.toFixed(1)}</span></td><td><b>${r.side}</b></td><td>${(r.ask*100).toFixed(0)}¢</td><td>${fmtP(r.p)}</td><td class="${r.edge>0?'g':'b'}">+${(r.edge*100).toFixed(1)}</td><td class="${r.ev>0?'g':'b'}">${(r.ev*100).toFixed(1)}¢</td><td><button class="sm" data-i="${i}">log</button></td></tr>`;
   });
   h+='</table></div>';
   $('wOut').innerHTML=h;
   $('wOut').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
     const r=show[+b.dataset.i]; const log=loadLog();
     if(log.some(x=>x.ticker===r.ticker&&x.side===r.side)){ b.textContent='dup'; return; }
-    log.push({id:Date.now()+Math.random(),kind:'weather',series:r.series,city:r.city,ticker:r.ticker,title:r.title,date:r.date,bracket:r.bracket,lo:null,forecast:r.forecast,sigma:r.sigma,side:r.side,entry:r.ask,modelP:r.p,marketP:r.side==='YES'?r.ask:1-r.ask,loggedAt:new Date().toISOString(),result:null});
+    log.push({id:Date.now()+Math.random(),kind:'weather',series:r.series,city:r.city,ticker:r.ticker,title:r.title,date:r.date,bracket:r.bracket,lo:null,forecast:r.forecast,obsAtEntry:r.obs,sigma:r.sigma,side:r.side,entry:r.ask,modelP:r.p,marketP:r.side==='YES'?r.ask:1-r.ask,loggedAt:new Date().toISOString(),result:null});
     saveLog(log); b.textContent='logged ✓'; b.disabled=true;
   });
 };
