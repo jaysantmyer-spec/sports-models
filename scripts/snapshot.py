@@ -30,9 +30,9 @@ def paged(path, key, params, max_pages=400):
         time.sleep(0.2)
     return out
 
-MK_FIELDS = ["ticker","event_ticker","title","subtitle","yes_sub_title","status","result","close_time",
-             "yes_ask","yes_bid","no_ask","no_bid","last_price","yes_ask_dollars","yes_bid_dollars","no_ask_dollars",
-             "no_bid_dollars","last_price_dollars","volume","volume_24h","open_interest","strike_type","floor_strike","cap_strike"]
+MK_FIELDS = ["ticker","event_ticker","yes_sub_title","result","close_time",
+             "yes_ask","yes_bid","no_ask","last_price","volume","open_interest","strike_type","floor_strike","cap_strike"]
+KEEP_ALL_CATEGORIES = {"Climate and Weather"}   # weather brackets are needed even at zero volume
 EV_FIELDS = ["event_ticker","series_ticker","title","sub_title","category","mutually_exclusive"]
 
 def trim(d, fields): return {k: d.get(k) for k in fields if d.get(k) is not None}
@@ -45,12 +45,22 @@ def main():
         if e.get("category") in SKIP_CATEGORIES:
             skipped += 1; continue
         ms = e.get("markets") or []
-        events.append(trim(e, EV_FIELDS))
+        keep_all = e.get("category") in KEEP_ALL_CATEGORIES
+        kept = []
         for m in ms:
+            if not keep_all and not (m.get("volume") or m.get("open_interest")): continue
             m.setdefault("event_ticker", e.get("event_ticker"))
-            markets.append(trim(m, MK_FIELDS))
+            # prefer integer cents; fall back to dollars if cents absent
+            for k in ("yes_ask","yes_bid","no_ask","last_price"):
+                if m.get(k) is None and m.get(k+"_dollars") is not None:
+                    try: m[k] = round(float(m[k+"_dollars"])*100)
+                    except Exception: pass
+            if m.get("subtitle") and not m.get("yes_sub_title"): m["yes_sub_title"] = m["subtitle"]
+            kept.append(trim(m, MK_FIELDS))
+        if not kept: continue
+        events.append(trim(e, EV_FIELDS)); markets += kept
     # weather series are their own events (category Climate and Weather) so they are already included
-    since = int(time.time()) - 4*86400
+    since = int(time.time()) - 2*86400
     settled = paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=30)
     poly = []
     for off in range(0, 4000, 100):
@@ -60,7 +70,7 @@ def main():
         if len(j) < 100: break
         time.sleep(0.1)
     snap = {"ts": int(time.time()*1000), "events": events, "markets": markets,
-            "settled": [trim(m, ["ticker","result","last_price","last_price_dollars","close_time"]) for m in settled],
+            "settled": [trim(m, ["ticker","result","last_price"]) for m in settled if m.get("result")],
             "poly": poly}
     os.makedirs("data", exist_ok=True)
     with open("data/kalshi.json", "w") as f: json.dump(snap, f, separators=(",", ":"))
