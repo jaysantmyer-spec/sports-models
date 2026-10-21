@@ -42,6 +42,7 @@ details summary{cursor:pointer;color:var(--mut);font-size:13px}
 
 <div class="tabs">
   <div class="tab on" data-t="weather">Weather Edge</div>
+  <div class="tab" data-t="browse">Browse</div>
   <div class="tab" data-t="arb">Arbitrage</div>
   <div class="tab" data-t="log">Log &amp; Results</div>
 </div>
@@ -62,6 +63,25 @@ details summary{cursor:pointer;color:var(--mut);font-size:13px}
   <div class="status" id="wStatus">Open markets come from Kalshi's public API (no key). Forecast high comes from Open-Meteo at the official NWS station for each city. Model = normal distribution centered on forecast; width grows with lead time.</div>
 </div>
 <div id="wOut"></div>
+</div>
+
+<!-- ================= BROWSE ================= -->
+<div id="t-browse" style="display:none">
+<div class="card">
+  <div class="row">
+    <label>Category</label><select id="bCat"><option value="">All (load first)</option></select>
+    <label>Sort</label><select id="bSort"><option value="vol">Volume</option><option value="close">Closing soon</option><option value="dis">Poly disagreement</option><option value="spread">Widest spread</option><option value="long">Longshots</option></select>
+    <label>Max days</label><input type="number" id="bDays" value="60" step="1">
+    <button id="bLoad">Load markets</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label><input type="checkbox" id="bPoly" checked> cross-check Polymarket prices (slower)</label>
+    <label>Min volume</label><input type="number" id="bVol" value="500" step="100">
+  </div>
+  <div class="note">No model here — these are screens, not edges. <b>Poly Δ</b> = Polymarket YES price minus Kalshi YES mid (two crowds disagreeing). <b>Longshot</b> = YES ≤ 8¢ with 14+ days left; markets historically overprice these, so NO is the textbook (small) edge. Log a side and let the results tab judge you.</div>
+  <div class="status" id="bStatus">Categories fill in after the first load.</div>
+</div>
+<div id="bOut"></div>
 </div>
 
 <!-- ================= ARB ================= -->
@@ -163,7 +183,7 @@ function daysBetween(a,b){ return Math.round((b-a)/864e5); }
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
-  ['weather','arb','log'].forEach(k=>$('t-'+k).style.display = k===t.dataset.t?'':'none');
+  ['weather','browse','arb','log'].forEach(k=>$('t-'+k).style.display = k===t.dataset.t?'':'none');
   if(t.dataset.t==='log') renderLog();
 });
 for(const s in STATION){ const o=document.createElement('option'); o.value=s; o.textContent=STATION[s].city; $('wCity').appendChild(o); }
@@ -239,6 +259,68 @@ $('wRun').onclick=async()=>{
     saveLog(log); b.textContent='logged ✓'; b.disabled=true;
   });
 };
+
+/* ---------- BROWSE ---------- */
+let BEV=[], BPOLY=null;
+async function kalshiEvents(maxPages){
+  let out=[],cursor='';
+  for(let i=0;i<maxPages;i++){
+    const j=await getJSON(`${K}/events?status=open&limit=200&with_nested_markets=true${cursor?'&cursor='+cursor:''}`);
+    out=out.concat(j.events||[]); cursor=j.cursor; if(!cursor||!(j.events||[]).length) break;
+    $('bStatus').textContent=`Loaded ${out.length} events…`;
+  }
+  return out;
+}
+$('bLoad').onclick=async()=>{
+  const wantPoly=$('bPoly').checked;
+  $('bStatus').textContent='Loading Kalshi events…'; $('bOut').innerHTML='';
+  try{
+    if(!BEV.length) BEV=await kalshiEvents(15);
+    if(wantPoly&&!BPOLY){ $('bStatus').textContent='Loading Polymarket…'; BPOLY=(await polyAll()).map(p=>({m:p,t:toks(p.question||p.title),d:p.endDate?new Date(p.endDate):null})); }
+  }catch(e){ $('bStatus').innerHTML=`<span class="err">${e.message}</span>`; return; }
+  const cats=[...new Set(BEV.map(e=>e.category).filter(Boolean))].sort();
+  const sel=$('bCat'); const cur=sel.value; sel.innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  renderBrowse();
+};
+['bCat','bSort','bDays','bVol'].forEach(id=>$(id).onchange=()=>{ if(BEV.length) renderBrowse(); });
+function renderBrowse(){
+  const cat=$('bCat').value, sort=$('bSort').value, maxD=+$('bDays').value, minV=+$('bVol').value;
+  const now=Date.now(); const rows=[];
+  for(const e of BEV){
+    if(cat&&e.category!==cat) continue;
+    for(const m of (e.markets||[])){
+      if(m.status&&m.status!=='active'&&m.status!=='open') continue;
+      const yA=price(m,'yes_ask'),yB=price(m,'yes_bid'),nA=price(m,'no_ask');
+      if(yA==null||nA==null) continue;
+      const close=m.close_time?new Date(m.close_time):null; const days=close?(close-now)/864e5:null;
+      if(days!=null&&(days<0||days>maxD)) continue;
+      const vol=m.volume||0; if(vol<minV) continue;
+      const mid=(yB!=null&&yA!=null)?(yA+yB)/2:yA; const spread=(yB!=null)?yA-yB:null;
+      let poly=null,dis=null;
+      if(BPOLY){ const kt=toks(e.title+' '+(m.yes_sub_title||m.subtitle||'')); let best=null;
+        for(const p of BPOLY){ if(close&&p.d&&Math.abs(close-p.d)>3*864e5) continue; const j=jaccard(kt,p.t); if(j>=0.5&&(!best||j>best.j)) best={j,p}; }
+        if(best){ try{ const pr=JSON.parse(best.p.m.outcomePrices||'[]'); poly=parseFloat(pr[0]); dis=poly-mid; }catch(x){} } }
+      const longshot=yA<=0.08&&days!=null&&days>=14;
+      rows.push({e,m,yA,nA,mid,spread,vol,days,poly,dis,longshot,title:e.title,sub:m.yes_sub_title||m.subtitle||''});
+    }
+  }
+  rows.sort((a,b)=>sort==='vol'?b.vol-a.vol:sort==='close'?(a.days??1e9)-(b.days??1e9):sort==='dis'?Math.abs(b.dis||0)-Math.abs(a.dis||0):sort==='spread'?(b.spread||0)-(a.spread||0):(a.longshot?0:1)-(b.longshot?0:1)||a.yA-b.yA);
+  const show=rows.slice(0,150);
+  $('bStatus').textContent=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length}`;
+  let h='<div class="wrap card"><table><tr><th>Market</th><th>Yes</th><th>No</th><th>Spread</th><th>Vol</th><th>Days</th><th>Poly</th><th>Δ</th><th>Flag</th><th>Log</th></tr>';
+  show.forEach((r,i)=>{
+    const flag=(r.longshot?'<span class="pill w">longshot</span> ':'')+(r.dis!=null&&Math.abs(r.dis)>=0.05?`<span class="pill ${r.dis>0?'g':'b'}">poly ${r.dis>0?'higher':'lower'}</span>`:'');
+    h+=`<tr><td>${r.title}${r.sub?'<br><span class="mono">'+r.sub+'</span>':''}<br><span class="mono" style="color:var(--mut)">${r.m.ticker}</span></td><td>${(r.yA*100).toFixed(0)}¢</td><td>${(r.nA*100).toFixed(0)}¢</td><td>${r.spread!=null?(r.spread*100).toFixed(0)+'¢':'—'}</td><td>${r.vol>=1000?(r.vol/1000).toFixed(1)+'k':r.vol}</td><td>${r.days!=null?r.days.toFixed(0):'—'}</td><td>${r.poly!=null?(r.poly*100).toFixed(0)+'¢':'—'}</td><td class="${r.dis>0?'g':r.dis<0?'b':''}">${r.dis!=null?(r.dis>0?'+':'')+(r.dis*100).toFixed(0):'—'}</td><td>${flag}</td><td><button class="sm" data-i="${i}" data-s="YES">Y</button> <button class="sm sec" data-i="${i}" data-s="NO">N</button></td></tr>`;
+  });
+  $('bOut').innerHTML=h+'</table></div>';
+  $('bOut').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+    const r=show[+b.dataset.i], side=b.dataset.s; const log=loadLog();
+    if(log.some(x=>x.ticker===r.m.ticker&&x.side===side)){ b.textContent='dup'; return; }
+    const entry=side==='YES'?r.yA:r.nA;
+    log.push({id:Date.now()+Math.random(),kind:'market',category:r.e.category,ticker:r.m.ticker,title:r.title+(r.sub?' — '+r.sub:''),side,entry,marketP:side==='YES'?r.yA:1-r.yA,modelP:r.poly!=null?(side==='YES'?r.poly:1-r.poly):null,polyAtEntry:r.poly,flag:r.longshot?'longshot':(r.dis!=null&&Math.abs(r.dis)>=0.05?'poly-disagree':''),loggedAt:new Date().toISOString(),result:null});
+    saveLog(log); b.textContent='✓'; b.disabled=true;
+  });
+}
 
 /* ---------- ARBITRAGE ---------- */
 const STOP=new Set('will the a an of to in on by for and or at is be before after than with from this that it its what who win wins market yes no above below over under more less'.split(' '));
@@ -326,12 +408,12 @@ $('lGrade').onclick=async()=>{
       const r=(m.result||'').toLowerCase();
       if(r==='yes'||r==='no'){
         b.result=r; n++;
-        if(b.kind==='weather'){
+        if(b.kind==='weather'||b.kind==='market'){
           const won=(b.side==='YES'&&r==='yes')||(b.side==='NO'&&r==='no');
           b.win=won; b.pnl=won?(1-b.entry-fee(b.entry)):(-b.entry-fee(b.entry));
           // CLV: where did the price settle vs our entry (signed in our favor)
           if(last!=null) b.clv=b.side==='YES'?(last-b.entry):((1-last)-b.entry);
-          const y=won?1:0; b.brierModel=(b.modelP-y)**2; b.brierMarket=(b.marketP-y)**2;
+          const y=won?1:0; if(b.modelP!=null) b.brierModel=(b.modelP-y)**2; b.brierMarket=(b.marketP-y)**2;
         } else if(b.kind==='arb'){ b.win=true; b.pnl=b.margin; }
       }
     }catch(e){ errs++; }
@@ -339,7 +421,7 @@ $('lGrade').onclick=async()=>{
   saveLog(log); $('lStatus').textContent=`Graded ${n} new · ${errs} errors`; renderLog();
 };
 function renderLog(){
-  const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result);
+  const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result); const mk=log.filter(b=>b.kind==='market'&&b.result);
   const sum=(a,k)=>a.reduce((s,b)=>s+(b[k]||0),0);
   const wins=w.filter(b=>b.win).length;
   const bm=w.length?sum(w,'brierModel')/w.length:null, bk=w.length?sum(w,'brierMarket')/w.length:null;
@@ -352,13 +434,19 @@ function renderLog(){
    <div class="stat"><b class="${clv>0?'g':'b'}">${clv!=null?(clv*100).toFixed(1)+'¢':'—'}</b><span>avg CLV</span></div>
    <div class="stat"><b>${bm!=null?bm.toFixed(4):'—'}</b><span>Brier model</span></div>
    <div class="stat"><b>${bk!=null?bk.toFixed(4):'—'}</b><span>Brier market</span></div>
-   <div class="note">Edge is real only if: CLV stays positive AND Brier model &lt; Brier market over 100+ picks. Win rate alone proves nothing.</div>`;
+   <div class="note">Edge is real only if: CLV stays positive AND Brier model &lt; Brier market over 100+ picks. Win rate alone proves nothing.</div>
+   <h2>Browse picks (culture / econ / finance…)</h2>
+   <div class="stat"><b>${log.filter(b=>b.kind==='market').length}</b><span>logged</span></div>
+   <div class="stat"><b>${mk.length}</b><span>graded</span></div>
+   <div class="stat"><b>${mk.length?((mk.filter(b=>b.win).length/mk.length)*100).toFixed(0)+'%':'—'}</b><span>win rate</span></div>
+   <div class="stat"><b class="${sum(mk,'pnl')>=0?'g':'b'}">${mk.length?(sum(mk,'pnl')>=0?'+':'')+sum(mk,'pnl').toFixed(2):'—'}</b><span>P&amp;L per $1</span></div>
+   <div class="stat"><b class="${(mk.filter(b=>b.clv!=null).length&&sum(mk,'clv')/mk.filter(b=>b.clv!=null).length>0)?'g':'b'}">${mk.filter(b=>b.clv!=null).length?(sum(mk,'clv')/mk.filter(b=>b.clv!=null).length*100).toFixed(1)+'¢':'—'}</b><span>avg CLV</span></div>`;
   const L=learned(); const keys=Object.keys(L);
   $('lLearned').innerHTML=`<h2 style="margin-top:0">Learned forecast error</h2>`+(keys.length?'<table><tr><th>City</th><th>n</th><th>bias</th><th>σ</th></tr>'+keys.map(s=>`<tr><td>${STATION[s]?STATION[s].city:s}</td><td>${L[s].n}</td><td>${L[s].bias>=0?'+':''}${L[s].bias.toFixed(2)}°</td><td>${L[s].sd.toFixed(2)}°</td></tr>`).join('')+'</table>':'<div class="status">Needs ≥10 picks per city with an observed high entered. Tap a graded row\'s "obs" field to enter the actual settled high (from the market title/NWS).</div>');
   let h='<table><tr><th>When</th><th>Market</th><th>Pick</th><th>Entry</th><th>Model</th><th>Result</th><th>P&amp;L</th><th>CLV</th><th>Obs °F</th><th></th></tr>';
   log.slice().reverse().forEach(b=>{
     const res=b.result?`<span class="pill ${b.win?'g':'b'}">${b.result.toUpperCase()}</span>`:'<span class="pill w">open</span>';
-    h+=`<tr><td class="mono">${b.loggedAt.slice(5,16).replace('T',' ')}</td><td>${b.kind==='arb'?'ARB: ':''}${b.title}<br><span class="mono">${b.kind==='weather'?b.bracket+' · '+b.date:b.leg}</span></td><td>${b.kind==='weather'?b.side:(b.margin*100).toFixed(2)+'%'}</td><td>${b.kind==='weather'?(b.entry*100).toFixed(0)+'¢':'$'+b.cost.toFixed(3)}</td><td>${b.modelP!=null?fmtP(b.modelP):'—'}</td><td>${res}</td><td class="${b.pnl>0?'g':b.pnl<0?'b':''}">${b.pnl!=null?(b.pnl>=0?'+':'')+b.pnl.toFixed(2):'—'}</td><td class="${b.clv>0?'g':b.clv<0?'b':''}">${b.clv!=null?(b.clv*100).toFixed(0)+'¢':'—'}</td><td>${b.kind==='weather'?`<input type="number" style="width:60px" data-obs="${b.id}" value="${b.obsHigh??''}" placeholder="°F">`:''}</td><td><button class="sm sec" data-del="${b.id}">✕</button></td></tr>`;
+    h+=`<tr><td class="mono">${b.loggedAt.slice(5,16).replace('T',' ')}</td><td>${b.kind==='arb'?'ARB: ':b.kind==='market'?(b.category||'MKT')+': ':''}${b.title}<br><span class="mono">${b.kind==='weather'?b.bracket+' · '+b.date:b.kind==='market'?(b.flag||'manual pick'):b.leg}</span></td><td>${b.kind!=='arb'?b.side:(b.margin*100).toFixed(2)+'%'}</td><td>${b.kind!=='arb'?(b.entry*100).toFixed(0)+'¢':'$'+b.cost.toFixed(3)}</td><td>${b.modelP!=null?fmtP(b.modelP):'—'}</td><td>${res}</td><td class="${b.pnl>0?'g':b.pnl<0?'b':''}">${b.pnl!=null?(b.pnl>=0?'+':'')+b.pnl.toFixed(2):'—'}</td><td class="${b.clv>0?'g':b.clv<0?'b':''}">${b.clv!=null?(b.clv*100).toFixed(0)+'¢':'—'}</td><td>${b.kind==='weather'?`<input type="number" style="width:60px" data-obs="${b.id}" value="${b.obsHigh??''}" placeholder="°F">`:''}</td><td><button class="sm sec" data-del="${b.id}">✕</button></td></tr>`;
   });
   $('lTable').innerHTML=h+'</table>';
   $('lTable').querySelectorAll('input[data-obs]').forEach(i=>i.onchange=()=>{ const l=loadLog(); const b=l.find(x=>String(x.id)===i.dataset.obs); if(b){ b.obsHigh=i.value===''?null:+i.value; saveLog(l); renderLog(); } });
