@@ -5,7 +5,8 @@ import json, time, urllib.request, urllib.parse, os, sys
 K = "https://api.elections.kalshi.com/trade-api/v2"
 GAMMA = "https://gamma-api.polymarket.com"
 UA = {"User-Agent": "sports-models-snapshot/1.0"}
-SKIP_CATEGORIES = {"Sports"}          # sports has its own apps; it is ~90% of Kalshi's market count
+SKIP_CATEGORIES = {"Sports"}
+MIN_VOL = 100                          # contracts traded or open; weather exempt          # sports has its own apps; it is ~90% of Kalshi's market count
 
 def get(url, tries=3):
     for i in range(tries):
@@ -62,13 +63,13 @@ def main():
             if m.get("subtitle") and not m.get("yes_sub_title"): m["yes_sub_title"] = m["subtitle"]
             ya, yb = m.get("yes_ask"), m.get("yes_bid")
             quoted = (yb or 0) > 0 or (ya is not None and 0 < ya < 100)
-            if not keep_all and not (m.get("volume") or m.get("open_interest") or quoted): continue
+            if not keep_all and not ((m.get("volume") or 0) >= MIN_VOL or (m.get("open_interest") or 0) >= MIN_VOL): continue
             kept.append(trim(m, MK_FIELDS))
         if not kept: continue
         events.append(trim(e, EV_FIELDS)); markets += kept
     # weather series are their own events (category Climate and Weather) so they are already included
     since = int(time.time()) - 2*86400
-    settled = paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=30)
+    settled = paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=12)
     poly = []
     for off in range(0, 4000, 100):
         j = get(f"{GAMMA}/markets?closed=false&active=true&limit=100&offset={off}&order=volume24hr&ascending=false")
