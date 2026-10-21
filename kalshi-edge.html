@@ -131,11 +131,12 @@ async function getJSON(url,opts){
   for(const pre of ['',...PROXIES]){
     try{
       const r = await fetch(pre?pre+encodeURIComponent(url):url,opts);
-      if(!r.ok) throw new Error(`${r.status}`);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
     }catch(e){ lastErr=e; }
   }
-  throw new Error(`${lastErr.message} — ${url.slice(0,70)} (blocked direct + via proxy; if you are in the Claude in-app viewer, open the hosted copy instead)`);
+  const why=/404/.test(lastErr.message)?'404 — this series ticker does not exist on Kalshi':/429/.test(lastErr.message)?'429 — rate limited, wait a minute and rescan':lastErr.message==='Load failed'||/fetch/i.test(lastErr.message)?'network blocked (in-app viewer or offline)':lastErr.message;
+  throw new Error(why);
 }
 function price(m,key){ // dollars, fallback cents
   const d = m[key+'_dollars']; if(d!=null && d!=='') return parseFloat(d);
@@ -219,7 +220,7 @@ $('wRun').onclick=async()=>{
           rows.push({series:s,city:STATION[s].city,ticker:m.ticker,title:m.title||m.ticker,date:key,lead,bracket:br.label,forecast:f,mu,sigma,side:c.side,ask:c.ask,p:c.p,edge,ev,last,cal:!!cal});
         }
       }
-    }catch(e){ errs.push(`${s}: ${e.message}`); }
+    }catch(e){ errs.push(`${STATION[s].city} (${s}): ${e.message}`); }
   }
   rows.sort((a,b)=>b.ev-a.ev);
   const show=rows.filter(r=>r.edge>=minEdge);
