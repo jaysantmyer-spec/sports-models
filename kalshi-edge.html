@@ -162,22 +162,32 @@ async function getJSON(url,opts){
   throw new Error(why);
 }
 /* ---------- snapshot fallback (published by GitHub Actions every 20 min) ---------- */
-let SNAP=null, SNAP_USED=false;
-async function snap(){
-  if(SNAP) return SNAP;
-  const r=await fetch('data/kalshi.json?t='+Math.floor(Date.now()/60000));
-  if(!r.ok) throw new Error('no snapshot yet (GitHub Action has not run)');
-  SNAP=await r.json(); return SNAP;
+let SNAP=null, SNAP_USED=false; const SNAP_CACHE={};
+const bust=()=>'?t='+Math.floor(Date.now()/60000);
+async function snapFile(path){
+  if(SNAP_CACHE[path]) return SNAP_CACHE[path];
+  const r=await fetch('data/'+path+bust()); if(!r.ok) throw new Error('snapshot file missing: '+path);
+  return SNAP_CACHE[path]=await r.json();
 }
+async function snap(){ if(SNAP) return SNAP; SNAP=await snapFile('index.json'); SNAP_USED=true; return SNAP; }
 function snapNote(){ if(!SNAP_USED||!SNAP) return ''; const age=Math.round((Date.now()-SNAP.ts)/60000); return ` <span class="pill w">snapshot ${age} min old</span>`; }
+// load one category's events+markets (joined) from the snapshot
+async function snapCategory(name,onProg){
+  const idx=await snap(); const c=idx.categories[name]; if(!c) return [];
+  if(onProg) onProg(`Loading ${name} (${c.kb} KB)…`);
+  const d=await snapFile(c.file); const byT={};
+  d.events.forEach(e=>{ byT[e.event_ticker]={...e,markets:[]}; });
+  d.markets.forEach(m=>{ const e=byT[m.event_ticker]; if(e) e.markets.push(m); });
+  return Object.values(byT).filter(e=>e.markets.length);
+}
+async function snapAllCategories(onProg){
+  const idx=await snap(); let out=[];
+  for(const name of Object.keys(idx.categories)) out=out.concat(await snapCategory(name,onProg));
+  return out;
+}
 async function liveOrSnap(liveFn, snapFn){
   try{ return await liveFn(); }
-  catch(e){ const S=await snap(); SNAP_USED=true; return snapFn(S); }
-}
-// big list loads: snapshot first (same-origin, instant); live only if no snapshot exists
-async function snapOrLive(snapFn, liveFn){
-  try{ const S=await snap(); SNAP_USED=true; return snapFn(S); }
-  catch(e){ return liveFn(); }
+  catch(e){ await snap(); return snapFn(); }
 }
 function price(m,key){ // dollars, fallback cents
   const d = m[key+'_dollars']; if(d!=null && d!=='') return parseFloat(d);
@@ -232,7 +242,7 @@ async function fetchForecast(st){
 }
 async function fetchMarkets(series){
   return liveOrSnap(async()=>{ const j=await getJSON(`${K}/markets?series_ticker=${series}&status=open&limit=200`); return j.markets||[]; },
-                    S=>S.markets.filter(m=>m.ticker.startsWith(series+'-')));
+                    async()=>{ const evs=await snapCategory('Climate and Weather'); const out=[]; evs.forEach(e=>e.markets.forEach(m=>{ if(m.ticker.startsWith(series+'-')) out.push(m); })); return out; });
 }
 $('wRun').onclick=async()=>{
   const sel=$('wCity').value, minEdge=+$('wEdge').value/100, maxLead=+$('wLead').value;
@@ -284,11 +294,9 @@ $('wRun').onclick=async()=>{
 /* ---------- BROWSE ---------- */
 let BEV=[], BPOLY=null;
 async function kalshiEvents(maxPages){
-  return snapOrLive(S=>{
-    const byT={}; S.events.forEach(e=>{ byT[e.event_ticker]={...e,markets:[]}; });
-    S.markets.forEach(m=>{ const e=byT[m.event_ticker]; if(e) e.markets.push(m); });
-    return Object.values(byT).filter(e=>e.markets.length);
-  }, ()=>kalshiEventsLive(maxPages));
+  try{ await snap(); const cat=$('bCat').value; const prog=t=>$('bStatus').textContent=t;
+       return cat?await snapCategory(cat,prog):await snapAllCategories(prog); }
+  catch(e){ return kalshiEventsLive(maxPages); }
 }
 async function kalshiEventsLive(maxPages){
   // 1) events without nested markets (small) -> category per event_ticker
@@ -309,18 +317,28 @@ async function kalshiEventsLive(maxPages){
   }
   return evs.filter(e=>e.markets.length);
 }
+let BCAT_LOADED=null;
+async function fillCats(){
+  try{ const idx=await snap(); const sel=$('bCat'); const cur=sel.value;
+    sel.innerHTML='<option value="">All categories (large)</option>'+Object.entries(idx.categories).sort((a,b)=>b[1].markets-a[1].markets).map(([c,v])=>`<option value="${c}"${c===cur?' selected':''}>${c} (${v.markets})</option>`).join('');
+    if(!cur){ const first=Object.entries(idx.categories).filter(([c])=>c!=='Climate and Weather').sort((a,b)=>b[1].markets-a[1].markets)[0]; if(first) sel.value=first[0]; }
+    $('bStatus').innerHTML='Pick a category and tap Load markets.'+snapNote();
+  }catch(e){}
+}
 $('bLoad').onclick=async()=>{
-  const wantPoly=$('bPoly').checked;
+  const wantPoly=$('bPoly').checked, cat=$('bCat').value;
   $('bStatus').textContent='Loading Kalshi events…'; $('bOut').innerHTML='';
   try{
-    if(!BEV.length) BEV=await kalshiEvents(15);
+    if(BCAT_LOADED!==cat){ BEV=await kalshiEvents(15); BCAT_LOADED=cat; }
     if(wantPoly&&!BPOLY){ $('bStatus').textContent='Loading Polymarket…'; BPOLY=(await polyAll()).map(p=>({m:p,t:toks(p.question||p.title),d:p.endDate?new Date(p.endDate):null})); }
   }catch(e){ $('bStatus').innerHTML=`<span class="err">${e.message}</span>`; return; }
-  const cats=[...new Set(BEV.map(e=>e.category).filter(Boolean))].sort();
-  const sel=$('bCat'); const cur=sel.value; sel.innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  if(!SNAP){ const cats=[...new Set(BEV.map(e=>e.category).filter(Boolean))].sort();
+    const sel=$('bCat'); const cur=sel.value; sel.innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join(''); }
   renderBrowse();
 };
-['bCat','bSort','bDays','bVol'].forEach(id=>$(id).onchange=()=>{ if(BEV.length) renderBrowse(); });
+['bSort','bDays','bVol'].forEach(id=>$(id).onchange=()=>{ if(BEV.length) renderBrowse(); });
+$('bCat').onchange=()=>{ if(SNAP) $('bLoad').click(); else if(BEV.length) renderBrowse(); };
+fillCats();
 function renderBrowse(){
   const cat=$('bCat').value, sort=$('bSort').value, maxD=+$('bDays').value, minV=+$('bVol').value;
   const now=Date.now(); const rows=[];
@@ -344,8 +362,7 @@ function renderBrowse(){
   }
   rows.sort((a,b)=>sort==='vol'?b.vol-a.vol:sort==='close'?(a.days??1e9)-(b.days??1e9):sort==='dis'?Math.abs(b.dis||0)-Math.abs(a.dis||0):sort==='spread'?(b.spread||0)-(a.spread||0):(a.longshot?0:1)-(b.longshot?0:1)||a.yA-b.yA);
   const show=rows.slice(0,150);
-  const tot=BEV.reduce((a,e)=>a+(e.markets||[]).length,0);
-  $('bStatus').innerHTML=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length} <span class="mono" style="color:var(--mut)">(source: ${BEV.length} events, ${tot} markets${SNAP?'; snapshot raw '+SNAP.events.length+' ev / '+SNAP.markets.length+' mk':''})</span>`+snapNote();
+  $('bStatus').innerHTML=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length}`+snapNote();
   let h='<div class="wrap card"><table><tr><th>Market</th><th>Yes</th><th>No</th><th>Spread</th><th>Vol</th><th>Days</th><th>Poly</th><th>Δ</th><th>Flag</th><th>Log</th></tr>';
   show.forEach((r,i)=>{
     const flag=(r.longshot?'<span class="pill w">longshot</span> ':'')+(r.dis!=null&&Math.abs(r.dis)>=0.05?`<span class="pill ${r.dis>0?'g':'b'}">poly ${r.dis>0?'higher':'lower'}</span>`:'');
@@ -366,7 +383,8 @@ const STOP=new Set('will the a an of to in on by for and or at is be before afte
 const toks=s=>new Set((s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!STOP.has(w)&&w.length>1));
 function jaccard(a,b){ let i=0; a.forEach(w=>{if(b.has(w))i++;}); const u=a.size+b.size-i; return u?i/u:0; }
 async function kalshiAll(pages){
-  return snapOrLive(S=>S.markets, ()=>kalshiAllLive(pages));
+  try{ await snap(); const evs=await snapAllCategories(t=>$('aStatus').textContent=t); const out=[]; evs.forEach(e=>e.markets.forEach(m=>out.push({...m,title:e.title+(m.yes_sub_title?' — '+m.yes_sub_title:'')}))); return out; }
+  catch(e){ return kalshiAllLive(pages); }
 }
 async function kalshiAllLive(pages){
   let out=[],cursor='';
@@ -377,7 +395,8 @@ async function kalshiAllLive(pages){
   return out;
 }
 async function polyAll(){
-  return snapOrLive(S=>S.poly.filter(m=>{ try{ return JSON.parse(m.outcomes||'[]').length===2; }catch(e){return false;} }), polyAllLive);
+  try{ await snap(); const d=await snapFile('poly.json'); return d.poly.filter(m=>{ try{ return JSON.parse(m.outcomes||'[]').length===2; }catch(e){return false;} }); }
+  catch(e){ return polyAllLive(); }
 }
 async function polyAllLive(){
   let out=[],off=0;
@@ -449,7 +468,7 @@ $('lGrade').onclick=async()=>{
     if(b.result!=null) continue;
     try{
       const m=await liveOrSnap(async()=>{ const j=await getJSON(`${K}/markets/${b.ticker}`); return j.market||j; },
-                                 S=>{ const f=S.settled.find(x=>x.ticker===b.ticker)||S.markets.find(x=>x.ticker===b.ticker); if(!f) throw new Error('not in snapshot'); return f; });
+                                 async()=>{ const d=await snapFile('settled.json'); const f=d.settled.find(x=>x.ticker===b.ticker); if(!f) throw new Error('still open'); return f; });
       const last=price(m,'last_price'); if(last!=null) b.lastPrice=last;
       const r=(m.result||'').toLowerCase();
       if(r==='yes'||r==='no'){
