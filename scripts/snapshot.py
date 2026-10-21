@@ -48,7 +48,11 @@ def main():
         keep_all = e.get("category") in KEEP_ALL_CATEGORIES
         kept = []
         for m in ms:
-            if not keep_all and not (m.get("volume") or m.get("open_interest")): continue
+            # newer API reports fixed-point strings; normalise to numbers
+            for k in ("volume","open_interest"):
+                if m.get(k) is None and m.get(k+"_fp") is not None:
+                    try: m[k] = int(float(m[k+"_fp"]))
+                    except Exception: pass
             m.setdefault("event_ticker", e.get("event_ticker"))
             # prefer integer cents; fall back to dollars if cents absent
             for k in ("yes_ask","yes_bid","no_ask","last_price"):
@@ -56,6 +60,9 @@ def main():
                     try: m[k] = round(float(m[k+"_dollars"])*100)
                     except Exception: pass
             if m.get("subtitle") and not m.get("yes_sub_title"): m["yes_sub_title"] = m["subtitle"]
+            ya, yb = m.get("yes_ask"), m.get("yes_bid")
+            quoted = (yb or 0) > 0 or (ya is not None and 0 < ya < 100)
+            if not keep_all and not (m.get("volume") or m.get("open_interest") or quoted): continue
             kept.append(trim(m, MK_FIELDS))
         if not kept: continue
         events.append(trim(e, EV_FIELDS)); markets += kept
