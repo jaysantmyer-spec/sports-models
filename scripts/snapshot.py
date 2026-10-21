@@ -57,6 +57,11 @@ def main():
     }
     os.makedirs("data", exist_ok=True)
     with open("data/kalshi.json", "w") as f: json.dump(snap, f, separators=(",", ":"))
+    meta = {"ts": snap["ts"], "events": len(events), "markets": len(markets), "settled": len(settled), "poly": len(poly),
+            "sample_market": snap["markets"][0] if snap["markets"] else None,
+            "sample_event": snap["events"][0] if snap["events"] else None,
+            "market_statuses": sorted({str(m.get("status")) for m in markets})[:10]}
+    with open("data/meta.json", "w") as f: json.dump(meta, f, indent=1)
     print(f"events {len(events)} markets {len(markets)} settled {len(settled)} poly {len(poly)} in {time.time()-t0:.0f}s, "
           f"{os.path.getsize('data/kalshi.json')/1e6:.1f} MB")
 

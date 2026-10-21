@@ -344,7 +344,8 @@ function renderBrowse(){
   }
   rows.sort((a,b)=>sort==='vol'?b.vol-a.vol:sort==='close'?(a.days??1e9)-(b.days??1e9):sort==='dis'?Math.abs(b.dis||0)-Math.abs(a.dis||0):sort==='spread'?(b.spread||0)-(a.spread||0):(a.longshot?0:1)-(b.longshot?0:1)||a.yA-b.yA);
   const show=rows.slice(0,150);
-  $('bStatus').innerHTML=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length}`+snapNote();
+  const tot=BEV.reduce((a,e)=>a+(e.markets||[]).length,0);
+  $('bStatus').innerHTML=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length} <span class="mono" style="color:var(--mut)">(source: ${BEV.length} events, ${tot} markets${SNAP?'; snapshot raw '+SNAP.events.length+' ev / '+SNAP.markets.length+' mk':''})</span>`+snapNote();
   let h='<div class="wrap card"><table><tr><th>Market</th><th>Yes</th><th>No</th><th>Spread</th><th>Vol</th><th>Days</th><th>Poly</th><th>Δ</th><th>Flag</th><th>Log</th></tr>';
   show.forEach((r,i)=>{
     const flag=(r.longshot?'<span class="pill w">longshot</span> ':'')+(r.dis!=null&&Math.abs(r.dis)>=0.05?`<span class="pill ${r.dis>0?'g':'b'}">poly ${r.dis>0?'higher':'lower'}</span>`:'');
