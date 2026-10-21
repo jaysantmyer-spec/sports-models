@@ -5,17 +5,18 @@ import json, time, urllib.request, urllib.parse, os, sys
 K = "https://api.elections.kalshi.com/trade-api/v2"
 GAMMA = "https://gamma-api.polymarket.com"
 UA = {"User-Agent": "sports-models-snapshot/1.0"}
+SKIP_CATEGORIES = {"Sports"}          # sports has its own apps; it is ~90% of Kalshi's market count
 
 def get(url, tries=3):
     for i in range(tries):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90) as r:
                 return json.load(r)
         except Exception as e:
             print("retry", i, url[:90], e, file=sys.stderr); time.sleep(2 + 2*i)
     return None
 
-def paged(path, key, params, max_pages=40):
+def paged(path, key, params, max_pages=400):
     out, cursor = [], ""
     for _ in range(max_pages):
         q = dict(params)
@@ -26,44 +27,51 @@ def paged(path, key, params, max_pages=40):
         out += items
         cursor = j.get("cursor")
         if not cursor or not items: break
-        time.sleep(0.25)
+        time.sleep(0.2)
     return out
 
 MK_FIELDS = ["ticker","event_ticker","title","subtitle","yes_sub_title","status","result","close_time",
              "yes_ask","yes_bid","no_ask","no_bid","last_price","yes_ask_dollars","yes_bid_dollars","no_ask_dollars",
-             "no_bid_dollars","last_price_dollars","volume","open_interest","strike_type","floor_strike","cap_strike"]
+             "no_bid_dollars","last_price_dollars","volume","volume_24h","open_interest","strike_type","floor_strike","cap_strike"]
 EV_FIELDS = ["event_ticker","series_ticker","title","sub_title","category","mutually_exclusive"]
 
 def trim(d, fields): return {k: d.get(k) for k in fields if d.get(k) is not None}
 
 def main():
     t0 = time.time()
-    events = paged("/events", "events", {"status": "open", "limit": 200})
-    markets = paged("/markets", "markets", {"status": "open", "limit": 1000})
+    raw_events = paged("/events", "events", {"status": "open", "limit": 200, "with_nested_markets": "true"})
+    events, markets, skipped = [], [], 0
+    for e in raw_events:
+        if e.get("category") in SKIP_CATEGORIES:
+            skipped += 1; continue
+        ms = e.get("markets") or []
+        events.append(trim(e, EV_FIELDS))
+        for m in ms:
+            m.setdefault("event_ticker", e.get("event_ticker"))
+            markets.append(trim(m, MK_FIELDS))
+    # weather series are their own events (category Climate and Weather) so they are already included
     since = int(time.time()) - 4*86400
-    settled = paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=15)
+    settled = paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=30)
     poly = []
-    for off in range(0, 3000, 500):
-        j = get(f"{GAMMA}/markets?closed=false&active=true&limit=500&offset={off}")
+    for off in range(0, 4000, 100):
+        j = get(f"{GAMMA}/markets?closed=false&active=true&limit=100&offset={off}&order=volume24hr&ascending=false")
         if not j: break
         poly += [{k: m.get(k) for k in ("id","question","endDate","outcomes","outcomePrices","clobTokenIds","volume") if m.get(k) is not None} for m in j]
-        if len(j) < 500: break
-    snap = {
-        "ts": int(time.time()*1000),
-        "events": [trim(e, EV_FIELDS) for e in events],
-        "markets": [trim(m, MK_FIELDS) for m in markets],
-        "settled": [trim(m, ["ticker","result","last_price","last_price_dollars","close_time"]) for m in settled],
-        "poly": poly,
-    }
+        if len(j) < 100: break
+        time.sleep(0.1)
+    snap = {"ts": int(time.time()*1000), "events": events, "markets": markets,
+            "settled": [trim(m, ["ticker","result","last_price","last_price_dollars","close_time"]) for m in settled],
+            "poly": poly}
     os.makedirs("data", exist_ok=True)
     with open("data/kalshi.json", "w") as f: json.dump(snap, f, separators=(",", ":"))
-    meta = {"ts": snap["ts"], "events": len(events), "markets": len(markets), "settled": len(settled), "poly": len(poly),
-            "sample_market": snap["markets"][0] if snap["markets"] else None,
-            "sample_event": snap["events"][0] if snap["events"] else None,
-            "market_statuses": sorted({str(m.get("status")) for m in markets})[:10]}
+    cats = {}
+    for e in events: cats[e.get("category")] = cats.get(e.get("category"), 0) + 1
+    meta = {"ts": snap["ts"], "events": len(events), "events_skipped_sports": skipped, "markets": len(markets),
+            "settled": len(settled), "poly": len(poly), "categories": cats,
+            "size_mb": round(os.path.getsize("data/kalshi.json")/1e6, 1), "seconds": round(time.time()-t0),
+            "sample_market": markets[0] if markets else None}
     with open("data/meta.json", "w") as f: json.dump(meta, f, indent=1)
-    print(f"events {len(events)} markets {len(markets)} settled {len(settled)} poly {len(poly)} in {time.time()-t0:.0f}s, "
-          f"{os.path.getsize('data/kalshi.json')/1e6:.1f} MB")
+    print(json.dumps({k: v for k, v in meta.items() if k != "sample_market"}))
 
 if __name__ == "__main__":
     main()
