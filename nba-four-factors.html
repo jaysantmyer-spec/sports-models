@@ -162,8 +162,8 @@ async function getJSON(u,l){try{const r=await fetch(u);if(!r.ok){window.__err=`$
 function fourFactors(t){
   const efg=t.FGA?(t.FGM+0.5*t.TPM)/t.FGA:LG.efg;
   const tov=(t.FGA+0.44*t.FTA+t.TOV)?t.TOV/(t.FGA+0.44*t.FTA+t.TOV):LG.tov;
-  const orb=(t.ORB+t.oppDRB)?t.ORB/(t.ORB+t.oppDRB):LG.orb;
-  const drb=(t.DRB+t.oppORB)?t.DRB/(t.DRB+t.oppORB):LG.drb;
+  const orb=(t.ORB&&t.oppDRB)?t.ORB/(t.ORB+t.oppDRB):LG.orb;   // needs BOTH sides, else league avg
+  const drb=(t.DRB&&t.oppORB)?t.DRB/(t.DRB+t.oppORB):LG.drb;
   const ftr=t.FGA?t.FTA/t.FGA:LG.ftr;
   return {efg,tov,orb,drb,ftr};
 }
@@ -172,7 +172,7 @@ function defFactors(t){
   if(!t.oppFGA)return {efg:LG.efg,tov:LG.tov,orb:LG.orb,ftr:LG.ftr,fallback:true};
   const efg=(t.oppFGM+0.5*t.oppTPM)/t.oppFGA;
   const tov=t.oppTOV/(t.oppFGA+0.44*t.oppFTA+t.oppTOV);
-  const orb=(t.oppORB+t.DRB)?t.oppORB/(t.oppORB+t.DRB):LG.orb;
+  const orb=(t.oppORB&&t.DRB)?t.oppORB/(t.oppORB+t.DRB):LG.orb;
   const ftr=t.oppFTA/t.oppFGA;
   return {efg,tov,orb,ftr,fallback:false};
 }
