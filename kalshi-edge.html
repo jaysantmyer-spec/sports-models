@@ -159,6 +159,19 @@ async function getJSON(url,opts){
   const why=/404/.test(all)?'404 — does not exist on Kalshi ['+all+']':/429/.test(all)?'429 — rate limited, wait a minute ['+all+']':all;
   throw new Error(why);
 }
+/* ---------- snapshot fallback (published by GitHub Actions every 20 min) ---------- */
+let SNAP=null, SNAP_USED=false;
+async function snap(){
+  if(SNAP) return SNAP;
+  const r=await fetch('data/kalshi.json?t='+Math.floor(Date.now()/60000));
+  if(!r.ok) throw new Error('no snapshot yet (GitHub Action has not run)');
+  SNAP=await r.json(); return SNAP;
+}
+function snapNote(){ if(!SNAP_USED||!SNAP) return ''; const age=Math.round((Date.now()-SNAP.ts)/60000); return ` <span class="pill w">snapshot ${age} min old</span>`; }
+async function liveOrSnap(liveFn, snapFn){
+  try{ return await liveFn(); }
+  catch(e){ const S=await snap(); SNAP_USED=true; return snapFn(S); }
+}
 function price(m,key){ // dollars, fallback cents
   const d = m[key+'_dollars']; if(d!=null && d!=='') return parseFloat(d);
   const c = m[key]; if(c!=null) return c/100;
@@ -211,8 +224,8 @@ async function fetchForecast(st){
   j.daily.time.forEach((d,i)=>o[d]=j.daily.temperature_2m_max[i]); return o;
 }
 async function fetchMarkets(series){
-  const j=await getJSON(`${K}/markets?series_ticker=${series}&status=open&limit=200`);
-  return j.markets||[];
+  return liveOrSnap(async()=>{ const j=await getJSON(`${K}/markets?series_ticker=${series}&status=open&limit=200`); return j.markets||[]; },
+                    S=>S.markets.filter(m=>m.ticker.startsWith(series+'-')));
 }
 $('wRun').onclick=async()=>{
   const sel=$('wCity').value, minEdge=+$('wEdge').value/100, maxLead=+$('wLead').value;
@@ -245,7 +258,7 @@ $('wRun').onclick=async()=>{
   }
   rows.sort((a,b)=>b.ev-a.ev);
   const show=rows.filter(r=>r.edge>=minEdge);
-  $('wStatus').innerHTML=`${rows.length} priced sides across ${series.length} series · ${show.length} above ${(minEdge*100).toFixed(0)} pt edge`+(errs.length?`<div class="err">${errs.join('<br>')}</div>`:'');
+  $('wStatus').innerHTML=`${rows.length} priced sides across ${series.length} series · ${show.length} above ${(minEdge*100).toFixed(0)} pt edge`+snapNote()+(errs.length?`<div class="err">${errs.join('<br>')}</div>`:'');
   if(!show.length){ $('wOut').innerHTML='<div class="card">No edges above threshold. That is the normal result most days — weather markets are efficient near settlement.</div>'; return; }
   let h='<div class="wrap card"><table><tr><th>City</th><th>Date</th><th>Bracket</th><th>Fcst</th><th>Side</th><th>Ask</th><th>Model</th><th>Edge</th><th>EV/$</th><th></th></tr>';
   show.forEach((r,i)=>{
@@ -264,6 +277,13 @@ $('wRun').onclick=async()=>{
 /* ---------- BROWSE ---------- */
 let BEV=[], BPOLY=null;
 async function kalshiEvents(maxPages){
+  return liveOrSnap(()=>kalshiEventsLive(maxPages), S=>{
+    const byT={}; S.events.forEach(e=>{ byT[e.event_ticker]={...e,markets:[]}; });
+    S.markets.forEach(m=>{ const e=byT[m.event_ticker]; if(e) e.markets.push(m); });
+    return Object.values(byT).filter(e=>e.markets.length);
+  });
+}
+async function kalshiEventsLive(maxPages){
   // 1) events without nested markets (small) -> category per event_ticker
   let evs=[],cursor='';
   for(let i=0;i<maxPages;i++){
@@ -317,7 +337,7 @@ function renderBrowse(){
   }
   rows.sort((a,b)=>sort==='vol'?b.vol-a.vol:sort==='close'?(a.days??1e9)-(b.days??1e9):sort==='dis'?Math.abs(b.dis||0)-Math.abs(a.dis||0):sort==='spread'?(b.spread||0)-(a.spread||0):(a.longshot?0:1)-(b.longshot?0:1)||a.yA-b.yA);
   const show=rows.slice(0,150);
-  $('bStatus').textContent=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length}`;
+  $('bStatus').innerHTML=`${rows.length} markets${cat?' in '+cat:''} · showing ${show.length}`+snapNote();
   let h='<div class="wrap card"><table><tr><th>Market</th><th>Yes</th><th>No</th><th>Spread</th><th>Vol</th><th>Days</th><th>Poly</th><th>Δ</th><th>Flag</th><th>Log</th></tr>';
   show.forEach((r,i)=>{
     const flag=(r.longshot?'<span class="pill w">longshot</span> ':'')+(r.dis!=null&&Math.abs(r.dis)>=0.05?`<span class="pill ${r.dis>0?'g':'b'}">poly ${r.dis>0?'higher':'lower'}</span>`:'');
@@ -338,6 +358,9 @@ const STOP=new Set('will the a an of to in on by for and or at is be before afte
 const toks=s=>new Set((s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!STOP.has(w)&&w.length>1));
 function jaccard(a,b){ let i=0; a.forEach(w=>{if(b.has(w))i++;}); const u=a.size+b.size-i; return u?i/u:0; }
 async function kalshiAll(pages){
+  return liveOrSnap(()=>kalshiAllLive(pages), S=>S.markets);
+}
+async function kalshiAllLive(pages){
   let out=[],cursor='';
   for(let i=0;i<pages;i++){
     const j=await getJSON(`${K}/markets?status=open&limit=200${cursor?'&cursor='+cursor:''}`);
@@ -346,6 +369,9 @@ async function kalshiAll(pages){
   return out;
 }
 async function polyAll(){
+  return liveOrSnap(polyAllLive, S=>S.poly.filter(m=>{ try{ return JSON.parse(m.outcomes||'[]').length===2; }catch(e){return false;} }));
+}
+async function polyAllLive(){
   let out=[],off=0;
   for(let i=0;i<6;i++){
     const j=await getJSON(`${GAMMA}/markets?closed=false&active=true&limit=500&offset=${off}`);
@@ -392,7 +418,7 @@ $('aRun').onclick=async()=>{
   }
   res.sort((a,b)=>b.margin-a.margin);
   const arbs=res.filter(r=>r.margin>=minM);
-  $('aStatus').textContent=`${res.length} pairs fully priced · ${arbs.length} with margin ≥ ${(minM*100).toFixed(1)}%`;
+  $('aStatus').innerHTML=`${res.length} pairs fully priced · ${arbs.length} with margin ≥ ${(minM*100).toFixed(1)}%`+snapNote();
   let h='<div class="wrap card"><table><tr><th>Kalshi</th><th>Polymarket</th><th>Match</th><th>K yes/no</th><th>P yes/no</th><th>Best leg</th><th>Margin</th><th></th></tr>';
   (arbs.length?arbs:res.slice(0,15)).forEach((r,i)=>{
     h+=`<tr><td>${r.k.title}<br><span class="mono">${r.k.ticker}</span></td><td>${r.p.question||r.p.title}</td><td>${(r.j*100).toFixed(0)}%</td><td>${(r.kY*100).toFixed(0)}/${(r.kN*100).toFixed(0)}¢</td><td>${(r.pyAsk*100).toFixed(0)}/${(r.pnAsk*100).toFixed(0)}¢</td><td>${r.leg.name}<br><span class="mono">cost $${r.leg.cost.toFixed(3)}</span></td><td class="${r.margin>0?'g':'b'}"><b>${(r.margin*100).toFixed(2)}%</b></td><td><button class="sm" data-i="${i}">log</button></td></tr>`;
@@ -414,7 +440,8 @@ $('lGrade').onclick=async()=>{
   for(const b of log){
     if(b.result!=null) continue;
     try{
-      const j=await getJSON(`${K}/markets/${b.ticker}`); const m=j.market||j;
+      const m=await liveOrSnap(async()=>{ const j=await getJSON(`${K}/markets/${b.ticker}`); return j.market||j; },
+                                 S=>{ const f=S.settled.find(x=>x.ticker===b.ticker)||S.markets.find(x=>x.ticker===b.ticker); if(!f) throw new Error('not in snapshot'); return f; });
       const last=price(m,'last_price'); if(last!=null) b.lastPrice=last;
       const r=(m.result||'').toLowerCase();
       if(r==='yes'||r==='no'){
@@ -429,7 +456,7 @@ $('lGrade').onclick=async()=>{
       }
     }catch(e){ errs++; }
   }
-  saveLog(log); $('lStatus').textContent=`Graded ${n} new · ${errs} errors`; renderLog();
+  saveLog(log); $('lStatus').innerHTML=`Graded ${n} new · ${errs} still open or not found`+snapNote(); renderLog();
 };
 function renderLog(){
   const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result); const mk=log.filter(b=>b.kind==='market'&&b.result);
