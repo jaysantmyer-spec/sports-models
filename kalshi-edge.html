@@ -280,11 +280,14 @@ $('wRun').onclick=async()=>{
         if(obs!=null&&obs>br.hi) p=0;
         else if(obs!=null&&obs>=br.lo) p=Phi((br.hi-mu)/sigma);
         else p=Phi((br.hi-mu)/sigma)-Phi((br.lo-mu)/sigma);
-        p=Math.min(Math.max(p,1-P_CAP),P_CAP);
+        // cap overconfidence on the HIGH side only. (An earlier version also floored p at 25%, which made every
+        // impossible bracket look like a +24pt edge at 1¢ - the first 29 graded picks all came from that bug.)
+        p=Math.min(Math.max(p,0.002),P_CAP);
         const yAsk=price(m,'yes_ask'), nAsk=price(m,'no_ask'), last=price(m,'last_price');
         const cand=[];
-        if(yAsk!=null&&yAsk>0&&yAsk<1) cand.push({side:'YES',ask:yAsk,p:p});
-        if(nAsk!=null&&nAsk>0&&nAsk<1) cand.push({side:'NO',ask:nAsk,p:1-p});
+        // skip 1-3c lottery tickets: the fee and spread eat any edge, and the model's tail is its least reliable part
+        if(yAsk!=null&&yAsk>=0.04&&yAsk<1) cand.push({side:'YES',ask:yAsk,p:p});
+        if(nAsk!=null&&nAsk>=0.04&&nAsk<1) cand.push({side:'NO',ask:nAsk,p:1-p});
         for(const c of cand){
           const edge=c.p-c.ask; const ev=c.p*(1-c.ask)-(1-c.p)*c.ask-fee(c.ask);
           rows.push({series:s,city:STATION[s].city,ticker:m.ticker,title:m.title||m.ticker,date:key,lead,bracket:br.label,forecast:f,obs,obsHour:fc.obsHour,mu,sigma,side:c.side,ask:c.ask,p:c.p,edge,ev,last,cal:!!cal});
@@ -505,8 +508,9 @@ $('lGrade').onclick=async()=>{
   let have=''; try{ const d=await snapFile('settled.json'); const w=d.settled.filter(x=>x.ticker.startsWith('KXHIGH')).length; have=` · snapshot holds ${w} settled weather markets`; }catch(e){}
   saveLog(log); $('lStatus').innerHTML=`Graded ${n} new · ${errs} still open or not found`+have+snapNote(); renderLog();
 };
+function isBugPick(b){ return b.kind==='weather'&&b.modelP!=null&&Math.abs(b.modelP-0.25)<1e-6&&b.entry<=0.03; }
 function renderLog(){
-  const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result); const mk=log.filter(b=>b.kind==='market'&&b.result);
+  const log=loadLog().filter(b=>!isBugPick(b)); const nBug=loadLog().length-log.length; const w=log.filter(b=>b.kind==='weather'&&b.result); const mk=log.filter(b=>b.kind==='market'&&b.result);
   const sum=(a,k)=>a.reduce((s,b)=>s+(b[k]||0),0);
   const wins=w.filter(b=>b.win).length;
   const bm=w.length?sum(w,'brierModel')/w.length:null, bk=w.length?sum(w,'brierMarket')/w.length:null;
@@ -520,12 +524,14 @@ function renderLog(){
    <div class="stat"><b>${bm!=null?bm.toFixed(4):'—'}</b><span>Brier model</span></div>
    <div class="stat"><b>${bk!=null?bk.toFixed(4):'—'}</b><span>Brier market</span></div>
    <div class="note">Edge is real only if: CLV stays positive AND Brier model &lt; Brier market over 100+ picks. Win rate alone proves nothing.</div>
+   ${nBug?`<div class="note">${nBug} picks hidden: logged by the old version that floored every bracket at 25% (1¢ longshots). They measure that bug, not the model. <button class="sm sec" id="lPurge">Delete them</button></div>`:''}
    <h2>Browse picks (culture / econ / finance…)</h2>
    <div class="stat"><b>${log.filter(b=>b.kind==='market').length}</b><span>logged</span></div>
    <div class="stat"><b>${mk.length}</b><span>graded</span></div>
    <div class="stat"><b>${mk.length?((mk.filter(b=>b.win).length/mk.length)*100).toFixed(0)+'%':'—'}</b><span>win rate</span></div>
    <div class="stat"><b class="${sum(mk,'pnl')>=0?'g':'b'}">${mk.length?(sum(mk,'pnl')>=0?'+':'')+sum(mk,'pnl').toFixed(2):'—'}</b><span>P&amp;L per $1</span></div>
    <div class="stat"><b class="${(mk.filter(b=>b.clv!=null).length&&sum(mk,'clv')/mk.filter(b=>b.clv!=null).length>0)?'g':'b'}">${mk.filter(b=>b.clv!=null).length?(sum(mk,'clv')/mk.filter(b=>b.clv!=null).length*100).toFixed(1)+'¢':'—'}</b><span>avg CLV</span></div>`;
+  const pb=$('lPurge'); if(pb) pb.onclick=()=>{ saveLog(loadLog().filter(b=>!isBugPick(b))); renderLog(); };
   const L=learned(); const keys=Object.keys(L);
   $('lLearned').innerHTML=`<h2 style="margin-top:0">Learned forecast error</h2>`+(keys.length?'<table><tr><th>City</th><th>n</th><th>bias</th><th>σ</th></tr>'+keys.map(s=>`<tr><td>${STATION[s]?STATION[s].city:s}</td><td>${L[s].n}</td><td>${L[s].bias>=0?'+':''}${L[s].bias.toFixed(2)}°</td><td>${L[s].sd.toFixed(2)}°</td></tr>`).join('')+'</table>':'<div class="status">Needs ≥10 picks per city with an observed high entered. Tap a graded row\'s "obs" field to enter the actual settled high (from the market title/NWS).</div>');
   let h='<table><tr><th>When</th><th>Market</th><th>Pick</th><th>Entry</th><th>Model</th><th>Result</th><th>P&amp;L</th><th>CLV</th><th>Obs °F</th><th></th></tr>';
