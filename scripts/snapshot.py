@@ -15,6 +15,7 @@ UA = {"User-Agent": "sports-models-snapshot/1.0"}
 SKIP_CATEGORIES = {"Sports"}            # sports has its own apps; it is ~90% of Kalshi's market count
 KEEP_ALL_CATEGORIES = {"Climate and Weather"}   # weather brackets are needed even at zero volume
 MIN_VOL = 100                           # contracts traded or open; weather exempt
+WEATHER_SERIES = ["KXHIGHNY", "KXHIGHCHI", "KXHIGHMIA", "KXHIGHLAX", "KXHIGHDEN", "KXHIGHAUS", "KXHIGHPHIL", "KXHIGHDAL"]
 
 def get(url, tries=3):
     for i in range(tries):
@@ -76,6 +77,19 @@ def main():
     since = int(time.time()) - 2*86400
     settled = [trim(m, ["ticker","result","last_price"]) for m in
                paged("/markets", "markets", {"status": "settled", "limit": 1000, "min_close_ts": since}, max_pages=12) if m.get("result")]
+    # Weather brackets are a drop in the ocean of settled sports markets, so the generic query above misses them:
+    # pull each weather series' settled markets directly (last 14 days) so the edge tracker can grade its picks.
+    seen = {m["ticker"] for m in settled}
+    for series in WEATHER_SERIES:
+        for m in paged("/markets", "markets", {"series_ticker": series, "status": "settled", "limit": 200,
+                                               "min_close_ts": int(time.time()) - 14*86400}, max_pages=5):
+            if m.get("result") and m["ticker"] not in seen:
+                for k in ("last_price",):
+                    if m.get(k) is None and m.get(k+"_dollars") is not None:
+                        try: m[k] = round(float(m[k+"_dollars"])*100)
+                        except Exception: pass
+                settled.append(trim(m, ["ticker","result","last_price"])); seen.add(m["ticker"])
+        time.sleep(0.2)
     poly = []
     for off in range(0, 4000, 100):
         j = get(f"{GAMMA}/markets?closed=false&active=true&limit=100&offset={off}&order=volume24hr&ascending=false")
@@ -85,7 +99,8 @@ def main():
         time.sleep(0.1)
 
     shutil.rmtree("data", ignore_errors=True); os.makedirs("data/cat", exist_ok=True)
-    index = {"ts": ts, "categories": {}, "settled": len(settled), "poly": len(poly), "events_skipped_sports": skipped}
+    index = {"ts": ts, "categories": {}, "settled": len(settled), "settled_weather": sum(1 for m in settled if m["ticker"].startswith("KXHIGH")),
+             "poly": len(poly), "events_skipped_sports": skipped}
     for cat, b in sorted(bycat.items()):
         fn = f"cat/{slug(cat)}.json"
         with open("data/"+fn, "w") as f: json.dump({"ts": ts, "category": cat, **b}, f, separators=(",", ":"))

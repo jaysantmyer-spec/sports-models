@@ -502,7 +502,8 @@ $('lGrade').onclick=async()=>{
       }
     }catch(e){ errs++; }
   }
-  saveLog(log); $('lStatus').innerHTML=`Graded ${n} new · ${errs} still open or not found`+snapNote(); renderLog();
+  let have=''; try{ const d=await snapFile('settled.json'); const w=d.settled.filter(x=>x.ticker.startsWith('KXHIGH')).length; have=` · snapshot holds ${w} settled weather markets`; }catch(e){}
+  saveLog(log); $('lStatus').innerHTML=`Graded ${n} new · ${errs} still open or not found`+have+snapNote(); renderLog();
 };
 function renderLog(){
   const log=loadLog(); const w=log.filter(b=>b.kind==='weather'&&b.result); const mk=log.filter(b=>b.kind==='market'&&b.result);
@@ -530,7 +531,8 @@ function renderLog(){
   let h='<table><tr><th>When</th><th>Market</th><th>Pick</th><th>Entry</th><th>Model</th><th>Result</th><th>P&amp;L</th><th>CLV</th><th>Obs °F</th><th></th></tr>';
   log.slice().reverse().forEach(b=>{
     const res=b.result?`<span class="pill ${b.win?'g':'b'}">${b.result.toUpperCase()}</span>`:'<span class="pill w">open</span>';
-    h+=`<tr><td class="mono">${b.loggedAt.slice(5,16).replace('T',' ')}</td><td>${b.kind==='arb'?'ARB: ':b.kind==='market'?(b.category||'MKT')+': ':''}${b.title}<br><span class="mono">${b.kind==='weather'?b.bracket+' · '+b.date:b.kind==='market'?(b.flag||'manual pick'):b.leg}</span></td><td>${b.kind!=='arb'?b.side:(b.margin*100).toFixed(2)+'%'}</td><td>${b.kind!=='arb'?(b.entry*100).toFixed(0)+'¢':'$'+b.cost.toFixed(3)}</td><td>${b.modelP!=null?fmtP(b.modelP):'—'}</td><td>${res}</td><td class="${b.pnl>0?'g':b.pnl<0?'b':''}">${b.pnl!=null?(b.pnl>=0?'+':'')+b.pnl.toFixed(2):'—'}</td><td class="${b.clv>0?'g':b.clv<0?'b':''}">${b.clv!=null?(b.clv*100).toFixed(0)+'¢':'—'}</td><td>${b.kind==='weather'?`<input type="number" style="width:60px" data-obs="${b.id}" value="${b.obsHigh??''}" placeholder="°F">`:''}</td><td><button class="sm sec" data-del="${b.id}">✕</button></td></tr>`;
+    const cityOf=b.kind==='weather'?(b.city||(STATION[(b.series||(b.ticker||'').split('-')[0])]||{}).city||(b.ticker||'').split('-')[0]):'';
+    h+=`<tr><td class="mono">${b.loggedAt.slice(5,16).replace('T',' ')}</td><td>${b.kind==='arb'?'ARB: ':b.kind==='market'?(b.category||'MKT')+': ':''}${cityOf?`<b>${cityOf}</b> · `:''}${b.title}<br><span class="mono">${b.kind==='weather'?b.bracket+' · '+b.date:b.kind==='market'?(b.flag||'manual pick'):b.leg}</span></td><td>${b.kind!=='arb'?b.side:(b.margin*100).toFixed(2)+'%'}</td><td>${b.kind!=='arb'?(b.entry*100).toFixed(0)+'¢':'$'+b.cost.toFixed(3)}</td><td>${b.modelP!=null?fmtP(b.modelP):'—'}</td><td>${res}</td><td class="${b.pnl>0?'g':b.pnl<0?'b':''}">${b.pnl!=null?(b.pnl>=0?'+':'')+b.pnl.toFixed(2):'—'}</td><td class="${b.clv>0?'g':b.clv<0?'b':''}">${b.clv!=null?(b.clv*100).toFixed(0)+'¢':'—'}</td><td>${b.kind==='weather'?`<input type="number" style="width:60px" data-obs="${b.id}" value="${b.obsHigh??''}" placeholder="°F">`:''}</td><td><button class="sm sec" data-del="${b.id}">✕</button></td></tr>`;
   });
   $('lTable').innerHTML=h+'</table>';
   $('lTable').querySelectorAll('input[data-obs]').forEach(i=>i.onchange=()=>{ const l=loadLog(); const b=l.find(x=>String(x.id)===i.dataset.obs); if(b){ b.obsHigh=i.value===''?null:+i.value; saveLog(l); renderLog(); } });
