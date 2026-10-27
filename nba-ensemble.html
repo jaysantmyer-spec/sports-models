@@ -129,13 +129,18 @@ td.good{color:var(--green);}td.bad{color:var(--red);}td.flat{color:var(--dim);}
         <div><label>Ensemble weighting</label><select id="ensMode"><option value="brier" selected>By backtest Brier</option><option value="equal">Equal</option></select></div>
       </div>
       <div class="g2 mt">
+        <div><label>Live ratings (this season)</label><select id="liveMode"><option value="1" selected>On &mdash; refit on this season's games</option><option value="0">Off &mdash; last season only</option></select></div>
+        <div><label>Last-season prior worth</label><select id="priorK"><option value="10">10 games</option><option value="15" selected>15 games</option><option value="25">25 games</option></select></div>
+      </div>
+      <div class="g2 mt">
         <div><label>Injury adjustment</label><select id="injMode"><option value="1" selected>On (auto from ESPN)</option><option value="0">Off</option></select></div>
         <div><label>Day-to-day weight</label><select id="ddW"><option value="0.4" selected>40% of Out</option><option value="0">Ignore</option><option value="0.7">70%</option></select></div>
       </div>
       <button class="btn" id="run">RUN SLATE</button>
       <div class="prog"><div id="bar"></div></div>
       <div class="status" id="st"></div>
-      <div class="hint">No API key. Injuries load automatically from ESPN's report. Each absent player's value comes from his per-game production harvested during Four Factors training; without that, a flat default is used and flagged. Every impact can be edited or skipped inside the card.</div>
+      <div class="hint">No API key. Injuries load automatically from ESPN's report. With live ratings on, every run also loads this season's results and box scores (cached in this browser): ratings are refit on this season with last season as a fading prior (shrunk 30% for roster turnover, worth the chosen number of games), each result is credited at the lineup that actually played (a loss without a star counts less, so a returning star restores the team's rating), and absent-player values blend this season's production with last season's so rookies and traded players count. Every impact can be edited or skipped inside the card.</div>
+      <div id="liveBanner" class="status"></div>
     </div>
     <div id="score"></div>
     <div id="out"></div>
@@ -439,7 +444,7 @@ function injuryAdjust(teamId,ovr,side){
   for(const inj of list){
     const key=side+'_inj_'+(inj.id||inj.name);
     if(ovr[key]==='skip')continue;
-    const pv=P&&P.players&&inj.id?P.players[inj.id]:null;
+    const pv=inj.id?(LIVE?playerValueNow(inj.id):(P&&P.players?P.players[inj.id]:null)):null;
     let base=pv?playerImpact(pv):null;let src=pv?'stats':'default';
     if(base==null){base=inj.kind==='out'?1.5:.5;src='default';}
     if(ovr[key]!=null&&ovr[key]!=='skip'){base=Number(ovr[key]);src='manual';}
@@ -447,6 +452,90 @@ function injuryAdjust(teamId,ovr,side){
     rows.push({...inj,pts,base,src,w,key});total+=pts;
   }
   return {rows,total:on?total:0};
+}
+
+// ---------- Live ratings: this season's games, box scores and lineup-aware refit ----------
+const CACHE_KEY='nbaSeasonCache_v1';
+let LIVE=null;   // {bt,mg,recs,games,players,season,asOf}
+function seasonStart(dateStr){const y=Number(dateStr.slice(0,4)),m=Number(dateStr.slice(5,7));return `${m>=9?y:y-1}-10-01`;}
+function loadCache(){try{const r=localStorage.getItem(CACHE_KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
+function saveCache(c){try{localStorage.setItem(CACHE_KEY,JSON.stringify(c));}catch(e){try{c.box={};localStorage.setItem(CACHE_KEY,JSON.stringify(c));}catch(e2){}}}
+// production per game from a list of per-game lines
+function perGame(lines){const r={g:0,min:0,pts:0,reb:0,ast:0};for(const l of lines){r.g++;r.min+=l.min;r.pts+=l.pts;r.reb+=l.reb;r.ast+=l.ast;}if(!r.g)return null;return {g:r.g,min:r.min/r.g,pts:r.pts/r.g,reb:r.reb/r.g,ast:r.ast/r.g};}
+// a player's value today: this season's production blended with last season's (last season worth 10 games)
+function playerValueNow(id){
+  const now=LIVE&&LIVE.players&&LIVE.players[id],last=P&&P.players&&P.players[id];
+  if(!now&&!last)return null;if(!now)return {...last,src:'last'};if(!last)return {...now,src:'now'};
+  const k=10,w=now.g/(now.g+k);const mix=f=>w*now[f]+(1-w)*last[f];
+  return {name:now.name,team:now.team,g:now.g,min:mix('min'),pts:mix('pts'),reb:mix('reb'),ast:mix('ast'),src:'blend'};
+}
+async function buildLive(date,onProg){
+  const start=seasonStart(date),endDay=addDays(date,-1);
+  let cache=loadCache();if(!cache||cache.season!==start){cache={season:start,games:[],box:{},through:null};}
+  // games: rescan the last 2 cached days (late finals) plus everything new
+  const from=cache.through?addDays(cache.through,-2):start;
+  const known=new Set(cache.games.filter(g=>g.date<from).map(g=>g.id));cache.games=cache.games.filter(g=>g.date<from);
+  const fresh=await loadSeason(from,endDay,(p,n)=>onProg(p*.3,`This season: loading results... ${cache.games.length+n} games`));
+  fresh.forEach(g=>{if(!known.has(g.id))cache.games.push({id:g.id,date:g.date,h:g.h,a:g.a,hn:g.hn,an:g.an,hs:g.hs,as:g.as});});
+  cache.games.sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:0);cache.through=endDay;
+  const last={};cache.games.forEach(g=>{g.hb2b=last[g.h]===addDays(g.date,-1);g.ab2b=last[g.a]===addDays(g.date,-1);last[g.h]=g.date;last[g.a]=g.date;});
+  // box scores for who played (only games not cached yet)
+  const need=cache.games.filter(g=>!cache.box[g.id]);
+  await pool(need,6,async(g,k)=>{const sm=await getJSON(SUMMARY+g.id,'summary');const pl=parsePlayers(sm);if(pl.length)cache.box[g.id]=pl.map(x=>[x.id,x.team,x.min,x.pts,x.reb,x.ast,x.name]);
+    if(k%5===0)onProg(.3+.4*k/need.length,`This season: box scores ${k}/${need.length}`);});
+  saveCache(cache);
+  // per-player production this season, and each team's roster (seen this season, or on today's injury list with a last-season value)
+  const lines={};const teamOf={};
+  for(const gid in cache.box)for(const l of cache.box[gid]){(lines[l[0]]=lines[l[0]]||[]).push({min:l[2],pts:l[3],reb:l[4],ast:l[5]});teamOf[l[0]]={team:l[1],name:l[6]};}
+  const players={};for(const id in lines){const pg=perGame(lines[id]);if(pg)players[id]={...pg,name:teamOf[id].name,team:teamOf[id].team};}
+  LIVE={players,season:start,asOf:endDay,games:cache.games.length,bt:null,mg:null,recs:{}};
+  const roster={};const addR=(tid,id)=>{(roster[tid]=roster[tid]||new Set()).add(id);};
+  for(const id in players)addR(players[id].team,id);
+  for(const tid in INJ)for(const inj of INJ[tid])if(inj.id&&P&&P.players&&P.players[inj.id])addR(tid,inj.id);
+  // lineup adjustment per game: value of the team's rotation players (top 8 by value) who did not appear
+  const impactOf=id=>{const v=playerValueNow(id);return v?playerImpact(v):0;};
+  const top8={};for(const tid in roster){top8[tid]=[...roster[tid]].map(id=>({id,v:impactOf(id)})).sort((x,y)=>y.v-x.v).slice(0,8);}
+  const games=cache.games.map(g=>{const box=cache.box[g.id];let mh=0,ma=0;
+    if(box){const played=new Set(box.map(l=>l[0]));(top8[g.h]||[]).forEach(p=>{if(!played.has(p.id))mh+=p.v;});(top8[g.a]||[]).forEach(p=>{if(!played.has(p.id))ma+=p.v;});}
+    return {...g,missH:mh,missA:ma};});
+  // records
+  games.forEach(g=>{const r=t=>LIVE.recs[t]=LIVE.recs[t]||{w:0,l:0};r(g.h);r(g.a);if(g.hs>g.as){LIVE.recs[g.h].w++;LIVE.recs[g.a].l++;}else{LIVE.recs[g.a].w++;LIVE.recs[g.h].l++;}});
+  onProg(.75,'Refitting ratings on this season...');
+  const K=Number(document.getElementById('priorK').value);
+  LIVE.bt=refitBT(games,K);LIVE.mg=refitMargin(games,K);
+  onProg(.8,'');
+  return LIVE;
+}
+// Penalised refits: last season's rating (shrunk 30% toward average) is the prior, worth K games of evidence.
+// Each game's result is corrected for the rotation players who sat, so the rating is a full-strength rating.
+function refitBT(games,K){
+  const bt0=P&&P.bt;const H=bt0?bt0.H:.3,F=bt0?bt0.F:-.15;const Hm=P&&P.mg?P.mg.H:2.5;const ppl=(Hm&&H)?Hm/H:8;
+  const teams=[...new Set(games.flatMap(g=>[g.h,g.a]).concat(bt0?Object.keys(bt0.R):[]))];
+  const R0={},R={};teams.forEach(t=>{R0[t]=bt0&&bt0.R[t]!=null?.7*bt0.R[t]:0;R[t]=R0[t];});
+  const lam=.25*K;
+  for(let it=0;it<400;it++){const g0={};teams.forEach(t=>g0[t]=0);
+    for(const g of games){const fb=(g.hb2b?1:0)-(g.ab2b?1:0);const adj=(g.missA-g.missH)/ppl;   // what the lineups cost, in logits
+      const p=sig(R[g.h]-R[g.a]+H+F*fb+adj);const e=(g.hs>g.as?1:0)-p;g0[g.h]+=e;g0[g.a]-=e;}
+    teams.forEach(t=>{R[t]+=.5*(g0[t]-lam*(R[t]-R0[t]))/(lam+.25*((LIVE.recs[t]||{w:0,l:0}).w+(LIVE.recs[t]||{w:0,l:0}).l)+.5);});}
+  return {R,H,F,R0};
+}
+function refitMargin(games,K){
+  const m0=P&&P.mg;const H=m0?m0.H:2.5,F=m0?m0.F:-1.2,base=m0?m0.base:LG.ppg;
+  const teams=[...new Set(games.flatMap(g=>[g.h,g.a]).concat(m0?Object.keys(m0.R):[]))];
+  const R0={},O0={},D0={},R={},O={},D={};teams.forEach(t=>{R0[t]=m0&&m0.R[t]!=null?.7*m0.R[t]:0;O0[t]=m0&&m0.O[t]!=null?.7*m0.O[t]:0;D0[t]=m0&&m0.D[t]!=null?.7*m0.D[t]:0;R[t]=R0[t];O[t]=O0[t];D[t]=D0[t];});
+  const n=t=>((LIVE.recs[t]||{w:0,l:0}).w+(LIVE.recs[t]||{w:0,l:0}).l);
+  for(let it=0;it<400;it++){const gR={},gO={},gD={};teams.forEach(t=>{gR[t]=0;gO[t]=0;gD[t]=0;});
+    for(const g of games){const fb=(g.hb2b?1:0)-(g.ab2b?1:0);
+      const pm=R[g.h]-R[g.a]+H+F*fb-g.missH+g.missA;const em=(g.hs-g.as)-pm;gR[g.h]+=em;gR[g.a]-=em;
+      const ph=base+O[g.h]-D[g.a]+H/2-.7*g.missH,pa=base+O[g.a]-D[g.h]-H/2-.7*g.missA;const eh=g.hs-ph,ea=g.as-pa;
+      gO[g.h]+=eh;gD[g.a]-=eh;gO[g.a]+=ea;gD[g.h]-=ea;}
+    teams.forEach(t=>{const d=K+n(t);R[t]+=.5*(gR[t]-K*(R[t]-R0[t]))/d;O[t]+=.5*(gO[t]-K*(O[t]-O0[t]))/d;D[t]+=.5*(gD[t]-K*(D[t]-D0[t]))/d;});}
+  return {R,O,D,H,F,base,R0};
+}
+function liveBanner(){
+  const b=document.getElementById('liveBanner');if(!LIVE){b.textContent='';return;}
+  const K=Number(document.getElementById('priorK').value);const nT=Object.keys(LIVE.recs).length;const gp=nT?Object.values(LIVE.recs).reduce((s,r)=>s+r.w+r.l,0)/nT:0;
+  b.innerHTML=`Live ratings: <b>${LIVE.games}</b> games this season through ${LIVE.asOf} (about ${gp.toFixed(1)} per team), ${Object.keys(LIVE.players).length} players with this-season production. Last season counts as ${K} games, so this season carries ${(100*gp/(gp+K)).toFixed(0)}% of each rating right now.`;
 }
 
 // ---------- Live slate ----------
@@ -458,17 +547,23 @@ document.getElementById('run').addEventListener('click',async()=>{
   const [sb]=await Promise.all([getJSON(`${ESPN}/scoreboard?dates=${ymd(date)}`,'scoreboard'),loadInjuries()]);
   const events=((sb&&sb.events)||[]).filter(e=>{const st=e.status&&e.status.type&&e.status.type.state;return st==='pre'||st==='in'||(incFinal&&st==='post');});
   if(!events.length){setS('st',window.__err?`Could not load. ${window.__err}`:'No NBA games on this date. Regular season begins October 20; preseason October 3.',true);document.getElementById('out').innerHTML='<div class="empty">Nothing scheduled for this date.</div>';btn.disabled=false;return;}
+  LIVE=null;
+  if(document.getElementById('liveMode').value==='1'){
+    try{await buildLive(date,(p,t)=>{setBar('bar',p);if(t)setS('st',t);});}
+    catch(e){window.__err=`live ratings: ${e.message}`;LIVE=null;}
+  }
+  liveBanner();
   const yd=await getJSON(`${ESPN}/scoreboard?dates=${ymd(addDays(date,-1))}`,'yesterday');
   const played=new Set();((yd&&yd.events)||[]).forEach(e=>{const c=e.competitions&&e.competitions[0];(c&&c.competitors||[]).forEach(x=>played.add(String(x.team.id)));});
   events.forEach((e,i)=>{const c=e.competitions&&e.competitions[0];if(!c)return;const H=c.competitors.find(x=>x.homeAway==='home'),A=c.competitors.find(x=>x.homeAway==='away');if(!H||!A)return;
     let actual=null;if(e.status.type.state==='post'){const hs=Number(H.score),as=Number(A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
     slate.push({id:i,h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,hb2b:played.has(String(H.team.id)),ab2b:played.has(String(A.team.id)),actual,ovr:{}});});
-  setBar('bar',1);setS('st',`${slate.length} game${slate.length===1?'':'s'} loaded.${P?'':' Using default ratings \u2014 train first for learned values.'}`);render();btn.disabled=false;
+  setBar('bar',1);setS('st',`${slate.length} game${slate.length===1?'':'s'} loaded.${P?'':' Using default ratings \u2014 train first for learned values.'}${LIVE?` Live ratings on (${LIVE.games} games this season).`:(document.getElementById('liveMode').value==='1'?' Live ratings unavailable this run ('+(window.__err||'no data')+').':'')}`);render();btn.disabled=false;
 });
 
 function compute(s){
   const o=s.ovr;const hb=o.hb2b!=null?o.hb2b===1:s.hb2b,ab=o.ab2b!=null?o.ab2b===1:s.ab2b;const fb=(hb?1:0)-(ab?1:0);
-  const bt=P&&P.bt,mg=P&&P.mg;
+  const bt=LIVE&&LIVE.bt?LIVE.bt:(P&&P.bt),mg=LIVE&&LIVE.mg?LIVE.mg:(P&&P.mg);
   const rBTh=o.btH!=null?o.btH:(bt&&bt.R[s.h]!=null?bt.R[s.h]:0),rBTa=o.btA!=null?o.btA:(bt&&bt.R[s.a]!=null?bt.R[s.a]:0);
   const H=bt?bt.H:.4,F=bt?bt.F:-.15;
   const injH=injuryAdjust(s.h,o,'h'),injA=injuryAdjust(s.a,o,'a');
@@ -513,6 +608,8 @@ function card(s){
     return `<div class="flag inj"><b>${nm}</b> &mdash; ${inj.total>0?'&minus;'+inj.total.toFixed(1)+' pts':'no adjustment'}<br>`+inj.rows.map(r=>`<span style="display:flex;justify-content:space-between;gap:6px;margin-top:3px;"><span>${r.name} <i style="color:var(--dim)">${r.status}${r.detail?' · '+r.detail:''}${r.ret?' · ret '+r.ret:''}</i></span><span style="white-space:nowrap;">${r.pts>0?'&minus;'+r.pts.toFixed(1):'0.0'} <i style="color:var(--dim)">${r.src==='stats'?'':r.src==='manual'?'(manual)':'(default)'}</i></span></span>`).join('')+`</div>`;};
   flags+=injBlock('h',s.hn,c.injH)+injBlock('a',s.an,c.injA);
   if(c.hb)flags+=`<div class="flag rest"><b>${s.hn}</b> on a back-to-back.</div>`;if(c.ab)flags+=`<div class="flag rest"><b>${s.an}</b> on a back-to-back.</div>`;
+  if(LIVE&&LIVE.mg){const rec=t=>{const r=LIVE.recs[t]||{w:0,l:0};return `${r.w}-${r.l}`;};const mv=t=>{const d=(LIVE.mg.R[t]||0)-(LIVE.mg.R0[t]||0);return (d>=0?'+':'')+d.toFixed(1);};
+    flags+=`<div class="flag est">This season: <b>${s.hn.split(' ').pop()}</b> ${rec(s.h)} (rating ${mv(s.h)} pts vs last-season prior) &middot; <b>${s.an.split(' ').pop()}</b> ${rec(s.a)} (${mv(s.a)} pts)</div>`;}
   if(!P)flags+='<div class="flag est">Untrained: ratings are zero for every team, so this is home court and rest only. Train on last season first.</div>';
   const pO=c.pOver,pU=1-pO;
   return `<div class="card" id="c-${s.id}">
