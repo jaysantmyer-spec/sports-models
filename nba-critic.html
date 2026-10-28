@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Pick Critic</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--court:#3D2A1F;--wood:#C8813F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--rose:#E8B4AE;--dim:#7C93A3;--green:#5FAE7A;--teal:#5FB8AE;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--court) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}
+a{color:var(--amber);}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--wood);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:8px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:7px 8px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.btn{display:block;width:100%;margin-top:10px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;text-align:center;text-decoration:none;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-family:'Inter',sans-serif;font-size:12px;padding:8px;}
+.row{display:flex;gap:8px;}.row>*{flex:1;}
+.status{font-size:12px;color:var(--dim);margin:8px 0;line-height:1.5;}
+.status.err{color:var(--red);}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.st{flex:1;min-width:92px;background:var(--nl);border:1px solid #2A3B48;border-radius:8px;padding:9px 6px;text-align:center;}
+.st .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}
+.st .v{font-family:'Teko',sans-serif;font-size:23px;color:var(--amber);line-height:1.15;}
+.st .r{font-size:9.5px;color:var(--dim);}
+.plays .p{font-size:12.5px;padding:8px 10px;border-radius:6px;margin-top:6px;line-height:1.5;background:rgba(95,174,122,.1);border-left:3px solid var(--green);}
+.plays .p.lean{background:rgba(242,169,59,.08);border-left-color:var(--amber);}
+.plays .p b{color:var(--chalk);}
+.note{font-size:11.5px;border-radius:6px;padding:7px 10px;margin-top:6px;line-height:1.55;border-left:3px solid #2A3B48;background:rgba(255,255,255,.03);color:#C9D3DA;}
+.note.red{border-left-color:var(--red);background:rgba(192,67,58,.09);color:var(--rose);}
+.note.amber{border-left-color:var(--amber);background:rgba(242,169,59,.07);color:#F3D9AE;}
+.note.good{border-left-color:var(--green);background:rgba(95,174,122,.09);color:#BFE3CB;}
+.note b{color:var(--chalk);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,.55);}.card.flagged{border-color:rgba(192,67,58,.5);}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
+.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.verdict{flex-shrink:0;text-align:right;max-width:48%;}
+.verdict .k{font-family:'Teko',sans-serif;font-size:21px;line-height:1;letter-spacing:.4px;}
+.verdict .d{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.35;}
+.k.play{color:var(--green);}.k.lean{color:var(--amber);}.k.pass{color:var(--dim);}.k.check{color:var(--red);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:9px;}
+th{text-align:right;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:4px 4px;border-bottom:1px solid #263644;}
+th:first-child,td:first-child{text-align:left;}
+td{padding:5px 4px;border-bottom:1px solid #1B2836;text-align:right;font-variant-numeric:tabular-nums;}
+td.k2{color:var(--dim);}
+.pos{color:var(--green);}.neg{color:var(--rose);}.flat{color:var(--dim);}
+.bets{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px;}
+.bet{background:var(--nl);border:1px solid #2A3B48;border-radius:6px;padding:6px 6px;text-align:center;}
+.bet.ok{border-color:rgba(95,174,122,.6);}.bet.lean{border-color:rgba(242,169,59,.45);}
+.bet .t{font-size:9.5px;color:var(--dim);line-height:1.3;min-height:25px;}
+.bet .e{font-family:'Teko',sans-serif;font-size:19px;line-height:1.1;}
+.bet .s{font-size:9px;color:var(--dim);}
+details{margin-top:9px;}summary{font-size:11px;color:var(--dim);cursor:pointer;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:7px;}
+.result{font-size:11.5px;border-radius:6px;padding:7px 10px;margin-top:8px;line-height:1.5;background:rgba(127,179,217,.08);color:#BCD6EA;}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+@media (max-width:420px){.bets{grid-template-columns:repeat(2,1fr);}.verdict{max-width:55%;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>NBA PICK CRITIC</h1></div>
+  <p class="sub">Second opinion on your last <a href="nba-ensemble.html">NBA Ensemble</a> slate. It pulls the sportsbook lines ESPN publishes, puts the model next to the market, prices every side, and flags anything that makes a number less trustworthy.</p>
+
+  <div id="top"></div>
+  <div id="out"></div>
+
+  <p class="footnote">How it judges. Market win chance is the moneyline with the vig removed. Spread cover and over/under chances use the model's margin and total with its own fitted residual spreads (σ), so a 2-point gap matters less in a game with a wide σ. A side is a <b>play</b> when the model's chance beats the price's implied chance by at least your edge threshold, a <b>lean</b> at half of that. When the model and market disagree by more than 6 points of margin or 10 of total, the gap usually means the market has news the model doesn't (late scratches, rest, a trade), so the side is marked <b>check news</b> instead of play. Lines can be edited inside each card. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+const SUMMARY='https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=';
+const SNAP_KEY='nbaLastSlate_v1',EDIT_KEY='nbaCriticEdits_v1';
+const BIG_M=6,BIG_T=10;
+
+function normCDF(x){const t=1/(1+.2316419*Math.abs(x));const d=.3989423*Math.exp(-x*x/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function imp(a){return a>0?100/(a+100):(-a)/((-a)+100);}
+function payout(a){return a>0?a/100:100/(-a);}
+function fmtAm(a){return a==null?'—':(a>0?'+'+a:''+a);}
+function probToAm(p){if(!(p>0&&p<1))return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+function pct(p,d=1){return p==null?'—':(p*100).toFixed(d)+'%';}
+function sgn(x,d=1){return (x>=0?'+':'')+x.toFixed(d);}
+function nick(n){return n.split(' ').pop();}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function load(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function getJSON(u){try{const r=await fetch(u);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+function num(x){if(x==null||x==='')return null;if(typeof x==='number')return isFinite(x)?x:null;const s=String(x).trim();if(/^(even|ev|pk|pick)$/i.test(s))return /^(pk|pick)$/i.test(s)?0:100;const n=Number(s.replace(/^[ou]/i,''));return isFinite(n)?n:null;}
+
+// ESPN has used two odds shapes; read both.
+function parseOdds(o,ha,aa){
+  if(Array.isArray(o))o=o[0];if(!o)return null;const at=(x,k)=>x&&x.close&&x.close[k]!=null?x.close[k]:(x&&x.open&&x.open[k]!=null?x.open[k]:(x&&x.current&&x.current[k]!=null?x.current[k]:null));
+  const r={provider:(o.provider&&o.provider.name)||'Sportsbook'};
+  let sH=num(at(o.pointSpread&&o.pointSpread.home,'line'));
+  if(sH==null&&o.details){const m=String(o.details).trim().match(/^([A-Z]{2,4})\s+([+-]?\d+(\.\d+)?)$/i);
+    if(m){const v=Number(m[2]);if(m[1].toUpperCase()===String(ha).toUpperCase())sH=v;else if(m[1].toUpperCase()===String(aa).toUpperCase())sH=-v;}
+    else if(/^(even|pk|pick)/i.test(o.details))sH=0;}
+  if(sH==null&&o.spread!=null){const sp=Math.abs(Number(o.spread));const hf=o.homeTeamOdds&&o.homeTeamOdds.favorite,af=o.awayTeamOdds&&o.awayTeamOdds.favorite;if(hf)sH=-sp;else if(af)sH=sp;}
+  r.sH=sH;
+  r.sPH=num(at(o.pointSpread&&o.pointSpread.home,'odds'))??num(o.homeTeamOdds&&o.homeTeamOdds.spreadOdds)??-110;
+  r.sPA=num(at(o.pointSpread&&o.pointSpread.away,'odds'))??num(o.awayTeamOdds&&o.awayTeamOdds.spreadOdds)??-110;
+  r.mlH=num(at(o.moneyline&&o.moneyline.home,'odds'))??num(o.homeTeamOdds&&o.homeTeamOdds.moneyLine);
+  r.mlA=num(at(o.moneyline&&o.moneyline.away,'odds'))??num(o.awayTeamOdds&&o.awayTeamOdds.moneyLine);
+  r.tot=num(at(o.total&&o.total.over,'line'))??num(o.overUnder);
+  r.oP=num(at(o.total&&o.total.over,'odds'))??num(o.overOdds)??-110;
+  r.uP=num(at(o.total&&o.total.under,'odds'))??num(o.underOdds)??-110;
+  return (r.sH==null&&r.mlH==null&&r.tot==null)?null:r;
+}
+
+let SNAP=null,MKT={},EDITS=load(EDIT_KEY)||{},FETCHED=null;
+
+async function fetchMarket(){
+  const date=SNAP.date.replace(/-/g,'');const sb=await getJSON(`${ESPN}/scoreboard?dates=${date}`);const live={};
+  for(const e of ((sb&&sb.events)||[])){const c=e.competitions&&e.competitions[0];if(!c)continue;const o=(c.odds||[])[0];live[String(e.id)]={odds:o,status:e.status&&e.status.type&&e.status.type.state,comp:c};}
+  const out={};
+  await Promise.all(SNAP.games.map(async g=>{
+    const L=live[g.eid];let m=L?parseOdds(L.odds,g.ha,g.aa):null;let src=m?'ESPN scoreboard':null;
+    if(!m){const s=await getJSON(SUMMARY+g.eid);const pc=s&&s.pickcenter&&s.pickcenter[0];m=parseOdds(pc,g.ha,g.aa);if(m)src='ESPN pick center';}
+    if(!m&&g.espnOdds){m=parseOdds(g.espnOdds,g.ha,g.aa);if(m)src='saved with slate';}
+    // final score if the game has finished since the slate was run
+    let actual=g.actual;if(L&&L.status==='post'&&!actual){const H=L.comp.competitors.find(x=>x.homeAway==='home'),A=L.comp.competitors.find(x=>x.homeAway==='away');const hs=Number(H&&H.score),as=Number(A&&A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
+    out[g.eid]={m:m||{},src,actual,status:L&&L.status};
+  }));
+  MKT=out;FETCHED=new Date();
+}
+
+// Merge book lines with anything typed into the model or into this page (this page wins).
+function market(g){
+  const base=(MKT[g.eid]&&MKT[g.eid].m)||{};const ed=EDITS[g.eid]||{};const r={...base};let manual=false;
+  if(r.mlH==null&&g.entered.mlH!=null){r.mlH=g.entered.mlH;manual=true;}if(r.mlA==null&&g.entered.mlA!=null){r.mlA=g.entered.mlA;manual=true;}
+  if(r.tot==null&&g.lineEntered){r.tot=g.line;if(g.entered.over!=null)r.oP=g.entered.over;if(g.entered.under!=null)r.uP=g.entered.under;manual=true;}
+  for(const k of ['sH','mlH','mlA','tot','sPH','sPA','oP','uP'])if(ed[k]!=null){r[k]=ed[k];manual=true;}
+  if(r.sPH==null)r.sPH=-110;if(r.sPA==null)r.sPA=-110;if(r.oP==null)r.oP=-110;if(r.uP==null)r.uP=-110;
+  r.src=(MKT[g.eid]&&MKT[g.eid].src)||(manual?'entered by you':null);if(manual&&MKT[g.eid]&&MKT[g.eid].src)r.src+=' + your edits';
+  return r;
+}
+
+function analyse(g){
+  const T=SNAP.settings.edgeT||.03,mk=market(g),H=nick(g.hn),A=nick(g.an);const notes=[];const bets=[];
+  const pH=g.pE,pA=1-pH;
+  // market fair numbers
+  let nvH=null;if(mk.mlH!=null&&mk.mlA!=null){const iH=imp(mk.mlH),iA=imp(mk.mlA);nvH=iH/(iH+iA);}
+  else if(mk.sH!=null)nvH=normCDF(-mk.sH/g.sigM);
+  const mM=mk.sH!=null?-mk.sH:null;const dM=mM!=null?g.m-mM:null;const dT=mk.tot!=null?g.tot-mk.tot:null;
+  const bigM=dM!=null&&Math.abs(dM)>BIG_M,bigT=dT!=null&&Math.abs(dT)>BIG_T;
+  const add=(label,p,price,kind,susp)=>{if(price==null||p==null)return;const i=imp(price);const edge=p-i;const ev=p*payout(price)-(1-p);bets.push({label,p,price,i,edge,ev,kind,susp,tier:edge>=T?'play':(edge>=T/2?'lean':'none')});};
+  add(`${A} ML`,pA,mk.mlA,'ml',bigM);add(`${H} ML`,pH,mk.mlH,'ml',bigM);
+  if(mk.sH!=null){const cH=normCDF((g.m+mk.sH)/g.sigM);const sA=-mk.sH;add(`${A} ${sgn(sA,1).replace('+0.0','PK')}`,1-cH,mk.sPA,'ats',bigM);add(`${H} ${sgn(mk.sH,1).replace('+0.0','PK')}`,cH,mk.sPH,'ats',bigM);}
+  if(mk.tot!=null){const pO=1-normCDF((mk.tot-g.tot)/g.sigT);add(`Over ${mk.tot}`,pO,mk.oP,'tot',bigT);add(`Under ${mk.tot}`,1-pO,mk.uP,'tot',bigT);}
+
+  // 1. the headline pick
+  const favH=pH>=.5,favN=favH?g.hn:g.an,favP=favH?pH:pA,favPrice=favH?mk.mlH:mk.mlA;
+  if(favPrice!=null){const i=imp(favPrice),e=favP-i;
+    if(e>=T)notes.push(['good',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, is priced at ${fmtAm(favPrice)} (${pct(i)} implied). That's ${sgn(e*100)} pts of edge, so the headline pick holds up.`]);
+    else if(e>=0)notes.push(['',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, costs ${fmtAm(favPrice)} (${pct(i)} implied). Only ${sgn(e*100)} pts, under your ${(T*100).toFixed(0)}-pt threshold: likely to win, but not value.`]);
+    else notes.push(['amber',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, is <b>overpriced</b> at ${fmtAm(favPrice)} (${pct(i)} implied). By the model's own numbers the moneyline loses money; the other side or the spread is where to look.`]);}
+  else notes.push(['amber',`No moneyline found for this game, so the headline ${pct(favP)} on ${esc(favN)} can't be priced. Add the odds under <i>Edit lines</i>.`]);
+
+  // 2. model vs market margin
+  if(dM!=null){const side=dM>0?H:A;const ad=Math.abs(dM);
+    if(ad<1.5)notes.push(['',`Model and market agree on the margin (${H} ${sgn(g.m)} vs ${sgn(mM)}). Agreement is a good sign for the model, but it means no edge on the side.`]);
+    else if(!bigM)notes.push(['',`Model is <b>${ad.toFixed(1)} pts</b> more bullish on <b>${side}</b> than the market (${H} ${sgn(g.m)} vs line ${sgn(mk.sH)}).`]);
+    else notes.push(['red',`Model is ${ad.toFixed(1)} pts off the market toward ${side}. A gap that size usually means the market knows something the model doesn't (late scratch, rest day, trade). Check news before treating it as an edge.`]);}
+  // 3. totals
+  if(mk.tot==null&&!g.lineEntered)notes.push(['red',`Over/under chances in the model used the default ${g.line} line, not a real total, so the O/U bar for this game doesn't mean anything yet.`]);
+  else if(dT!=null){if(!g.lineEntered&&Math.abs(g.line-mk.tot)>=.5)notes.push(['amber',`The model graded the total against its default ${g.line}. The real line is <b>${mk.tot}</b>, so its O/U split changes; repriced below (model ${g.tot.toFixed(1)}, ${sgn(dT)} vs market).`]);
+    else if(bigT)notes.push(['red',`Projected total ${g.tot.toFixed(1)} is ${Math.abs(dT).toFixed(1)} pts off the market's ${mk.tot}. That's too far to be a pricing edge; it's more likely missing information.`]);}
+  // 4. odds never entered in the model
+  if(bets.length&&g.entered.mlH==null&&g.entered.mlA==null&&g.entered.over==null&&g.entered.under==null)notes.push(['',`No sportsbook odds were typed into the model, so it never checked these sides for edges. The numbers below use ${mk.src?esc(mk.src):'no'} lines instead.`]);
+  // 5. sub-model split
+  const split=Math.abs(g.pBT-g.pMG);if(split>=.10){let who='';if(nvH!=null){who=Math.abs(nvH-g.pBT)<Math.abs(nvH-g.pMG)?' The market sits closer to Bradley-Terry.':' The market sits closer to Margin ratings.';}
+    notes.push(['amber',`The two models split by <b>${(split*100).toFixed(0)} pts</b> (BT ${pct(g.pBT,0)} vs Margin ${pct(g.pMG,0)} for ${H}), so the ensemble is an average of two different views, not a confident read.${who}`]);}
+  // 6. heavy favourite
+  if(favP>=.8)notes.push(['',`At ${pct(favP,0)}, ${esc(nick(favN))} moneyline pays little even when it wins. If there's value here, it's on the spread.`]);
+  // 7. rest
+  const F=SNAP.fatigue||{mg:-1.2};if(g.hb||g.ab){const t=[g.hb?H:null,g.ab?A:null].filter(Boolean).join(' and ');notes.push(['',`${t} on a back-to-back. The model already charges about ${Math.abs(F.mg).toFixed(1)} pts for it, and books price rest too, so it isn't extra edge.`]);}
+  // 8. injuries
+  for(const [nm,inj] of [[H,g.injH],[A,g.injA]]){if(!inj||!inj.rows)continue;
+    const big=inj.rows.filter(r=>r.pts>=1.5),dd=inj.rows.filter(r=>r.kind==='dd'&&r.pts>0),def=inj.rows.filter(r=>r.src==='default'&&r.pts>0);
+    if(big.length)notes.push(['amber',`${nm} margin is cut ${inj.total.toFixed(1)} pts for injuries (${big.map(r=>`${esc(r.name)} ${esc(r.status)} −${r.pts.toFixed(1)}`).join(', ')}). If any of them plays, the number moves by that much.`]);
+    if(dd.length)notes.push(['',`${nm}: ${dd.map(r=>esc(r.name)).join(', ')} listed day-to-day and partly charged. Confirm status before tip-off.`]);
+    if(def.length)notes.push(['',`${nm}: ${def.map(r=>esc(r.name)).join(', ')} charged a default value (no stats found), so that adjustment is a guess.`]);}
+  // 9. early-season rating swings
+  for(const [nm,rec,mv] of [[H,g.recH,g.mvH],[A,g.recA,g.mvA]]){if(rec&&mv!=null){const n=rec.w+rec.l;if(n<=8&&Math.abs(mv)>=2)notes.push(['amber',`${nm}'s rating moved ${sgn(mv)} pts on ${n} game${n===1?'':'s'} (${rec.w}-${rec.l}). That's a small sample; part of the move is likely noise.`]);}}
+
+  // verdict
+  const ok=bets.filter(b=>b.tier!=='none').sort((a,b)=>b.edge-a.edge);const clean=ok.filter(b=>!b.susp),susp=ok.filter(b=>b.susp);
+  let v;if(clean.length&&clean[0].tier==='play')v={k:'play',t:'PLAY',best:clean[0]};
+  else if(susp.length&&susp[0].tier==='play')v={k:'check',t:'CHECK NEWS',best:susp[0]};
+  else if(clean.length)v={k:'lean',t:'LEAN',best:clean[0]};
+  else v={k:'pass',t:'PASS',best:null};
+  if(!bets.length)v={k:'pass',t:'NO LINES',best:null};
+  return {mk,nvH,mM,dM,dT,bets,notes,v,bigM,bigT};
+}
+
+function grade(g,a){
+  const act=(MKT[g.eid]&&MKT[g.eid].actual)||g.actual;if(!act)return '';const H=nick(g.hn),A=nick(g.an);const out=[];
+  out.push(`Final: ${A} ${act.away} – ${H} ${act.home}.`);
+  out.push(`Model pick ${(g.pE>=.5?'home':'away')===act.winner?'won':'lost'}.`);
+  if(a.v.best){const b=a.v.best;let won=null;const marg=act.home-act.away;
+    if(b.kind==='ml')won=(b.label.startsWith(H)?act.winner==='home':act.winner==='away');
+    else if(b.kind==='ats'){const lineH=a.mk.sH;const res=marg+lineH;if(res===0)won='push';else won=b.label.startsWith(H)?res>0:res<0;}
+    else if(b.kind==='tot'){if(act.total===a.mk.tot)won='push';else won=b.label.startsWith('Over')?act.total>a.mk.tot:act.total<a.mk.tot;}
+    out.push(`Critic's ${a.v.t.toLowerCase()} (${esc(b.label)}) ${won==='push'?'pushed':won?'won':'lost'}.`);}
+  return `<div class="result">${out.join(' ')}</div>`;
+}
+
+function betCell(b){const cls=b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':'');const c=b.edge>=0?'pos':'neg';
+  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
+
+function card(g,a){
+  const H=nick(g.hn),A=nick(g.an),mk=a.mk;const b=a.v.best;
+  const vd=b?`${esc(b.label)} ${fmtAm(b.price)}<br>${sgn(b.edge*100)} pts · EV ${sgn(b.ev*100,0)}¢/$1`:(a.v.t==='NO LINES'?'add lines below':'no side clears the bar');
+  const row=(k,mv,mkv,gap)=>`<tr><td class="k2">${k}</td><td>${mv}</td><td>${mkv}</td><td class="${gap==null?'flat':(Math.abs(gap.v)<gap.small?'flat':'')}">${gap==null?'—':gap.s}</td></tr>`;
+  const ed=EDITS[g.eid]||{};const inp=(k,lbl,val,step)=>`<div><label>${lbl}</label><input type="number" step="${step||1}" value="${ed[k]!=null?ed[k]:''}" placeholder="${val==null?'':val}" onchange="edit('${g.eid}','${k}',this.value)"></div>`;
+  return `<div class="card ${a.v.k==='play'?'play':(a.v.k==='check'?'flagged':'')}">
+    <div class="chead"><div><div class="cmatch">${esc(g.an)} @ ${esc(g.hn)}</div><div class="csub">Lines: ${mk.src?esc(mk.src)+(mk.provider?' · '+esc(mk.provider):''):'none found'}</div></div>
+      <div class="verdict"><div class="k ${a.v.k}">${a.v.t}</div><div class="d">${vd}</div></div></div>
+    <table><tr><th></th><th>Model</th><th>Market</th><th>Gap</th></tr>
+      ${row(`${H} margin`,sgn(g.m),a.mM!=null?sgn(a.mM):'—',a.dM!=null?{v:a.dM,s:sgn(a.dM),small:1.5}:null)}
+      ${row(`${H} win`,pct(g.pE),a.nvH!=null?pct(a.nvH)+(mk.mlH==null?'*':''):'—',a.nvH!=null?{v:(g.pE-a.nvH)*100,s:sgn((g.pE-a.nvH)*100)+' pts',small:2}:null)}
+      ${row('Total',g.tot.toFixed(1),mk.tot!=null?mk.tot:'—',a.dT!=null?{v:a.dT,s:sgn(a.dT),small:2}:null)}
+    </table>
+    ${a.bets.length?`<div class="bets">${a.bets.map(betCell).join('')}</div>`:''}
+    ${a.notes.map(([c,t])=>`<div class="note ${c}">${t}</div>`).join('')}
+    ${grade(g,a)}
+    <details><summary>Edit lines</summary>
+      <div class="g3">${inp('sH',`${H} spread`,mk.sH,.5)}${inp('mlH',`${H} ML`,mk.mlH)}${inp('mlA',`${A} ML`,mk.mlA)}</div>
+      <div class="g3">${inp('tot','Total',mk.tot,.5)}${inp('oP','Over price',mk.oP)}${inp('uP','Under price',mk.uP)}</div>
+      <button class="btn ghost" onclick="clearEdit('${g.eid}')">Reset to book lines</button>
+    </details>
+  </div>`;
+}
+
+function edit(eid,k,val){EDITS[eid]=EDITS[eid]||{};if(val===''||isNaN(Number(val)))delete EDITS[eid][k];else EDITS[eid][k]=Number(val);store(EDIT_KEY,EDITS);render();}
+function clearEdit(eid){delete EDITS[eid];store(EDIT_KEY,EDITS);render();}
+
+let LAST=[];
+function render(){
+  const res=SNAP.games.map(g=>({g,a:analyse(g)}));LAST=res;
+  const T=SNAP.settings.edgeT||.03;
+  const plays=res.filter(r=>r.a.v.k==='play'),leans=res.filter(r=>r.a.v.k==='lean'),checks=res.filter(r=>r.a.v.k==='check');
+  const dMs=res.map(r=>r.a.dM).filter(x=>x!=null),dTs=res.map(r=>r.a.dT).filter(x=>x!=null);
+  const mae=a=>a.length?a.reduce((s,x)=>s+Math.abs(x),0)/a.length:null;const mM=mae(dMs),mT=mae(dTs);
+  const slate=[];
+  if(mM!=null)slate.push([mM<=2.5?'good':(mM<=4?'':'amber'),`On this slate the model sits <b>${mM.toFixed(1)} pts</b> from the market's spread on average${mT!=null?` and ${mT.toFixed(1)} from the total`:''}. Within about 2–3 pts is typical of a sound model; much more and the gaps are more likely model error than edge.`]);
+  if(SNAP.live&&SNAP.live.share<.35)slate.push(['amber',`This season makes up only <b>${(SNAP.live.share*100).toFixed(0)}%</b> of each rating (about ${SNAP.live.perTeam.toFixed(1)} games a team), so the ratings are still mostly last season. Teams that changed a lot over the summer are where the model is weakest.`]);
+  if(!SNAP.trained)slate.push(['red','The model was untrained when this slate ran, so every team rated zero (home court and rest only). Train it on last season before trusting any of these.']);
+  else if(!SNAP.trained.ff)slate.push(['',`Four Factors isn't trained, so the "ensemble" is two models (BT ${((SNAP.trained.w&&SNAP.trained.w.bt||0)*100).toFixed(0)}% / Margin ${((SNAP.trained.w&&SNAP.trained.w.mg||0)*100).toFixed(0)}%), and both are built from the same game results.`]);
+  if(SNAP.trained&&SNAP.trained.acc!=null)slate.push(['',`Backtest: ${(SNAP.trained.acc*100).toFixed(1)}% straight-up accuracy on ${SNAP.trained.scored} games. Picking winners isn't the test that matters; beating the price is, and accuracy alone doesn't show that.`]);
+  const age=(Date.now()-new Date(SNAP.savedAt))/36e5;if(age>12)slate.push(['amber',`This slate was run ${age<48?Math.round(age)+' hours':Math.round(age/24)+' days'} ago. Injuries and ratings may have moved; rerun the model for fresh numbers.`]);
+  const noLines=res.filter(r=>!r.a.bets.length).length;if(noLines)slate.push(['amber',`${noLines} game${noLines>1?'s have':' has'} no sportsbook lines yet (ESPN posts them closer to game day). Type them in under <i>Edit lines</i>.`]);
+
+  const list=(arr,cls)=>arr.map(r=>`<div class="p ${cls}"><b>${esc(r.a.v.best.label)} ${fmtAm(r.a.v.best.price)}</b> · ${esc(nick(r.g.an))} @ ${esc(nick(r.g.hn))} · model ${pct(r.a.v.best.p)} vs ${pct(r.a.v.best.i)} implied (${sgn(r.a.v.best.edge*100)} pts)</div>`).join('');
+  document.getElementById('top').innerHTML=`<div class="panel">
+    <div class="plabel">SLATE VERDICT · ${esc(SNAP.date)}</div>
+    <div class="stats"><div class="st"><div class="l">Games</div><div class="v">${res.length}</div></div><div class="st"><div class="l">Plays</div><div class="v">${plays.length}</div><div class="r">≥${(T*100).toFixed(0)} pts edge</div></div><div class="st"><div class="l">Leans</div><div class="v">${leans.length}</div></div><div class="st"><div class="l">Check news</div><div class="v">${checks.length}</div></div><div class="st"><div class="l">Avg gap vs line</div><div class="v">${mM!=null?mM.toFixed(1):'—'}</div><div class="r">pts of margin</div></div></div>
+    <div class="plays">${plays.length||leans.length?list(plays,'')+list(leans,'lean'):'<div class="note">Nothing on this slate clears the bar. Passing is a fine result: the model mostly agrees with the books.</div>'}</div>
+    ${slate.map(([c,t])=>`<div class="note ${c}">${t}</div>`).join('')}
+    <div class="row"><button class="btn ghost" onclick="refresh()">Refresh lines</button><button class="btn ghost" onclick="copySummary(this)">Copy summary</button></div>
+    <div class="status">Model run ${new Date(SNAP.savedAt).toLocaleString()} · lines fetched ${FETCHED?FETCHED.toLocaleTimeString():'—'}</div>
+  </div>`;
+  document.getElementById('out').innerHTML='<div class="section-title">GAME BY GAME</div>'+res.map(r=>card(r.g,r.a)).join('');
+}
+
+function copySummary(btn){
+  const lines=[`NBA critic · ${SNAP.date}`];
+  for(const {g,a} of LAST){const b=a.v.best;lines.push(`${nick(g.an)} @ ${nick(g.hn)}: ${a.v.t}${b?` ${b.label} ${fmtAm(b.price)} (${sgn(b.edge*100)} pts)`:''}${a.dM!=null?` · model ${sgn(g.m)} vs line ${sgn(a.mM)}`:''}`);}
+  const t=lines.join('\n');
+  const done=()=>{btn.textContent='Copied';setTimeout(()=>btn.textContent='Copy summary',1500);};
+  if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,()=>{prompt('Copy:',t);});else prompt('Copy:',t);
+}
+
+async function refresh(){document.getElementById('out').insertAdjacentHTML('afterbegin','<div class="status">Fetching lines…</div>');await fetchMarket();render();}
+
+(async function init(){
+  SNAP=load(SNAP_KEY);
+  if(!SNAP||!SNAP.games||!SNAP.games.length){
+    document.getElementById('top').innerHTML=`<div class="empty">No slate to critique yet.<br>Open the <a href="nba-ensemble.html">NBA Ensemble Model</a>, press <b>Run Slate</b>, then tap <b>Critique this slate</b>.</div>`;return;}
+  document.getElementById('top').innerHTML='<div class="status">Loading sportsbook lines from ESPN…</div>';
+  await fetchMarket();render();
+})();
+</script>
+</body>
+</html>

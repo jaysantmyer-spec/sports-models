@@ -557,7 +557,7 @@ document.getElementById('run').addEventListener('click',async()=>{
   const played=new Set();((yd&&yd.events)||[]).forEach(e=>{const c=e.competitions&&e.competitions[0];(c&&c.competitors||[]).forEach(x=>played.add(String(x.team.id)));});
   events.forEach((e,i)=>{const c=e.competitions&&e.competitions[0];if(!c)return;const H=c.competitors.find(x=>x.homeAway==='home'),A=c.competitors.find(x=>x.homeAway==='away');if(!H||!A)return;
     let actual=null;if(e.status.type.state==='post'){const hs=Number(H.score),as=Number(A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
-    slate.push({id:i,h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,hb2b:played.has(String(H.team.id)),ab2b:played.has(String(A.team.id)),actual,ovr:{}});});
+    slate.push({id:i,eid:String(e.id),date,ha:H.team.abbreviation,aa:A.team.abbreviation,odds:(c.odds&&c.odds[0])||null,h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,hb2b:played.has(String(H.team.id)),ab2b:played.has(String(A.team.id)),actual,ovr:{}});});
   setBar('bar',1);setS('st',`${slate.length} game${slate.length===1?'':'s'} loaded.${P?'':' Using default ratings \u2014 train first for learned values.'}${LIVE?` Live ratings on (${LIVE.games} games this season).`:(document.getElementById('liveMode').value==='1'?' Live ratings unavailable this run ('+(window.__err||'no data')+').':'')}`);render();btn.disabled=false;
 });
 
@@ -596,6 +596,25 @@ function render(){
   document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
   Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
   slate.forEach(s=>{if(['oa','oh','ol','ou','tl'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
+  if(slate.length){document.getElementById('out').insertAdjacentHTML('beforeend','<a class="btn" style="display:block;text-align:center;text-decoration:none;" href="nba-critic.html" onclick="saveSlate()">CRITIQUE THIS SLATE &rarr;</a>');saveSlate();}
+}
+// Snapshot of the last run for nba-critic.html (same site, so it can read this browser's storage).
+function saveSlate(){
+  if(!slate.length)return;const g=id=>{const e=document.getElementById(id);return e&&e.value.trim()!==''?Number(e.value):null;};
+  const nT=LIVE?Object.keys(LIVE.recs).length:0;const gp=nT?Object.values(LIVE.recs).reduce((s,r)=>s+r.w+r.l,0)/nT:0;const K=Number(document.getElementById('priorK').value);
+  const mg=LIVE&&LIVE.mg?LIVE.mg:(P&&P.mg);const bt=LIVE&&LIVE.bt?LIVE.bt:(P&&P.bt);
+  const snap={v:1,savedAt:new Date().toISOString(),date:document.getElementById('dt').value,
+    settings:{edgeT:Number(document.getElementById('edgeT').value),defLine:Number(document.getElementById('defLine').value)||224.5,ensMode:document.getElementById('ensMode').value,live:!!LIVE,priorK:K,inj:document.getElementById('injMode').value==='1'},
+    trained:P?{season:P.meta&&P.meta.season,scored:P.meta&&P.meta.scored,brier:P.meta&&P.meta.ensBrier,acc:P.meta&&P.meta.ensAcc,w:P.w,ff:!!P.ff,cal:P.cal||null}:null,
+    live:LIVE?{games:LIVE.games,asOf:LIVE.asOf,perTeam:gp,share:gp/(gp+K)}:null,
+    fatigue:{bt:bt?bt.F:-.15,mg:mg?mg.F:-1.2},
+    games:slate.map(s=>{const c=s._c||compute(s);const rec=t=>LIVE&&LIVE.recs[t]?LIVE.recs[t]:null;const mv=t=>LIVE&&LIVE.mg?(LIVE.mg.R[t]||0)-(LIVE.mg.R0[t]||0):null;
+      const inj=x=>({total:x.total,rows:x.rows.map(r=>({name:r.name,status:r.status,kind:r.kind,pts:r.pts,src:r.src}))});
+      return {eid:s.eid,date:s.date,h:s.h,a:s.a,hn:s.hn,an:s.an,ha:s.ha,aa:s.aa,espnOdds:s.odds,actual:s.actual,
+        pBT:c.pBT,pMG:c.pMG,pFF:c.pFF,pE:c.pE,m:c.m,tot:c.tot,ptsH:c.ptsH,ptsA:c.ptsA,line:c.line,lineEntered:s.ovr.line!=null,sigM:c.sigM,sigT:c.sigT,hb:c.hb,ab:c.ab,
+        injH:inj(c.injH),injA:inj(c.injA),recH:rec(s.h),recA:rec(s.a),mvH:mv(s.h),mvA:mv(s.a),
+        entered:{mlA:g(`oa-${s.id}`),mlH:g(`oh-${s.id}`),over:g(`ol-${s.id}`),under:g(`ou-${s.id}`)}};})};
+  try{localStorage.setItem('nbaLastSlate_v1',JSON.stringify(snap));}catch(e){}
 }
 ['defLine','edgeT','ensMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
 
