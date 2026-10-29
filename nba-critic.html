@@ -76,14 +76,14 @@ details{margin-top:9px;}summary{font-size:11px;color:var(--dim);cursor:pointer;}
   <div id="top"></div>
   <div id="out"></div>
 
-  <p class="footnote">How it judges. Market win chance is the moneyline with the vig removed. Spread cover and over/under chances use the model's margin and total with its own fitted residual spreads (σ), so a 2-point gap matters less in a game with a wide σ. A side is a <b>play</b> when the model's chance beats the price's implied chance by at least your edge threshold, a <b>lean</b> at half of that. When the model and market disagree by more than 6 points of margin or 10 of total, the gap usually means the market has news the model doesn't (late scratches, rest, a trade), so the side is marked <b>check news</b> instead of play. Lines can be edited inside each card. This is a research tool, not betting advice.</p>
+  <p class="footnote">How it judges. Market win chance is the moneyline with the vig removed. Spread cover and over/under chances use the model's margin and total with its own fitted residual spreads (σ), so a 2-point gap matters less in a game with a wide σ. A side is a <b>play</b> when the model's chance beats the price's implied chance by at least your edge threshold, a <b>lean</b> at half of that. When the model and market disagree by more than 6 points of margin or 10 of total, the gap usually means the market has news the model doesn't (late scratches, rest, a trade), so the side is marked <b>check news</b> instead of play. A moneyline edge is ignored when the model and market agree on the margin within 1.5 pts, since it then comes only from how the model converts a margin into a win chance. Lines can be edited inside each card. This is a research tool, not betting advice.</p>
 </div>
 
 <script>
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
 const SUMMARY='https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=';
 const SNAP_KEY='nbaLastSlate_v1',EDIT_KEY='nbaCriticEdits_v1';
-const BIG_M=6,BIG_T=10;
+const BIG_M=6,BIG_T=10,AGREE_M=1.5;
 
 function normCDF(x){const t=1/(1+.2316419*Math.abs(x));const d=.3989423*Math.exp(-x*x/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
 function imp(a){return a>0?100/(a+100):(-a)/((-a)+100);}
@@ -159,11 +159,16 @@ function analyse(g){
   add(`${A} ML`,pA,mk.mlA,'ml',bigM);add(`${H} ML`,pH,mk.mlH,'ml',bigM);
   if(mk.sH!=null){const cH=normCDF((g.m+mk.sH)/g.sigM);const sA=-mk.sH;add(`${A} ${sgn(sA,1).replace('+0.0','PK')}`,1-cH,mk.sPA,'ats',bigM);add(`${H} ${sgn(mk.sH,1).replace('+0.0','PK')}`,cH,mk.sPH,'ats',bigM);}
   if(mk.tot!=null){const pO=1-normCDF((mk.tot-g.tot)/g.sigT);add(`Over ${mk.tot}`,pO,mk.oP,'tot',bigT);add(`Under ${mk.tot}`,1-pO,mk.uP,'tot',bigT);}
+  // When model and market agree on the margin, a moneyline "edge" only reflects how the model turns a
+  // margin into a win chance (its residual spread), not a different view of the game. Don't play it.
+  const sameView=dM!=null&&Math.abs(dM)<AGREE_M;const noView=[];
+  if(sameView)for(const b of bets)if(b.kind==='ml'&&b.edge>=T/2){b.tier='none';b.noView=true;noView.push(b);}
 
   // 1. the headline pick
   const favH=pH>=.5,favN=favH?g.hn:g.an,favP=favH?pH:pA,favPrice=favH?mk.mlH:mk.mlA;
   if(favPrice!=null){const i=imp(favPrice),e=favP-i;
-    if(e>=T)notes.push(['good',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, is priced at ${fmtAm(favPrice)} (${pct(i)} implied). That's ${sgn(e*100)} pts of edge, so the headline pick holds up.`]);
+    if(e>=T&&sameView)notes.push(['',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, looks ${sgn(e*100)} pts better than its ${fmtAm(favPrice)} price, but the model and market agree on the margin, so that gap comes from the model's win-chance conversion, not a different read. Not a play.`]);
+    else if(e>=T)notes.push(['good',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, is priced at ${fmtAm(favPrice)} (${pct(i)} implied). That's ${sgn(e*100)} pts of edge, so the headline pick holds up.`]);
     else if(e>=0)notes.push(['',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, costs ${fmtAm(favPrice)} (${pct(i)} implied). Only ${sgn(e*100)} pts, under your ${(T*100).toFixed(0)}-pt threshold: likely to win, but not value.`]);
     else notes.push(['amber',`The model's pick, <b>${esc(favN)}</b> at ${pct(favP)}, is <b>overpriced</b> at ${fmtAm(favPrice)} (${pct(i)} implied). By the model's own numbers the moneyline loses money; the other side or the spread is where to look.`]);}
   else notes.push(['amber',`No moneyline found for this game, so the headline ${pct(favP)} on ${esc(favN)} can't be priced. Add the odds under <i>Edit lines</i>.`]);
@@ -173,6 +178,7 @@ function analyse(g){
     if(ad<1.5)notes.push(['',`Model and market agree on the margin (${H} ${sgn(g.m)} vs ${sgn(mM)}). Agreement is a good sign for the model, but it means no edge on the side.`]);
     else if(!bigM)notes.push(['',`Model is <b>${ad.toFixed(1)} pts</b> more bullish on <b>${side}</b> than the market (${H} ${sgn(g.m)} vs line ${sgn(mk.sH)}).`]);
     else notes.push(['red',`Model is ${ad.toFixed(1)} pts off the market toward ${side}. A gap that size usually means the market knows something the model doesn't (late scratch, rest day, trade). Check news before treating it as an edge.`]);}
+  if(noView.length)notes.push(['amber',`${noView.map(b=>`<b>${esc(b.label)} ${fmtAm(b.price)}</b>`).join(' and ')} shows ${noView.map(b=>sgn(b.edge*100)).join(' / ')} pts, but that's not a real edge: model and market are within ${AGREE_M} pts on the margin. The gap only comes from the model turning a margin into a win chance with a wider spread than the books use. Downgraded to pass; the spread is the cleaner read on this game.`]);
   // 3. totals
   if(mk.tot==null&&!g.lineEntered)notes.push(['red',`Over/under chances in the model used the default ${g.line} line, not a real total, so the O/U bar for this game doesn't mean anything yet.`]);
   else if(dT!=null){if(!g.lineEntered&&Math.abs(g.line-mk.tot)>=.5)notes.push(['amber',`The model graded the total against its default ${g.line}. The real line is <b>${mk.tot}</b>, so its O/U split changes; repriced below (model ${g.tot.toFixed(1)}, ${sgn(dT)} vs market).`]);
@@ -218,7 +224,7 @@ function grade(g,a){
 }
 
 function betCell(b){const cls=b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':'');const c=b.edge>=0?'pos':'neg';
-  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
+  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':''}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
 
 function card(g,a){
   const H=nick(g.hn),A=nick(g.an),mk=a.mk;const b=a.v.best;
