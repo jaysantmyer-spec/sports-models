@@ -598,6 +598,17 @@ function render(){
   slate.forEach(s=>{if(['oa','oh','ol','ou','tl'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
   if(slate.length){document.getElementById('out').insertAdjacentHTML('beforeend','<a class="btn" style="display:block;text-align:center;text-decoration:none;" href="nba-critic.html" onclick="saveSlate()">CRITIQUE THIS SLATE &rarr;</a>');saveSlate();}
 }
+// Who changed teams since last season: last season's valuable players (trained values) against the
+// teams they have actually played for this season. Players with no games yet are listed separately.
+function rosterDiff(tid){
+  if(!P||!P.players||!LIVE||!LIVE.players)return null;tid=String(tid);
+  const nm=t=>(P.names&&P.names[t])||'another team';const lost=[],gained=[],absent=[];
+  for(const id in P.players){const last=P.players[id],now=LIVE.players[id];const v=playerImpact(last)||0;if(v<1.5)continue;const lt=String(last.team);
+    if(now){const nt=String(now.team);if(lt===tid&&nt!==tid)lost.push({name:last.name,v,to:nm(nt)});else if(lt!==tid&&nt===tid)gained.push({name:last.name,v,from:nm(lt)});}
+    else if(lt===tid)absent.push({name:last.name,v});}
+  const top=a=>a.sort((x,y)=>y.v-x.v).slice(0,5).map(x=>({...x,v:Math.round(x.v*10)/10}));
+  return {lost:top(lost),gained:top(gained),absent:top(absent)};
+}
 // Snapshot of the last run for nba-critic.html (same site, so it can read this browser's storage).
 function saveSlate(){
   if(!slate.length)return;const g=id=>{const e=document.getElementById(id);return e&&e.value.trim()!==''?Number(e.value):null;};
@@ -612,7 +623,7 @@ function saveSlate(){
       const inj=x=>({total:x.total,rows:x.rows.map(r=>({name:r.name,status:r.status,kind:r.kind,pts:r.pts,src:r.src}))});
       return {eid:s.eid,date:s.date,h:s.h,a:s.a,hn:s.hn,an:s.an,ha:s.ha,aa:s.aa,espnOdds:s.odds,actual:s.actual,
         pBT:c.pBT,pMG:c.pMG,pFF:c.pFF,pE:c.pE,m:c.m,tot:c.tot,ptsH:c.ptsH,ptsA:c.ptsA,line:c.line,lineEntered:s.ovr.line!=null,sigM:c.sigM,sigT:c.sigT,hb:c.hb,ab:c.ab,
-        injH:inj(c.injH),injA:inj(c.injA),recH:rec(s.h),recA:rec(s.a),mvH:mv(s.h),mvA:mv(s.a),
+        injH:inj(c.injH),injA:inj(c.injA),rosterH:rosterDiff(s.h),rosterA:rosterDiff(s.a),recH:rec(s.h),recA:rec(s.a),mvH:mv(s.h),mvA:mv(s.a),
         entered:{mlA:g(`oa-${s.id}`),mlH:g(`oh-${s.id}`),over:g(`ol-${s.id}`),under:g(`ou-${s.id}`)}};})};
   try{localStorage.setItem('nbaLastSlate_v1',JSON.stringify(snap));}catch(e){}
 }
