@@ -626,6 +626,12 @@ function saveSlate(){
         injH:inj(c.injH),injA:inj(c.injA),rosterH:rosterDiff(s.h),rosterA:rosterDiff(s.a),recH:rec(s.h),recA:rec(s.a),mvH:mv(s.h),mvA:mv(s.a),
         entered:{mlA:g(`oa-${s.id}`),mlH:g(`oh-${s.id}`),over:g(`ol-${s.id}`),under:g(`ou-${s.id}`)}};})};
   try{localStorage.setItem('nbaLastSlate_v1',JSON.stringify(snap));}catch(e){}
+  // Full ratings for every team, for nba-season-sim.html
+  if(mg){const injNow={};for(const tid in mg.R){const x=injuryAdjust(tid,{},'h');injNow[tid]={total:x.total,rows:x.rows.filter(r=>r.pts>0).map(r=>({name:r.name,status:r.status,pts:r.pts}))};}
+    const rt={v:1,savedAt:new Date().toISOString(),date:document.getElementById('dt').value,live:!!(LIVE&&LIVE.mg),R:mg.R,H:mg.H,F:mg.F,sigM:P&&P.sigM?P.sigM:13,
+      names:(P&&P.names)||{},recs:LIVE?LIVE.recs:{},share:LIVE?gp/(gp+K):0,injNow,roster:{}};
+    if(typeof rosterDiff==='function')for(const tid in mg.R){const r=rosterDiff(tid);if(r)rt.roster[tid]=r;}
+    try{localStorage.setItem('nbaRatings_v1',JSON.stringify(rt));}catch(e){}}
 }
 ['defLine','edgeT','ensMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(slate.length)render();}));
 
