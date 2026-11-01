@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Season Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--court:#3D2A1F;--wood:#C8813F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--rose:#E8B4AE;--dim:#7C93A3;--green:#5FAE7A;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--court) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:720px;margin:0 auto;}a{color:var(--amber);}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--wood);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:8px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:7px 8px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.mt{margin-top:8px;}
+.btn{display:block;width:100%;margin-top:10px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-family:'Inter',sans-serif;font-size:12px;padding:8px;}
+.status{font-size:12px;color:var(--dim);margin:8px 0;line-height:1.5;}.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}.prog div{height:100%;background:var(--amber);width:0;transition:width .15s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.note{font-size:11.5px;border-radius:6px;padding:7px 10px;margin-top:6px;line-height:1.55;border-left:3px solid #2A3B48;background:rgba(255,255,255,.03);color:#C9D3DA;}
+.note.good{border-left-color:var(--green);background:rgba(95,174,122,.09);color:#BFE3CB;}
+.note.amber{border-left-color:var(--amber);background:rgba(242,169,59,.07);color:#F3D9AE;}
+.note.red{border-left-color:var(--red);background:rgba(192,67,58,.09);color:var(--rose);}
+.note b{color:var(--chalk);}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+th{text-align:right;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:.4px;color:var(--dim);font-weight:500;padding:4px 4px;border-bottom:1px solid #263644;white-space:nowrap;}
+td{padding:5px 4px;border-bottom:1px solid #1B2836;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+th:first-child,td:first-child{text-align:left;}
+td.dim{color:var(--dim);}tr.cut td{border-bottom:1px solid var(--amber);}
+tr.tap{cursor:pointer;}tr.tap:active td{background:rgba(255,255,255,.04);}
+.pill{display:inline-block;font-size:9.5px;padding:1px 5px;border-radius:4px;background:rgba(242,169,59,.15);color:var(--amber);margin-left:4px;}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+details{margin-top:9px;}summary{font-size:11.5px;color:var(--dim);cursor:pointer;}
+.adj{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;align-items:end;margin-top:6px;}
+.adj .nm{font-size:11.5px;padding-bottom:8px;}
+.adj .nm i{display:block;font-size:10px;color:var(--dim);font-style:normal;white-space:normal;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>NBA SEASON SIMULATOR</h1></div>
+  <p class="sub">Plays out every remaining regular-season game thousands of times with the <a href="nba-ensemble.html">NBA Ensemble</a> ratings, then prices win totals, seeds, divisions and most-wins futures against the book.</p>
+
+  <div id="setup"></div>
+  <div id="out"></div>
+
+  <p class="footnote">How it works. Each simulated season starts from today's standings and plays every remaining game in date order. A game's margin is the home team's rating minus the away team's, plus home court and the back-to-back term, all fitted by the Ensemble; the home team wins with probability Φ(margin / σ), using the model's fitted game-to-game σ. Before each simulated season every team's rating is nudged by a random amount (the rating uncertainty setting), because ratings this early are uncertain and a team's whole season rises or falls together; without this the simulator would be overconfident on win totals and futures. Current injuries (from ESPN's report, as the model charges them) apply only to each team's next few games, set below, and any team can be adjusted by hand for longer absences, trades or rest plans. Ratings do not update inside a simulated season, and the simulator knows nothing about future injuries, trades or late-season resting, so treat far-off futures with extra caution. Seeds use wins with a random tiebreak (real NBA tiebreakers are not modelled). NBA Cup group games count; the Cup final does not. Futures carry a much bigger built-in house edge than single games and tie money up for months. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+const RT_KEY='nbaRatings_v1',ADJ_KEY='nbaSimAdj_v1',SCHED_KEY='nbaSchedCache_v1',SET_KEY='nbaSimSettings_v1';
+const DIV={Atlantic:['BOS','BKN','NY','PHI','TOR'],Central:['CHI','CLE','DET','IND','MIL'],Southeast:['ATL','CHA','MIA','ORL','WSH'],
+  Northwest:['DEN','MIN','OKC','POR','UTAH'],Pacific:['GS','LAC','LAL','PHX','SAC'],Southwest:['DAL','HOU','MEM','NO','SA']};
+const EAST=new Set(['Atlantic','Central','Southeast']);
+const ALIAS={GSW:'GS',NYK:'NY',NOP:'NO',SAS:'SA',UTA:'UTAH',WAS:'WSH',PHO:'PHX',BRK:'BKN',CHO:'CHA'};
+
+function normCDF(x){const t=1/(1+.2316419*Math.abs(x));const d=.3989423*Math.exp(-x*x/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function imp(a){return a>0?100/(a+100):(-a)/((-a)+100);}
+function payout(a){return a>0?a/100:100/(-a);}
+function fmtAm(a){return a==null?'—':(a>0?'+'+a:''+a);}
+function probToAm(p){if(!(p>=.01&&p<=.99))return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+function pct(p,d=0){if(p==null)return '—';if(p>0&&p<.005&&d===0)return '<1%';if(p<1&&p>.995&&d===0)return '>99%';return (p*100).toFixed(d)+'%';}
+function sgn(x,d=1){return (x>=0?'+':'')+x.toFixed(d);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function load(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function getJSON(u){try{const r=await fetch(u);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+async function pool(items,limit,fn){let i=0;async function w(){while(i<items.length){const k=i++;await fn(items[k],k);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},w));}
+function setBar(p){document.getElementById('bar').style.width=Math.round(p*100)+'%';}
+function setS(t,e){const el=document.getElementById('st');el.textContent=t;el.className='status'+(e?' err':'');}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function todayET(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+
+let RT=load(RT_KEY),ADJ=load(ADJ_KEY)||{},SET=load(SET_KEY)||{n:10000,unc:2.5,injG:10},TEAMS=null,GAMES=null,RES=null;
+
+// ---------- data ----------
+async function loadTeams(){
+  const d=await getJSON(`${ESPN}/teams`);const list=((((d||{}).sports||[])[0]||{}).leagues||[{}])[0].teams||[];
+  const out={};for(const x of list){const t=x.team;if(!t)continue;let ab=String(t.abbreviation||'').toUpperCase();ab=ALIAS[ab]||ab;
+    const div=Object.keys(DIV).find(k=>DIV[k].includes(ab));out[String(t.id)]={id:String(t.id),ab,name:t.displayName,short:t.shortDisplayName||t.name,div,east:div?EAST.has(div):null};}
+  return out;}
+function seasonYear(date){const y=Number(date.slice(0,4)),m=Number(date.slice(5,7));return m>=9?y+1:y;}
+async function loadSchedule(onProg){
+  const today=todayET();const yr=seasonYear(today);const c=load(SCHED_KEY);
+  if(c&&c.day===today&&c.yr===yr&&c.games&&c.games.length>1000)return c.games;
+  const ids=Object.keys(TEAMS);const ev={};let done=0;
+  await pool(ids,6,async id=>{const d=await getJSON(`${ESPN}/teams/${id}/schedule?season=${yr}&seasontype=2`);
+    for(const e of ((d&&d.events)||[])){const comp=(e.competitions||[])[0];if(!comp)continue;const H=comp.competitors.find(x=>x.homeAway==='home'),A=comp.competitors.find(x=>x.homeAway==='away');if(!H||!A)continue;
+      const st=(comp.status||e.status||{}).type||{};const sc=x=>{const v=x.score;if(v==null)return null;const n=Number(typeof v==='object'?(v.value??v.displayValue):v);return isFinite(n)?n:null;};
+      const fin=!!st.completed||st.state==='post';const nm=String(e.name||e.shortName||'');
+      if(/final/i.test(String((e.seasonType&&e.seasonType.name)||''))&&/cup/i.test(nm))continue;
+      ev[String(e.id)]={id:String(e.id),date:String(e.date).slice(0,10),h:String(H.team.id),a:String(A.team.id),fin,hs:fin?sc(H):null,as:fin?sc(A):null};}
+    done++;onProg(done/ids.length);});
+  const games=Object.values(ev).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:0);
+  if(games.length>1000)store(SCHED_KEY,{day:today,yr,games});
+  return games;}
+
+// ---------- simulation ----------
+function prep(){
+  const ids=Object.keys(TEAMS).filter(id=>TEAMS[id].div);
+  const rec={};ids.forEach(id=>rec[id]={w:0,l:0});const last={};const rem=[];
+  for(const g of GAMES){if(!rec[g.h]||!rec[g.a])continue;
+    const fb=(last[g.h]===addDays(g.date,-1)?1:0)-(last[g.a]===addDays(g.date,-1)?1:0);last[g.h]=g.date;last[g.a]=g.date;
+    if(g.fin&&g.hs!=null&&g.as!=null){if(g.hs>g.as){rec[g.h].w++;rec[g.a].l++;}else{rec[g.a].w++;rec[g.h].l++;}}
+    else if(!g.fin)rem.push({h:g.h,a:g.a,fb,date:g.date});}
+  // rating per team per remaining game: base rating, minus current injuries for the next injG games, plus manual adjustments
+  const seen={};const H=RT.H??2.5,F=RT.F??-1.2;
+  const base=rem.map(g=>{const adj=t=>{const k=(seen[t]=(seen[t]||0)+1);let a=0;const inj=RT.injNow&&RT.injNow[t];if(inj&&k<=SET.injG)a-=inj.total;
+      const m=ADJ[t];if(m&&m.pts!=null&&(m.games==null||k<=m.games))a+=m.pts;return a;};
+    const rh=(RT.R[g.h]||0)+adj(g.h),ra=(RT.R[g.a]||0)+adj(g.a);return rh-ra+H+F*g.fb;});
+  return {ids,rec,rem,base};}
+function simulate(onProg,done){
+  const P=prep();const {ids,rec,rem,base}=P;const N=SET.n,u=SET.unc,sig=RT.sigM||13;
+  const idx={};ids.forEach((id,i)=>idx[id]=i);const T=ids.length;
+  const gh=rem.map(g=>idx[g.h]),ga=rem.map(g=>idx[g.a]);
+  const wins=ids.map(()=>new Uint8Array(N));const seed=ids.map(()=>new Uint16Array(16));const div=new Float64Array(T),most=new Float64Array(T),top1=new Float64Array(T);
+  const divOf=ids.map(id=>TEAMS[id].div),eastOf=ids.map(id=>TEAMS[id].east);const w0=ids.map(id=>rec[id].w);
+  let s=0;const chunk=500;
+  function step(){const end=Math.min(N,s+chunk);const w=new Float64Array(T),off=new Float64Array(T);
+    for(;s<end;s++){for(let i=0;i<T;i++){w[i]=w0[i];off[i]=u*gauss();}
+      for(let k=0;k<rem.length;k++){const h=gh[k],a=ga[k];if(Math.random()<normCDF((base[k]+off[h]-off[a])/sig))w[h]++;else w[a]++;}
+      const key=new Float64Array(T);for(let i=0;i<T;i++){wins[i][s]=w[i];key[i]=w[i]+Math.random()*.5;}
+      for(const east of [true,false]){const conf=[];for(let i=0;i<T;i++)if(eastOf[i]===east)conf.push(i);conf.sort((x,y)=>key[y]-key[x]);conf.forEach((i,r)=>{if(r<15)seed[i][r]++;});}
+      const bestDiv={};for(let i=0;i<T;i++){const d=divOf[i];if(bestDiv[d]==null||key[i]>key[bestDiv[d]])bestDiv[d]=i;}for(const d in bestDiv)div[bestDiv[d]]++;
+      let b=0;for(let i=1;i<T;i++)if(key[i]>key[b])b=i;most[b]++;}
+    onProg(s/N);
+    if(s<N)setTimeout(step,0);else{
+      const out={};ids.forEach((id,i)=>{const arr=Array.from(wins[i]).sort((x,y)=>x-y);const mean=arr.reduce((t,x)=>t+x,0)/N;
+        out[id]={id,w0:rec[id].w,l0:rec[id].l,left:82-rec[id].w-rec[id].l,mean,p10:arr[Math.floor(.1*N)],p90:arr[Math.floor(.9*N)],wins:wins[i],
+          seed:Array.from(seed[i]).map(x=>x/N),div:div[i]/N,most:most[i]/N};});
+      done({teams:out,N,games:rem.length,at:new Date()});}}
+  step();}
+function pAtLeast(t,x){const w=RES.teams[t].wins;let c=0;for(let i=0;i<w.length;i++)if(w[i]>=x)c++;return c/w.length;}
+function sumSeed(t,a,b){return RES.teams[t].seed.slice(a,b).reduce((x,y)=>x+y,0);}
+
+// ---------- UI ----------
+function setupPanel(){
+  const age=RT?(Date.now()-new Date(RT.savedAt))/36e5:null;
+  const injTeams=RT&&RT.injNow?Object.keys(RT.injNow).filter(t=>RT.injNow[t].total>=1).length:0;
+  document.getElementById('setup').innerHTML=`<div class="panel"><div class="plabel">SETTINGS</div>
+    <div class="g3"><div><label>Simulations</label><select id="sn">${[5000,10000,20000].map(n=>`<option value="${n}"${SET.n===n?' selected':''}>${n.toLocaleString()}</option>`).join('')}</select></div>
+      <div><label>Rating uncertainty</label><select id="su">${[[1.5,'1.5 pts (late season)'],[2.5,'2.5 pts (early)'],[3.5,'3.5 pts (very early)']].map(([v,t])=>`<option value="${v}"${SET.unc===v?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div><label>Current injuries last</label><select id="sg">${[0,5,10,20,40].map(n=>`<option value="${n}"${SET.injG===n?' selected':''}>${n?n+' games':'ignore'}</option>`).join('')}</select></div></div>
+    <button class="btn" id="go">SIMULATE THE SEASON</button><div class="prog"><div id="bar"></div></div><div class="status" id="st"></div>
+    <div class="note${age>36?' amber':''}">Ratings from the Ensemble run on ${new Date(RT.savedAt).toLocaleString()}${RT.live?' (live ratings on)':' (<b>last season only</b>: turn live ratings on in the Ensemble for this season\'s results)'}. This season is ${(RT.share*100).toFixed(0)}% of each rating. ${injTeams} teams have current injuries charged.${age>36?' Rerun the Ensemble slate for fresh ratings.':''}</div>
+    ${adjPanel()}</div>`;
+  document.getElementById('go').onclick=run;
+  ['sn','su','sg'].forEach(id=>document.getElementById(id).onchange=()=>{SET={n:Number(document.getElementById('sn').value),unc:Number(document.getElementById('su').value),injG:Number(document.getElementById('sg').value)};store(SET_KEY,SET);});}
+function adjPanel(){if(!TEAMS)return '';
+  const ids=Object.keys(TEAMS).filter(id=>TEAMS[id].div).sort((x,y)=>TEAMS[x].name<TEAMS[y].name?-1:1);
+  const nAdj=Object.keys(ADJ).filter(k=>ADJ[k]&&ADJ[k].pts!=null).length;
+  return `<details><summary>Team adjustments${nAdj?` · ${nAdj} set`:''} (long injuries, trades, rest plans)</summary>
+    <div class="note">Points of margin per game, applied to the team's next N games (blank = rest of season). Example: a star out about two months is roughly −4 for 25 games. Current injuries the model already charges are listed under each team.</div>
+    ${ids.map(id=>{const a=ADJ[id]||{};const inj=RT.injNow&&RT.injNow[id];const ro=RT.roster&&RT.roster[id];
+      const hint=[inj&&inj.total>=.5?`injuries now −${inj.total.toFixed(1)}: ${inj.rows.map(r=>esc(r.name)).join(', ')}`:'',ro&&(ro.lost.length||ro.absent.length)?`lost: ${[...ro.lost,...ro.absent].map(r=>esc(r.name)).join(', ')}`:'',ro&&ro.gained.length?`added: ${ro.gained.map(r=>esc(r.name)).join(', ')}`:''].filter(Boolean).join(' · ');
+      return `<div class="adj"><div class="nm">${esc(TEAMS[id].short)}${hint?`<i>${hint}</i>`:''}</div>
+        <div><label>Pts</label><input type="number" step="0.5" value="${a.pts??''}" onchange="setAdj('${id}','pts',this.value)"></div>
+        <div><label>Games</label><input type="number" step="1" value="${a.games??''}" placeholder="all" onchange="setAdj('${id}','games',this.value)"></div></div>`;}).join('')}
+    <button class="btn ghost" onclick="ADJ={};store(ADJ_KEY,ADJ);setupPanel();">Clear all adjustments</button></details>`;}
+function setAdj(id,k,v){ADJ[id]=ADJ[id]||{};if(v===''||isNaN(Number(v)))delete ADJ[id][k];else ADJ[id][k]=Number(v);store(ADJ_KEY,ADJ);}
+
+async function run(){
+  const b=document.getElementById('go');b.disabled=true;setBar(0);
+  if(!GAMES){setS('Loading the full schedule from ESPN…');GAMES=await loadSchedule(p=>setBar(p*.4));
+    if(!GAMES||GAMES.length<1000){setS('Could not load the schedule from ESPN. Try again in a minute.',true);b.disabled=false;return;}}
+  setS(`Simulating ${SET.n.toLocaleString()} seasons…`);
+  simulate(p=>setBar(.4+.6*p),res=>{RES=res;setBar(1);setS(`${res.N.toLocaleString()} seasons simulated · ${res.games} games left on the schedule · ${res.at.toLocaleTimeString()}`);b.disabled=false;render();});}
+
+function confTable(east){
+  const rows=Object.values(RES.teams).filter(t=>TEAMS[t.id].east===east).sort((x,y)=>y.mean-x.mean);
+  return `<div class="tw"><table><tr><th>${east?'EAST':'WEST'}</th><th>Now</th><th>Proj W</th><th>10–90%</th><th>Top 6</th><th>Top 10</th><th>#1 seed</th><th>Div</th></tr>
+    ${rows.map((t,i)=>`<tr class="tap${i===5||i===9?' cut':''}" onclick="pick('${t.id}')"><td>${esc(TEAMS[t.id].short)}${ADJ[t.id]&&ADJ[t.id].pts!=null?'<span class="pill">adj</span>':''}</td><td class="dim">${t.w0}-${t.l0}</td><td><b>${t.mean.toFixed(1)}</b></td><td class="dim">${t.p10}–${t.p90}</td><td>${pct(sumSeed(t.id,0,6))}</td><td>${pct(sumSeed(t.id,0,10))}</td><td>${pct(t.seed[0])}</td><td>${pct(t.div)}</td></tr>`).join('')}</table></div>`;}
+function mostTable(){const rows=Object.values(RES.teams).sort((x,y)=>y.most-x.most).slice(0,10);
+  return `<table><tr><th>MOST WINS</th><th>Sim</th><th>Fair odds</th></tr>${rows.map(t=>`<tr><td>${esc(TEAMS[t.id].short)}</td><td>${pct(t.most,1)}</td><td>${fmtAm(probToAm(t.most))}</td></tr>`).join('')}</table>`;}
+let PICK=null;
+function pick(id){PICK=id;document.getElementById('pt').value=id;teamDetail();document.getElementById('detail').scrollIntoView({behavior:'smooth',block:'start'});}
+function teamDetail(){const id=document.getElementById('pt').value;const t=RES.teams[id];if(!t)return;
+  const lo=Math.max(5,Math.floor(t.p10/5)*5-5),hi=Math.min(75,Math.ceil(t.p90/5)*5+5);const th=[];for(let x=lo;x<=hi;x+=5)th.push(x);
+  const inj=RT.injNow&&RT.injNow[id];
+  document.getElementById('detail').innerHTML=`<div class="note"><b>${esc(TEAMS[id].name)}</b>: ${t.w0}-${t.l0} now, ${t.left} games left, projected <b>${t.mean.toFixed(1)}</b> wins (80% of seasons between ${t.p10} and ${t.p90}). Rating ${sgn(RT.R[id]||0)}${inj&&inj.total>=.5?`, minus ${inj.total.toFixed(1)} for current injuries over the next ${SET.injG} games`:''}${ADJ[id]&&ADJ[id].pts!=null?`, your adjustment ${sgn(ADJ[id].pts)}${ADJ[id].games?` for ${ADJ[id].games} games`:''}`:''}.</div>
+    <table class="mt"><tr><th>TO WIN X+</th><th>Sim</th><th>Fair odds</th></tr>${th.map(x=>{const p=pAtLeast(id,x);return `<tr><td>${x}+ wins</td><td>${pct(p,p>.98||p<.02?1:0)}</td><td>${fmtAm(probToAm(p))}</td></tr>`;}).join('')}</table>
+    <table class="mt"><tr><th>SEED</th><th>1</th><th>2–3</th><th>4–6</th><th>7–8</th><th>9–10</th><th>11+</th></tr><tr><td class="dim">chance</td><td>${pct(t.seed[0])}</td><td>${pct(sumSeed(id,1,3))}</td><td>${pct(sumSeed(id,3,6))}</td><td>${pct(sumSeed(id,6,8))}</td><td>${pct(sumSeed(id,8,10))}</td><td>${pct(sumSeed(id,10,15))}</td></tr></table>`;
+  priceIt();}
+function priceIt(){const id=document.getElementById('pt').value,m=document.getElementById('pm').value,x=Number(document.getElementById('px').value),pr=Number(document.getElementById('pp').value);
+  const el=document.getElementById('pr');if(!RES||!RES.teams[id]){el.innerHTML='';return;}const t=RES.teams[id];
+  document.getElementById('pxw').style.display=m==='atleast'||m==='under'?'':'none';
+  let p=null,lbl='';const nm=TEAMS[id].short;
+  if(m==='atleast'){if(!x){el.innerHTML='<div class="note">Enter the win number.</div>';return;}p=pAtLeast(id,x);lbl=`${nm} to win ${x}+ games`;}
+  else if(m==='under'){if(!x){el.innerHTML='<div class="note">Enter the win number.</div>';return;}p=1-pAtLeast(id,Math.ceil(x));lbl=`${nm} under ${x} wins`;}
+  else if(m==='most'){p=t.most;lbl=`${nm} most regular-season wins`;}
+  else if(m==='seed1'){p=t.seed[0];lbl=`${nm} #1 seed in the ${TEAMS[id].east?'East':'West'}`;}
+  else if(m==='top6'){p=sumSeed(id,0,6);lbl=`${nm} top-6 seed (no play-in)`;}
+  else if(m==='top10'){p=sumSeed(id,0,10);lbl=`${nm} makes the play-in or better`;}
+  else if(m==='div'){p=t.div;lbl=`${nm} wins the ${TEAMS[id].div}`;}
+  if(!pr){el.innerHTML=`<div class="note"><b>${esc(lbl)}</b>: simulator ${pct(p,1)}, fair odds ${fmtAm(probToAm(p))}. Enter the book's price to see the edge.</div>`;return;}
+  const i=imp(pr),edge=p-i,ev=100*(p*payout(pr)-(1-p));const cls=edge>=.05?'good':(edge>=0?'':'red');
+  el.innerHTML=`<div class="note ${cls}"><b>${esc(lbl)} ${fmtAm(pr)}</b>: simulator ${pct(p,1)} vs ${pct(i,1)} implied, <b>${sgn(edge*100)} pts</b>, ${ev>=0?'+':'−'}$${Math.abs(ev).toFixed(2)} per $100 on average. Fair price ${fmtAm(probToAm(p))}.
+    ${edge>=.05?' Worth a small bet if nothing in the news explains the gap.':(edge>=0?' Too thin for a futures bet: the book\'s cut is bigger here and your money is tied up for months. Look for 5+ pts.':' The price is worse than the simulator\'s fair odds.')}</div>`;}
+
+function render(){
+  const ids=Object.keys(RES.teams).sort((x,y)=>TEAMS[x].name<TEAMS[y].name?-1:1);
+  document.getElementById('out').innerHTML=`
+    <div class="section-title">PRICE A FUTURE</div>
+    <div class="panel"><div class="g2"><div><label>Team</label><select id="pt" onchange="teamDetail()">${ids.map(id=>`<option value="${id}"${id===PICK?' selected':''}>${esc(TEAMS[id].name)}</option>`).join('')}</select></div>
+      <div><label>Market</label><select id="pm" onchange="priceIt()"><option value="atleast">To win X+ games</option><option value="under">Under X wins</option><option value="most">Most regular-season wins</option><option value="seed1">#1 seed in conference</option><option value="top6">Top-6 seed</option><option value="top10">Top-10 (play-in or better)</option><option value="div">Division winner</option></select></div></div>
+      <div class="g2 mt"><div id="pxw"><label>Wins (X)</label><input type="number" step="0.5" id="px" oninput="priceIt()"></div><div><label>Book price</label><input type="number" id="pp" placeholder="e.g. -120 or +425" oninput="priceIt()"></div></div>
+      <div id="pr"></div><div id="detail"></div></div>
+    <div class="section-title">STANDINGS PROJECTION</div>
+    <div class="panel">${confTable(true)}<div class="note">Tap a team for its win-total ladder and seed chances. Gold lines mark the top-6 and play-in cutoffs.</div></div>
+    <div class="panel">${confTable(false)}</div>
+    <div class="panel">${mostTable()}</div>`;
+  teamDetail();}
+
+(async function init(){
+  if(!RT||!RT.R){document.getElementById('setup').innerHTML=`<div class="empty">No ratings yet.<br>Open the <a href="nba-ensemble.html">NBA Ensemble Model</a> with live ratings on and press <b>Run Slate</b>. It saves every team's rating for the simulator.</div>`;return;}
+  document.getElementById('setup').innerHTML='<div class="status">Loading teams…</div>';
+  TEAMS=await loadTeams();
+  if(!TEAMS||Object.keys(TEAMS).length<30){document.getElementById('setup').innerHTML='<div class="empty">Could not load teams from ESPN. Refresh to try again.</div>';return;}
+  setupPanel();
+})();
+</script>
+</body>
+</html>
