@@ -127,7 +127,9 @@ function parseOdds(o,ha,aa){
   return (r.sH==null&&r.mlH==null&&r.tot==null)?null:r;
 }
 
-let FF=load('nbaFFSlate_v1')||{},TOT_BIAS=0,TOT_BIAS_N=0,FF_BIAS=0;
+let FF=load('nbaFFSlate_v1')||{},PM=load('nbaPMSlate_v1')||{},TOT_BIAS=0,TOT_BIAS_N=0,FF_BIAS=0;
+// Second opinion: the Player Model when it has been run for the date, otherwise the Four Factors simulator.
+function second(date){const pm=(PM[date]||{}).games;if(pm&&Object.keys(pm).length)return {games:pm,name:'Player model',short:'Player model',src:'pm'};const ff=(FF[date]||{}).games;return {games:ff||{},name:'Four Factors simulator',short:'FF sim',src:'ff'};}
 let SNAP=null,MKT={},EDITS=load(EDIT_KEY)||{},FETCHED=null,OPEN=load(OPEN_KEY)||{},LOG=load(LOG_KEY)||{},NEWS=load(NEWS_KEY)||{};
 
 async function fetchMarket(){
@@ -242,7 +244,7 @@ function analyse(g){
     if(mv.length){const away=mv.some(x=>x.includes('away from'));notes.push([away?'amber':'',`<b>Line moved</b> since ${new Date(o.at).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})}: ${mv.join('; ')}.${away?' When the market moves away from the model, it often has news or sharper money the model doesn\'t.':''}`]);}}
 
   // 13. Four Factors simulator (this season's box-score stats only) as a second opinion
-  const ffg=(FF[g.date||SNAP.date]||{}).games;const ff=ffg&&ffg[g.eid]&&!ffg[g.eid].manual?ffg[g.eid]:null;let ffAgree=null;
+  const SEC=second(g.date||SNAP.date);const ffg=SEC.games;const ff=ffg&&ffg[g.eid]&&!ffg[g.eid].manual?ffg[g.eid]:null;let ffAgree=null;
   if(ff){const ag=[],dis=[];
     for(const b of bets){if(b.tier==='none')continue;let yes=null;
       if((b.kind==='ats'||b.kind==='ml')&&mM!=null){const ffEdge=ff.margin-mM;yes=b.side==='home'?ffEdge>0:ffEdge<0;}
@@ -250,8 +252,8 @@ function analyse(g){
       else if(b.kind==='tot'){const ft=ff.total-FF_BIAS;yes=b.side==='over'?ft>mk.tot+1:ft<mk.tot-1;if(Math.abs(ft-mk.tot)<=1)yes=null;}
       if(yes===true){b.ff='agree';ag.push(b.label);}else if(yes===false){b.ff='disagree';b.tier=b.tier==='play'?'lean':'none';dis.push(b.label);}}
     const ffSide=`${ff.margin>=0?H+' by '+ff.margin.toFixed(1):A+' by '+(-ff.margin).toFixed(1)}, total ${(ff.total-FF_BIAS).toFixed(1)}${FF_BIAS?` after removing its slate-wide ${sgn(FF_BIAS)} lean`:''}`;
-    if(dis.length)notes.push(['amber',`<b>Four Factors simulator disagrees</b> on ${dis.map(esc).join(', ')} (it has ${ffSide}). It uses only this season's stats, so it sees roster changes the Ensemble is slow on. Downgraded a level.`]);
-    else if(ag.length)notes.push(['good',`<b>Four Factors simulator agrees</b> on ${ag.map(esc).join(', ')} (it has ${ffSide}). Two models built from different data pointing the same way.`]);
+    if(dis.length)notes.push(['amber',`<b>${SEC.name} disagrees</b> on ${dis.map(esc).join(', ')} (it has ${ffSide}). It ${SEC.src==='pm'?'builds each team from the players who will actually play':'uses only this season\'s stats'}, so it sees roster changes the Ensemble is slow on. Downgraded a level.`]);
+    else if(ag.length)notes.push(['good',`<b>${SEC.name} agrees</b> on ${ag.map(esc).join(', ')} (it has ${ffSide}). Two models built from different data pointing the same way.`]);
     ffAgree=dis.length?'disagree':(ag.length?'agree':null);}
   // 14. overs on short-handed teams: scorers missing that the model's totals don't fully remove
   const outV=(inj,ro)=>(inj&&inj.total||0)+(ro&&!SNAP.settings.rosterAdj?[...ro.lost,...ro.absent.filter(r=>!injNames(inj).has(r.name))].reduce((t,r)=>t+r.v,0):0);
@@ -285,7 +287,7 @@ function grade(g,a){
 }
 
 function betCell(b){const cls=(b.ff==='agree'&&b.tier!=='none'&&!b.susp?'gold ':'')+(b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':''));const c=b.edge>=0?'pos':'neg';
-  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':(b.ff==='disagree'?'<br><i>FF sim disagrees</i>':(b.depleted?'<br><i>short-handed</i>':(b.noise?'<br><i>small sample</i>':(b.roster?'<br><i>roster change</i>':(b.ff==='agree'?'<br><i>both models agree</i>':'')))))}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
+  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':(b.ff==='disagree'?`<br><i>${second(SNAP.date).short} disagrees</i>`:(b.depleted?'<br><i>short-handed</i>':(b.noise?'<br><i>small sample</i>':(b.roster?'<br><i>roster change</i>':(b.ff==='agree'?'<br><i>both models agree</i>':'')))))}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
 
 function card(g,a){
   const H=nick(g.hn),A=nick(g.an),mk=a.mk;const b=a.v.best;
@@ -440,7 +442,7 @@ function slateTotalBias(){
   // a slate-wide lean the same way is the model's scoring level drifting, not many separate edges.
   // The median (not the mean) so one or two real outliers don't drag every other game across the line.
   TOT_BIAS=d.length>=5&&Math.abs(med)>=2?med:0;
-  const ffd=(FF[SNAP.date]||{}).games||{};const f=SNAP.games.map(g=>{const m=market(g),x=ffd[g.eid];return m.tot!=null&&x&&!x.manual?x.total-m.tot:null;}).filter(x=>x!=null).sort((x,y)=>x-y);
+  const ffd=second(SNAP.date).games;const f=SNAP.games.map(g=>{const m=market(g),x=ffd[g.eid];return m.tot!=null&&x&&!x.manual?x.total-m.tot:null;}).filter(x=>x!=null).sort((x,y)=>x-y);
   FF_BIAS=f.length>=3?(f.length%2?f[(f.length-1)/2]:(f[f.length/2-1]+f[f.length/2])/2):0;
 }
 function render(){
@@ -452,8 +454,8 @@ function render(){
   const mae=a=>a.length?a.reduce((s,x)=>s+Math.abs(x),0)/a.length:null;const mM=mae(dMs),mT=mae(dTs);
   const slate=[];
   if(TOT_BIAS)slate.push(['amber',`<b>Totals corrected by ${sgn(-TOT_BIAS)} pts.</b> Across ${TOT_BIAS_N} games the model's totals sit a typical ${Math.abs(TOT_BIAS).toFixed(1)} pts ${TOT_BIAS>0?'above':'below'} the market (median). A whole slate leaning one way is the model's scoring level being off, not ${TOT_BIAS_N} separate edges, so every total is shifted by that amount before pricing.`]);
-  {const ffd=(FF[SNAP.date]||{}).games;const n=ffd?SNAP.games.filter(g=>ffd[g.eid]).length:0;
-   slate.push(n?['good',`Four Factors simulator loaded for ${n} of ${SNAP.games.length} games as a second opinion. Plays it disagrees with are downgraded a level.`]:['',`No Four Factors run for ${esc(SNAP.date)} yet. Run the <a href="nba-four-factors.html">Four Factors Simulator</a> for this date, then come back: the critic uses it as a second opinion and downgrades plays it disagrees with.`]);}
+  {const SEC=second(SNAP.date);const ffd=SEC.games;const n=ffd?SNAP.games.filter(g=>ffd[g.eid]).length:0;
+   slate.push(n?['good',`${SEC.name} loaded for ${n} of ${SNAP.games.length} games as a second opinion. Gold = both models agree; plays it disagrees with drop a level.`]:['',`No second opinion for ${esc(SNAP.date)} yet. Run the <a href="nba-player-model.html">Player Model</a> (best) or the <a href="nba-four-factors.html">Four Factors Simulator</a> for this date, then come back: plays both models agree on glow gold.`]);}
   if(mM!=null)slate.push([mM<=2.5?'good':(mM<=4?'':'amber'),`On this slate the model sits <b>${mM.toFixed(1)} pts</b> from the market's spread on average${mT!=null?` and ${mT.toFixed(1)} from the total`:''}. Within about 2–3 pts is typical of a sound model; much more and the gaps are more likely model error than edge.`]);
   if(SNAP.live&&SNAP.live.share<.35)slate.push(['amber',`This season makes up only <b>${(SNAP.live.share*100).toFixed(0)}%</b> of each rating (about ${SNAP.live.perTeam.toFixed(1)} games a team), so the ratings are still mostly last season. Teams that changed a lot over the summer are where the model is weakest.`]);
   if(!SNAP.trained)slate.push(['red','The model was untrained when this slate ran, so every team rated zero (home court and rest only). Train it on last season before trusting any of these.']);

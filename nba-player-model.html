@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Player Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--court:#3D2A1F;--wood:#C8813F;--chalk:#EDEAE0;--amber:#F2A93B;--navy:#16232E;--nl:#1E2F3D;--ink:#0B0F10;--red:#C0433A;--rose:#E8B4AE;--dim:#7C93A3;--green:#5FAE7A;--teal:#5FB8AE;}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:radial-gradient(ellipse at top,var(--court) 0%,var(--ink) 60%);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;padding:24px 14px 60px;}
+.wrap{max-width:760px;margin:0 auto;}a{color:var(--amber);}
+.title-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;}
+.ball{width:14px;height:14px;background:var(--wood);border-radius:50%;display:inline-block;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+h1{font-family:'Teko',sans-serif;font-weight:700;font-size:27px;letter-spacing:.5px;margin:0;line-height:1;}
+.sub{font-size:12.5px;color:var(--dim);margin:4px 0 12px;line-height:1.55;}
+.chain{background:var(--navy);border:1px solid #263644;border-radius:9px;padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--dim);line-height:1.75;}.chain b{color:var(--amber);}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button{flex:1;background:var(--navy);border:1px solid #263644;color:var(--dim);font-size:11px;font-weight:600;padding:9px 4px;border-radius:6px;cursor:pointer;}
+.tabs button.active{background:rgba(242,169,59,.15);border-color:var(--amber);color:var(--amber);}
+.pane{display:none;}.pane.active{display:block;}
+.panel{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:14px 15px;margin-bottom:12px;}
+.plabel{font-family:'Teko',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--amber);margin-bottom:9px;}
+label{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+input,select{width:100%;background:var(--ink);border:1px solid #2A3B48;color:var(--chalk);padding:7px 8px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif;outline:none;}
+input:focus,select:focus{border-color:var(--amber);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}.mt{margin-top:8px;}
+.btn{display:block;width:100%;margin-top:11px;background:var(--amber);border:none;color:#1A1400;font-family:'Teko',sans-serif;font-size:17px;letter-spacing:.5px;font-weight:600;border-radius:6px;padding:10px;cursor:pointer;text-align:center;text-decoration:none;}
+.btn:disabled{background:#3A3A2E;color:#6B6B5E;}
+.btn.ghost{background:transparent;border:1px solid #2A3B48;color:var(--dim);font-family:'Inter',sans-serif;font-size:12px;padding:8px;}
+.status{font-size:12px;color:var(--dim);margin:9px 0;line-height:1.5;}.status.err{color:var(--red);}
+.prog{background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin:7px 0;}.prog div{height:100%;background:var(--amber);width:0;transition:width .2s;}
+.section-title{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #263644;}
+.note{font-size:11.5px;border-radius:6px;padding:7px 10px;margin-top:6px;line-height:1.55;border-left:3px solid #2A3B48;background:rgba(255,255,255,.03);color:#C9D3DA;}
+.note.good{border-left-color:var(--green);background:rgba(95,174,122,.09);color:#BFE3CB;}
+.note.amber{border-left-color:var(--amber);background:rgba(242,169,59,.07);color:#F3D9AE;}
+.note.red{border-left-color:var(--red);background:rgba(192,67,58,.09);color:var(--rose);}
+.note b{color:var(--chalk);}
+.card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+.card.play{border-color:rgba(95,174,122,.55);}
+.chead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}.csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+.verdict{text-align:right;flex-shrink:0;max-width:50%;}
+.verdict .k{font-family:'Teko',sans-serif;font-size:21px;line-height:1;}.verdict .d{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.35;}
+.k.play{color:var(--green);}.k.lean{color:var(--amber);}.k.pass{color:var(--dim);}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:8px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:right;font-family:'Teko',sans-serif;font-size:12.5px;letter-spacing:.3px;color:var(--dim);font-weight:500;padding:4px 3px;border-bottom:1px solid #263644;white-space:nowrap;}
+td{padding:4px 3px;border-bottom:1px solid #1B2836;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+th:first-child,td:first-child{text-align:left;}
+td.dim{color:var(--dim);}.pos{color:var(--green);}.neg{color:var(--rose);}
+td input{width:46px;padding:2px 4px;font-size:11px;text-align:right;}
+.bets{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px;}
+.bet{background:var(--nl);border:1px solid #2A3B48;border-radius:6px;padding:6px;text-align:center;}
+.bet.ok{border-color:rgba(95,174,122,.6);}.bet.lean{border-color:rgba(242,169,59,.45);}
+.bet .t{font-size:9.5px;color:var(--dim);line-height:1.3;min-height:25px;}.bet .e{font-family:'Teko',sans-serif;font-size:19px;line-height:1.1;}.bet .s{font-size:9px;color:var(--dim);}
+details{margin-top:9px;}summary{font-size:11.5px;color:var(--dim);cursor:pointer;}
+.empty{text-align:center;color:var(--dim);font-size:13px;padding:28px 20px;border:1px dashed #2A3B48;border-radius:10px;line-height:1.6;}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+.st{flex:1;min-width:90px;background:var(--nl);border:1px solid #2A3B48;border-radius:8px;padding:9px 6px;text-align:center;}
+.st .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;}.st .v{font-family:'Teko',sans-serif;font-size:23px;color:var(--amber);line-height:1.15;}.st .r{font-size:9.5px;color:var(--dim);}
+.footnote{font-size:10.5px;color:#556670;margin-top:22px;line-height:1.6;}
+@media (max-width:420px){.bets{grid-template-columns:repeat(2,1fr);}.g4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-row"><span class="ball"></span><h1>NBA PLAYER MODEL</h1></div>
+  <p class="sub">Builds every game from the players who will actually be on the floor. Each player gets an offensive and a defensive rating fit from this season's box scores, team scoring and plus-minus, with last season as the starting point. Teams are the sum of their projected minutes, so trades, injuries and returning stars change the number immediately.</p>
+  <div class="chain">
+    <b>PLAYER RATINGS</b> &mdash; team points = league base + home court + &Sigma; (minutes/48 &times; offence) of its players &minus; &Sigma; (minutes/48 &times; defence) of the opponent's, fit on every team-game this season by ridge regression toward each player's box-score prior<br>
+    <b>LINEUPS</b> &mdash; projected minutes from recent rotation, injured players removed and their minutes redistributed, editable per player<br>
+    <b>MATCHUPS</b> &mdash; each player's counterpart, the opponent's defence by position (points, rebounds, assists and threes allowed per 48), and game pace<br>
+    <b>CHECK</b> &mdash; walk-forward backtest against the closing lines ESPN stored for this season's games
+  </div>
+  <div class="tabs"><button class="active" data-t="slate">Today's Slate</button><button data-t="bt">Backtest</button></div>
+
+  <div class="pane active" id="pane-slate">
+    <div class="panel"><div class="plabel">SETTINGS</div>
+      <div class="g3"><div><label>Date</label><input type="date" id="dt"></div>
+        <div><label>Prior strength</label><select id="lam"><option value="auto" selected>Auto (best in backtest)</option><option value="2">Light (this season counts more)</option><option value="4">Normal</option><option value="8">Heavy</option><option value="16">Very heavy</option></select></div>
+        <div><label>Edge threshold</label><select id="edgeT"><option value="0.02">2 pts</option><option value="0.03" selected>3 pts</option><option value="0.05">5 pts</option></select></div></div>
+      <div class="g3 mt"><div><label>Injuries</label><select id="injMode"><option value="1" selected>On (ESPN report)</option><option value="0">Off</option></select></div>
+        <div><label>Day-to-day plays</label><select id="ddW"><option value="0.6" selected>60% of minutes</option><option value="1">Full minutes</option><option value="0">Sits</option></select></div>
+        <div><label>Recency</label><select id="hl"><option value="0" selected>Off</option><option value="30">30-day half-life</option><option value="15">15-day half-life</option></select></div></div>
+      <button class="btn" id="run">RUN SLATE</button><div class="prog"><div id="bar"></div></div><div class="status" id="st"></div>
+      <div class="note">First run loads every box score this season (one request per game, cached in this browser, so later runs only load new games). Last season's player values come from the NBA Ensemble's training if you've run it; otherwise everyone starts from this season's box stats.</div>
+    </div>
+    <div id="top"></div><div id="out"></div>
+  </div>
+
+  <div class="pane" id="pane-bt">
+    <div class="panel"><div class="plabel">WALK-FORWARD BACKTEST</div>
+      <div class="note">Every game after the warm-up is predicted using only games played before it, then graded against ESPN's stored closing spread and total. Lineups use the minutes actually played (the injury report usually tells you who sits), so treat this as a slightly optimistic test.</div>
+      <div class="g2 mt"><div><label>Warm-up games</label><select id="warm"><option value="60">60</option><option value="100" selected>100</option><option value="150">150</option></select></div>
+        <div><label>Refit every</label><select id="refit"><option value="1">day</option><option value="3" selected>3 days</option><option value="7">7 days</option></select></div></div>
+      <button class="btn" id="btRun">RUN BACKTEST</button><div class="prog"><div id="btBar"></div></div><div class="status" id="btSt"></div>
+    </div>
+    <div id="btOut"></div>
+  </div>
+
+  <p class="footnote">How the ratings work. For each team-game the model predicts points scored as a league base, plus half the home-court edge, minus a back-to-back term, plus the minute-weighted offensive ratings of that team's players, minus the minute-weighted defensive ratings of the opponents who played. Ratings are fit by ridge regression: each player is pulled toward a prior built from box stats (points, assists, rebounds, steals, blocks, turnovers per 36, and true shooting), blended with last season's production when the Ensemble has been trained. The prior strength setting is how many full games of evidence the prior is worth. A player's net rating is offence plus defence in points per 48 minutes above league average. Margin and total come straight from the two team point projections; win and cover chances use the spread of residuals measured in the backtest (defaults 12.5 and 17.5 before one is run). Props use per-minute production this season shrunk toward last season (or the position average), times projected minutes, times the opponent's allowed rate for that position, times game pace, with a small counterpart defence adjustment on points. No model sees late scratches, minutes limits or tanking before they're reported. This is a research tool, not betting advice.</p>
+</div>
+
+<script>
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+const SUMMARY='https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=';
+const CACHE='nbaPMCache_v1',SIGK='nbaPMSigma_v1',OUTK='nbaPMSlate_v1',OVRK='nbaPMMinOvr_v1';
+const B2B_OWN=-0.9,B2B_OPP=0.4;
+
+// ---------- helpers ----------
+function iso(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function ymd(s){return s.replace(/-/g,'');}
+function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00Z')-new Date(a+'T12:00:00Z'))/864e5);}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function normCDF(x){const t=1/(1+.2316419*Math.abs(x));const d=.3989423*Math.exp(-x*x/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function imp(a){return a>0?100/(a+100):(-a)/((-a)+100);}
+function payout(a){return a>0?a/100:100/(-a);}
+function fmtAm(a){return a==null?'—':(a>0?'+'+a:''+a);}
+function probToAm(p){if(!(p>=.01&&p<=.99))return null;return p>=.5?Math.round(-100*p/(1-p)):Math.round(100*(1-p)/p);}
+function pct(p,d=1){return p==null?'—':(p*100).toFixed(d)+'%';}
+function sgn(x,d=1){return (x>=0?'+':'')+x.toFixed(d);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function nick(n){return String(n||'').split(' ').pop();}
+function load(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+async function getJSON(u){try{const r=await fetch(u);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+async function pool(items,limit,fn){let i=0;async function w(){while(i<items.length){const k=i++;await fn(items[k],k);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},w));}
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function setBar(id,p){document.getElementById(id).style.width=Math.round(p*100)+'%';}
+function setS(id,t,e){const el=document.getElementById(id);el.textContent=t;el.className='status'+(e?' err':'');}
+function num(x){if(x==null||x==='')return null;if(typeof x==='number')return isFinite(x)?x:null;const s=String(x).trim();if(/^(pk|pick)$/i.test(s))return 0;if(/^(even|ev)$/i.test(s))return 100;const n=Number(s.replace(/^[ou]/i,''));return isFinite(n)?n:null;}
+function parseOdds(o,ha,aa){
+  if(Array.isArray(o))o=o[0];if(!o)return null;const at=(x,k)=>x&&x.close&&x.close[k]!=null?x.close[k]:(x&&x.open&&x.open[k]!=null?x.open[k]:(x&&x.current&&x.current[k]!=null?x.current[k]:null));
+  const r={};let sH=num(at(o.pointSpread&&o.pointSpread.home,'line'));
+  if(sH==null&&o.details){const m=String(o.details).trim().match(/^([A-Z]{2,4})\s+([+-]?\d+(\.\d+)?)$/i);
+    if(m){const v=Number(m[2]);if(m[1].toUpperCase()===String(ha).toUpperCase())sH=v;else if(m[1].toUpperCase()===String(aa).toUpperCase())sH=-v;}else if(/^(even|pk|pick)/i.test(o.details))sH=0;}
+  if(sH==null&&o.spread!=null){const sp=Math.abs(Number(o.spread));if(o.homeTeamOdds&&o.homeTeamOdds.favorite)sH=-sp;else if(o.awayTeamOdds&&o.awayTeamOdds.favorite)sH=sp;}
+  r.sH=sH;r.sPH=num(at(o.pointSpread&&o.pointSpread.home,'odds'))??-110;r.sPA=num(at(o.pointSpread&&o.pointSpread.away,'odds'))??-110;
+  r.mlH=num(at(o.moneyline&&o.moneyline.home,'odds'))??num(o.homeTeamOdds&&o.homeTeamOdds.moneyLine);r.mlA=num(at(o.moneyline&&o.moneyline.away,'odds'))??num(o.awayTeamOdds&&o.awayTeamOdds.moneyLine);
+  r.tot=num(at(o.total&&o.total.over,'line'))??num(o.overUnder);r.oP=num(at(o.total&&o.total.over,'odds'))??-110;r.uP=num(at(o.total&&o.total.under,'odds'))??-110;
+  return (r.sH==null&&r.mlH==null&&r.tot==null)?null:r;}
+
+// ---------- data ----------
+// Box row: [pid,tid,pos,min,pts,fgm,fga,tpm,tpa,ftm,fta,oreb,dreb,ast,stl,blk,tov,pf]
+const IX={pid:0,tid:1,pos:2,min:3,pts:4,fgm:5,fga:6,tpm:7,tpa:8,ftm:9,fta:10,oreb:11,dreb:12,ast:13,stl:14,blk:15,tov:16,pf:17};
+function posOf(ab){ab=String(ab||'').toUpperCase();if(ab==='C'||ab==='F-C'||ab==='C-F')return 'C';if(ab.includes('G'))return 'G';return 'F';}
+function seasonStart(d){const y=Number(d.slice(0,4)),m=Number(d.slice(5,7));return `${m>=9?y:y-1}-10-15`;}
+function parseBox(sum){
+  const out=[];const blocks=sum&&sum.boxscore&&sum.boxscore.players;if(!blocks)return null;const names={};
+  for(const b of blocks){const tid=String(b.team&&b.team.id);const st=(b.statistics||[])[0];if(!st)continue;
+    const lab=(st.labels||st.names||[]).map(x=>String(x).toUpperCase());const ix=(...n)=>{for(const x of n){const i=lab.indexOf(x);if(i>=0)return i;}return -1;};
+    const iMin=ix('MIN','MINUTES'),iPts=ix('PTS','POINTS'),iFG=ix('FG','FIELDGOALSMADE-FIELDGOALSATTEMPTED'),i3=ix('3PT','THREEPOINTFIELDGOALSMADE-THREEPOINTFIELDGOALSATTEMPTED'),iFT=ix('FT','FREETHROWSMADE-FREETHROWSATTEMPTED'),
+      iOR=ix('OREB','OFFENSIVEREBOUNDS'),iDR=ix('DREB','DEFENSIVEREBOUNDS'),iREB=ix('REB','REBOUNDS'),iAST=ix('AST','ASSISTS'),iSTL=ix('STL','STEALS'),iBLK=ix('BLK','BLOCKS'),iTO=ix('TO','TURNOVERS'),iPF=ix('PF','FOULS');
+    const pair=(s,i)=>{if(i<0||s[i]==null)return [0,0];const m=String(s[i]).match(/(\d+)\s*-\s*(\d+)/);return m?[Number(m[1]),Number(m[2])]:[0,0];};
+    const n=(s,i)=>{if(i<0)return 0;const v=Number(s[i]);return isFinite(v)?v:0;};
+    for(const a of (st.athletes||[])){if(!a.athlete||a.didNotPlay)continue;const s=a.stats||[];let min=String(s[iMin]||'0');min=min.includes(':')?Number(min.split(':')[0])+Number(min.split(':')[1])/60:Number(min);if(!(min>0))continue;
+      const [fgm,fga]=pair(s,iFG),[tpm,tpa]=pair(s,i3),[ftm,fta]=pair(s,iFT);let oreb=n(s,iOR),dreb=n(s,iDR);if(iOR<0&&iREB>=0){dreb=n(s,iREB);oreb=0;}
+      const pid=String(a.athlete.id);names[pid]=a.athlete.displayName||a.athlete.shortName||pid;
+      out.push([pid,tid,posOf(a.athlete.position&&a.athlete.position.abbreviation),Math.round(min*10)/10,n(s,iPts),fgm,fga,tpm,tpa,ftm,fta,oreb,dreb,n(s,iAST),n(s,iSTL),n(s,iBLK),n(s,iTO),n(s,iPF)]);}}
+  return out.length?{rows:out,names}:null;}
+function loadCache(season){let c=load(CACHE);if(!c||c.season!==season)c={season,days:{},games:{},names:{},teams:{}};return c;}
+function saveCache(c){if(store(CACHE,c))return;const keys=Object.keys(c.games).sort((a,b)=>c.games[a].d<c.games[b].d?-1:1);for(let i=0;i<Math.floor(keys.length/3);i++)delete c.games[keys[i]];store(CACHE,c);}
+async function loadSeason(date,onProg){
+  const season=seasonStart(date);const c=loadCache(season);const days=[];for(let d=season;d<date;d=addDays(d,1))if(!c.days[d])days.push(d);
+  let k=0;const need=[];
+  await pool(days,6,async d=>{const sb=await getJSON(`${ESPN}/scoreboard?dates=${ymd(d)}`);k++;onProg(.3*k/Math.max(1,days.length),`Loading schedule... ${k}/${days.length} days`);
+    if(!sb)return;let allDone=true;
+    for(const e of (sb.events||[])){const stype=e.season&&e.season.type;if(stype&&Number(stype)!==2)continue;const comp=(e.competitions||[])[0];if(!comp)continue;
+      const H=comp.competitors.find(x=>x.homeAway==='home'),A=comp.competitors.find(x=>x.homeAway==='away');if(!H||!A)continue;
+      const state=e.status&&e.status.type&&e.status.type.state;if(state!=='post'){allDone=false;continue;}
+      c.teams[String(H.team.id)]={n:H.team.displayName,ab:H.team.abbreviation};c.teams[String(A.team.id)]={n:A.team.displayName,ab:A.team.abbreviation};
+      const id=String(e.id);const odds=parseOdds((comp.odds||[])[0],H.team.abbreviation,A.team.abbreviation);
+      const g=c.games[id]||{d,h:String(H.team.id),a:String(A.team.id)};g.hs=Number(H.score);g.as=Number(A.score);if(odds){g.sp=odds.sH;g.tot=odds.tot;}c.games[id]=g;if(!g.b)need.push(id);}
+    if(allDone)c.days[d]=true;});
+  k=0;await pool(need,6,async id=>{const s=await getJSON(SUMMARY+id);const bx=parseBox(s);k++;
+    if(bx){c.games[id].b=bx.rows;Object.assign(c.names,bx.names);}else{const d=c.games[id].d;delete c.days[d];}
+    if(k%4===0)onProg(.3+.6*k/Math.max(1,need.length),`Loading box scores... ${k}/${need.length}`);});
+  saveCache(c);return c;}
+let INJ={};
+async function loadInjuries(){INJ={};const d=await getJSON(`${ESPN}/injuries`);
+  for(const t of ((d&&d.injuries)||[])){const tid=String(t.team&&t.team.id);const list=[];
+    for(const it of (t.injuries||[])){const a=it.athlete||{};let id=a.id?String(a.id):null;if(!id){const l=(a.links||[]).find(x=>/\/id\/(\d+)/.test(x.href||''));if(l)id=(l.href.match(/\/id\/(\d+)/)||[])[1];}
+      const st=(it.status||'').toLowerCase();const kind=st.startsWith('out')?'out':(st.includes('day')?'dd':(it.type&&it.type.abbreviation==='O'?'out':'dd'));list.push({id,name:a.displayName||'Unknown',status:it.status,kind});}
+    if(list.length)INJ[tid]=list;}}
+
+// ---------- the model ----------
+// Season aggregates per player and per team, from games strictly before `before` (or all).
+function aggregate(games){
+  const P={},T={},POS={G:{min:0,pts:0,reb:0,ast:0,tpm:0},F:{min:0,pts:0,reb:0,ast:0,tpm:0},C:{min:0,pts:0,reb:0,ast:0,tpm:0}};
+  const posAllowed={};// team -> pos -> totals allowed
+  for(const g of games){if(!g.b)continue;const tm={};
+    for(const r of g.b){const p=P[r[0]]||(P[r[0]]={g:0,min:0,pts:0,fga:0,fta:0,tpm:0,tpa:0,oreb:0,dreb:0,ast:0,stl:0,blk:0,tov:0,pos:r[2],team:r[1],last:g.d});
+      p.g++;p.min+=r[3];p.pts+=r[4];p.fga+=r[6];p.fta+=r[10];p.tpm+=r[7];p.tpa+=r[8];p.oreb+=r[11];p.dreb+=r[12];p.ast+=r[13];p.stl+=r[14];p.blk+=r[15];p.tov+=r[16];if(g.d>=p.last){p.last=g.d;p.team=r[1];p.pos=r[2];}
+      const t=tm[r[1]]||(tm[r[1]]={fga:0,fta:0,oreb:0,tov:0});t.fga+=r[6];t.fta+=r[10];t.oreb+=r[11];t.tov+=r[16];
+      const ps=POS[r[2]];ps.min+=r[3];ps.pts+=r[4];ps.reb+=r[11]+r[12];ps.ast+=r[13];ps.tpm+=r[7];
+      const opp=r[1]===g.h?g.a:g.h;const pa=(posAllowed[opp]=posAllowed[opp]||{G:{min:0,pts:0,reb:0,ast:0,tpm:0},F:{min:0,pts:0,reb:0,ast:0,tpm:0},C:{min:0,pts:0,reb:0,ast:0,tpm:0}})[r[2]];
+      pa.min+=r[3];pa.pts+=r[4];pa.reb+=r[11]+r[12];pa.ast+=r[13];pa.tpm+=r[7];}
+    for(const tid in tm){const t=T[tid]||(T[tid]={g:0,poss:0});t.g++;t.poss+=tm[tid].fga+.44*tm[tid].fta-tm[tid].oreb+tm[tid].tov;}}
+  let lgPoss=0,n=0;for(const t in T){lgPoss+=T[t].poss;n+=T[t].g;}lgPoss=n?lgPoss/n:100;
+  return {P,T,POS,posAllowed,lgPoss};}
+function lastSeason(){const p=load('nbaEnsembleParams_v1');return p&&p.players?p.players:{};}
+// Box-score prior: net points per 48 above average, blended with last season's production.
+function priorOf(pid,agg,LS){
+  const p=agg.P[pid],l=LS[pid];const per36=(x,m)=>m>0?36*x/m:0;
+  let prodNow=null,adjNow=0,wNow=0;
+  if(p&&p.min>0){prodNow=per36(p.pts,p.min)+.7*per36(p.ast,p.min)+.5*per36(p.oreb+p.dreb,p.min);
+    const ts=(p.fga+.44*p.fta)>0?p.pts/(2*(p.fga+.44*p.fta)):.57;
+    adjNow=.3*(per36(p.stl+p.blk,p.min)-2)-.3*(per36(p.tov,p.min)-2)+8*(ts-.575)*Math.min(1,p.min/300);wNow=Math.min(p.g,40);}
+  let prodLast=null,wLast=0;if(l&&l.min>0){prodLast=per36(l.pts,l.min)+.7*per36(l.ast,l.min)+.5*per36(l.reb,l.min);wLast=Math.min(l.g||40,40);}
+  if(prodNow==null&&prodLast==null)return -1.5;
+  const prod=((prodNow??0)*wNow+(prodLast??0)*wLast)/Math.max(1,wNow+wLast);
+  const minPer=p&&p.g?p.min/p.g:(l?l.min:15);const rel=clamp(minPer/28,.35,1);    // low-minute players regress harder
+  return clamp((.45*(prod-22)+adjNow)*rel+(-1.5)*(1-rel),-5,11);}
+function buildObs(games,asOf,hl){
+  const last={};const obs=[];const sorted=[...games].filter(g=>g.b).sort((a,b)=>a.d<b.d?-1:1);
+  for(const g of sorted){const hb=last[g.h]===addDays(g.d,-1),ab=last[g.a]===addDays(g.d,-1);last[g.h]=g.d;last[g.a]=g.d;
+    const lu={};for(const r of g.b)(lu[r[1]]=lu[r[1]]||[]).push([r[0],r[3]/48]);
+    const tw=hl&&asOf?Math.pow(.5,Math.max(0,daysBetween(g.d,asOf))/hl):1;
+    if(!lu[g.h]||!lu[g.a])continue;
+    obs.push({S:g.hs,side:1,own:lu[g.h],opp:lu[g.a],b2b:hb?1:0,ob2b:ab?1:0,ow:tw});
+    obs.push({S:g.as,side:-1,own:lu[g.a],opp:lu[g.h],b2b:ab?1:0,ob2b:hb?1:0,ow:tw});}
+  return obs;}
+// Ridge regression by exact coordinate descent (one parameter at a time, residuals kept in sync), which
+// converges even though teammates' ratings are strongly correlated.
+function fit(obs,prior,lam,warm,iters){
+  const O={},D={},O0={},D0={};const idxO={},idxD={};
+  obs.forEach((o,k)=>{for(const [p,w] of o.own)(idxO[p]=idxO[p]||[]).push(k,w);for(const [p,w] of o.opp)(idxD[p]=idxD[p]||[]).push(k,w);});
+  const pids=new Set([...Object.keys(idxO),...Object.keys(idxD)]);
+  for(const p of pids){const pr=prior(p);O0[p]=.65*pr;D0[p]=.35*pr;O[p]=warm&&warm.O[p]!=null?warm.O[p]:O0[p];D[p]=warm&&warm.D[p]!=null?warm.D[p]:D0[p];}
+  let base=warm?warm.base:112,hca=warm?warm.hca:2.5;
+  const r=new Float64Array(obs.length);
+  obs.forEach((o,k)=>{let pred=base+o.side*hca/2+B2B_OWN*o.b2b+B2B_OPP*o.ob2b;for(const [p,w] of o.own)pred+=w*O[p];for(const [p,w] of o.opp)pred-=w*D[p];r[k]=o.S-pred;});
+  const ow=obs.map(o=>o.ow);
+  for(let it=0;it<iters;it++){
+    {let g=0,h=0;for(let k=0;k<r.length;k++){g+=ow[k]*r[k];h+=ow[k];}const d=g/Math.max(1e-9,h);base+=d;for(let k=0;k<r.length;k++)r[k]-=d;}
+    {let g=0,h=0;for(let k=0;k<r.length;k++){const x=obs[k].side/2;g+=ow[k]*x*r[k];h+=ow[k]*x*x;}const d=(g-5*(hca-2.5))/(h+5);hca+=d;for(let k=0;k<r.length;k++)r[k]-=obs[k].side/2*d;}
+    for(const p of pids){
+      const io=idxO[p];if(io){let g=0,h=0;for(let j=0;j<io.length;j+=2){const k=io[j],w=io[j+1];g+=ow[k]*w*r[k];h+=ow[k]*w*w;}const d=(g-lam*(O[p]-O0[p]))/(h+lam);O[p]+=d;for(let j=0;j<io.length;j+=2)r[io[j]]-=io[j+1]*d;}
+      const id=idxD[p];if(id){let g=0,h=0;for(let j=0;j<id.length;j+=2){const k=id[j],w=id[j+1];g-=ow[k]*w*r[k];h+=ow[k]*w*w;}const d=(g-lam*(D[p]-D0[p]))/(h+lam);D[p]+=d;for(let j=0;j<id.length;j+=2)r[id[j]]+=id[j+1]*d;}}}
+  return {O,D,O0,D0,base,hca};}
+function rating(M,pid,prior){return {O:M.O[pid]!=null?M.O[pid]:.65*prior(pid),D:M.D[pid]!=null?M.D[pid]:.35*prior(pid)};}
+
+// Projected minutes for a team on `date`, from its last 10 games before then.
+function projectLineup(tid,date,games,agg,opts){
+  const tg=games.filter(g=>g.b&&g.d<date&&(g.h===tid||g.a===tid)).sort((a,b)=>a.d<b.d?1:-1).slice(0,10);
+  const m={};tg.forEach((g,i)=>{const wt=i<5?2:1;for(const r of g.b){if(r[1]!==tid)continue;const x=m[r[0]]||(m[r[0]]={s:0,w:0,apps:0,lastIdx:i});x.s+=wt*r[3];x.w+=wt;x.apps++;x.lastIdx=Math.min(x.lastIdx,i);}});
+  const inj={};if(opts.inj)for(const it of (INJ[tid]||[]))if(it.id)inj[it.id]=it;
+  const rows=[];
+  for(const pid in m){const p=agg.P[pid];if(p&&p.team!==tid)continue;                 // traded away since
+    const x=m[pid];let min=x.s/x.w;                                                    // average when he plays
+    if(x.lastIdx>=6&&!inj[pid])continue;                                                // out of the rotation for 6+ games
+    if(x.lastIdx>=3&&!inj[pid])min*=.5;
+    if(x.apps<3&&x.lastIdx>0)min*=.7;
+    const it=inj[pid];let status='';if(it){status=it.status;if(it.kind==='out')min=0;else min*=opts.dd;}
+    const o=opts.ovr&&opts.ovr[pid];if(o!=null)min=o;
+    rows.push({pid,min,status,pos:(p&&p.pos)||'F'});}
+  // players on the injury report who haven't played recently (long absences) stay out unless overridden
+  for(const pid in (opts.ovr||{}))if(!rows.find(r=>r.pid===pid)&&opts.ovr[pid]>0&&agg.P[pid])rows.push({pid,min:opts.ovr[pid],status:'manual',pos:agg.P[pid].pos});
+  // renormalise to 240 minutes, nobody above 42
+  const fixed=new Set(rows.filter(r=>opts.ovr&&opts.ovr[r.pid]!=null).map(r=>r.pid));
+  for(let k=0;k<6;k++){const tot=rows.reduce((s,r)=>s+r.min,0);const free=rows.filter(r=>!fixed.has(r.pid)&&r.min>0&&r.min<42);const fx=rows.filter(r=>fixed.has(r.pid)||r.min>=42).reduce((s,r)=>s+r.min,0);
+    const fs=free.reduce((s,r)=>s+r.min,0);if(!fs||Math.abs(tot-240)<.5)break;const f=(240-fx)/fs;free.forEach(r=>r.min=Math.min(42,r.min*f));}
+  return rows.filter(r=>r.min>0||r.status).sort((a,b)=>b.min-a.min);}
+function predict(h,a,date,games,M,prior,agg,opts,b2b){
+  const LH=projectLineup(h,date,games,agg,{...opts,ovr:opts.ovr&&opts.ovr[h]}),LA=projectLineup(a,date,games,agg,{...opts,ovr:opts.ovr&&opts.ovr[a]});
+  const sum=(L,k)=>L.reduce((s,r)=>s+r.min/48*rating(M,r.pid,prior)[k],0);
+  const ptsH=M.base+M.hca/2+B2B_OWN*(b2b.h?1:0)+B2B_OPP*(b2b.a?1:0)+sum(LH,'O')-sum(LA,'D');
+  const ptsA=M.base-M.hca/2+B2B_OWN*(b2b.a?1:0)+B2B_OPP*(b2b.h?1:0)+sum(LA,'O')-sum(LH,'D');
+  return {ptsH,ptsA,margin:ptsH-ptsA,total:ptsH+ptsA,LH,LA};}
+
+// ---------- props ----------
+function propModel(L,tid,oid,agg,LS,Lopp,M,prior,teamPts){
+  const lg={};for(const k of ['G','F','C']){const s=agg.POS[k];lg[k]={pts:s.min?s.pts/s.min:.45,reb:s.min?s.reb/s.min:.18,ast:s.min?s.ast/s.min:.1,tpm:s.min?s.tpm/s.min:.05};}
+  const pa=agg.posAllowed[oid]||{};const K=15*48;
+  const fac=(pos,k)=>{const x=pa[pos];const l=lg[pos][k];if(!x||!l)return 1;return clamp(((x[k]||0)+K*l)/((x.min||0)+K)/l,.85,1.15);};
+  const tp=agg.T[tid],op=agg.T[oid];const tPace=tp&&tp.g?tp.poss/tp.g:agg.lgPoss,oPace=op&&op.g?op.poss/op.g:agg.lgPoss;const paceF=clamp((tPace+oPace)/(2*tPace),.9,1.1);
+  const opp=[...Lopp].filter(r=>r.min>0);
+  return L.filter(r=>r.min>0).map(r=>{const p=agg.P[r.pid],l=LS[r.pid];
+    const rate=(k,lk)=>{const now=p?(k==='reb'?p.oreb+p.dreb:p[k]):0,mn=p?p.min:0;const prior=l&&l.min>0&&lk?l[lk]/l.min:lg[r.pos][k];return (now+150*prior)/(mn+150);};
+    const cp=opp.filter(o=>o.pos===r.pos).sort((x,y)=>Math.abs(x.min-r.min)-Math.abs(y.min-r.min))[0]||opp[0];
+    const cpD=cp?rating(M,cp.pid,prior).D:0;const cpAdj=clamp(1-.015*cpD,.93,1.07);
+    const pts=rate('pts','pts')*r.min*fac(r.pos,'pts')*paceF*cpAdj,reb=rate('reb','reb')*r.min*fac(r.pos,'reb')*paceF,ast=rate('ast','ast')*r.min*fac(r.pos,'ast')*paceF,tpm=rate('tpm',null)*r.min*fac(r.pos,'tpm')*paceF;
+    const rt=rating(M,r.pid,prior);
+    return {...r,pts,reb,ast,tpm,net:rt.O+rt.D,O:rt.O,D:rt.D,cp:cp?cp.pid:null,fPts:fac(r.pos,'pts'),fReb:fac(r.pos,'reb'),fAst:fac(r.pos,'ast')};});}
+// Player points should add up to the team's projected score: keep each player's share, scale to the total.
+function tieToTeam(rows,teamPts){const s=rows.reduce((t,r)=>t+r.pts,0);if(!s||!teamPts)return rows;const f=clamp(teamPts/s,.85,1.15);return rows.map(r=>({...r,pts:r.pts*f,tpm:r.tpm*Math.sqrt(f)}));}
+function propProb(row,stat,line){
+  const sd={pts:x=>Math.sqrt(2.5*x)+.5,reb:x=>Math.sqrt(1.6*x)+.3,ast:x=>Math.sqrt(1.6*x)+.3};
+  if(stat==='tpm'){const lam=row.tpm;let c=0,f=1;for(let k=0;k<=Math.floor(line);k++){if(k>0)f*=k;c+=Math.exp(-lam)*Math.pow(lam,k)/f;}return 1-c;}
+  let mean,v;if(stat==='pra'){mean=row.pts+row.reb+row.ast;v=Math.pow(sd.pts(row.pts),2)+Math.pow(sd.reb(row.reb),2)+Math.pow(sd.ast(row.ast),2);v*=1.3;}
+  else if(stat==='pr'){mean=row.pts+row.reb;v=(Math.pow(sd.pts(row.pts),2)+Math.pow(sd.reb(row.reb),2))*1.2;}
+  else if(stat==='pa'){mean=row.pts+row.ast;v=(Math.pow(sd.pts(row.pts),2)+Math.pow(sd.ast(row.ast),2))*1.2;}
+  else{mean=row[stat];v=Math.pow(sd[stat](mean),2);}
+  return 1-normCDF((line-mean)/Math.sqrt(v));}
+
+// ---------- slate ----------
+let C=null,AGG=null,MODEL=null,PRIOR=null,LS={},SLATE=[],OVR=load(OVRK)||{};
+document.getElementById('dt').value=iso(new Date());
+function opts(){return {inj:document.getElementById('injMode').value==='1',dd:Number(document.getElementById('ddW').value),ovr:null};}
+function sig(){const s=load(SIGK);return {m:s&&s.m?s.m:12.5,t:s&&s.t?s.t:17.5,src:s?'backtest':'default',lam:s&&s.lam?s.lam:4};}
+function lamNow(){const v=document.getElementById('lam').value;return v==='auto'?sig().lam:Number(v);}
+document.getElementById('run').onclick=async()=>{
+  const b=document.getElementById('run');b.disabled=true;setBar('bar',0);document.getElementById('out').innerHTML='';document.getElementById('top').innerHTML='';
+  const date=document.getElementById('dt').value;
+  try{
+    C=await loadSeason(date,(p,t)=>{setBar('bar',p);if(t)setS('st',t);});
+    await loadInjuries();
+    const games=Object.values(C.games).filter(g=>g.b&&g.d<date);
+    if(games.length<20){setS('st',`Only ${games.length} games with box scores this season so far. The model needs at least 20.`,true);b.disabled=false;return;}
+    setS('st',`Fitting ${Object.keys(C.names).length} players on ${games.length} games...`);await tick();
+    LS=lastSeason();AGG=aggregate(games);PRIOR=pid=>priorOf(pid,AGG,LS);
+    MODEL=fit(buildObs(games,date,Number(document.getElementById('hl').value)),PRIOR,lamNow(),null,40);
+    const sb=await getJSON(`${ESPN}/scoreboard?dates=${ymd(date)}`);const yd=await getJSON(`${ESPN}/scoreboard?dates=${ymd(addDays(date,-1))}`);
+    const played=new Set();((yd&&yd.events)||[]).forEach(e=>((e.competitions||[])[0]?.competitors||[]).forEach(x=>played.add(String(x.team.id))));
+    SLATE=[];for(const e of ((sb&&sb.events)||[])){const comp=(e.competitions||[])[0];if(!comp)continue;const H=comp.competitors.find(x=>x.homeAway==='home'),A=comp.competitors.find(x=>x.homeAway==='away');if(!H||!A)continue;
+      C.teams[String(H.team.id)]={n:H.team.displayName,ab:H.team.abbreviation};C.teams[String(A.team.id)]={n:A.team.displayName,ab:A.team.abbreviation};
+      const st=e.status&&e.status.type&&e.status.type.state;
+      SLATE.push({eid:String(e.id),h:String(H.team.id),a:String(A.team.id),hn:H.team.displayName,an:A.team.displayName,b2b:{h:played.has(String(H.team.id)),a:played.has(String(A.team.id))},
+        mk:parseOdds((comp.odds||[])[0],H.team.abbreviation,A.team.abbreviation),state:st,actual:st==='post'?{h:Number(H.score),a:Number(A.score)}:null});}
+    if(!SLATE.length){setS('st','No NBA games on this date.',true);b.disabled=false;return;}
+    setBar('bar',1);setS('st',`${SLATE.length} games · ratings fit on ${games.length} games through ${addDays(date,-1)} · prior strength ${lamNow()}${document.getElementById('lam').value==='auto'?(load(SIGK)?' (tuned by backtest)':' (default; run the backtest to tune)'):''} · ${Object.keys(LS).length?'last-season prior from the Ensemble':'no Ensemble training found, priors from this season only'} · win/cover spread ${sig().src==='backtest'?'from your backtest':'default until you run the backtest'}`);
+    render();
+  }catch(err){setS('st','Something went wrong: '+err.message,true);}
+  b.disabled=false;};
+function analyse(s){
+  const o={...opts(),ovr:OVR[s.eid]||{}};const date=document.getElementById('dt').value;const games=Object.values(C.games).filter(g=>g.b&&g.d<date);
+  const pr=predict(s.h,s.a,date,games,MODEL,PRIOR,AGG,o,s.b2b);const S=sig();const T=Number(document.getElementById('edgeT').value);const mk=s.mk||{};
+  const pH=normCDF(pr.margin/S.m);const bets=[];
+  const add=(label,p,price,kind)=>{if(price==null)return;const i=imp(price),e=p-i;bets.push({label,p,price,i,e,ev:p*payout(price)-(1-p),kind,tier:e>=T?'play':(e>=T/2?'lean':'none')});};
+  add(`${nick(s.an)} ML`,1-pH,mk.mlA,'ml');add(`${nick(s.hn)} ML`,pH,mk.mlH,'ml');
+  if(mk.sH!=null){const cH=normCDF((pr.margin+mk.sH)/S.m);add(`${nick(s.an)} ${sgn(-mk.sH)}`,1-cH,mk.sPA,'ats');add(`${nick(s.hn)} ${sgn(mk.sH)}`,cH,mk.sPH,'ats');
+    if(Math.abs(pr.margin+mk.sH)<1.5)bets.filter(b=>b.kind==='ml').forEach(b=>{b.tier='none';b.nv=true;});}
+  if(mk.tot!=null){const pO=1-normCDF((mk.tot-pr.total)/S.t);add(`Over ${mk.tot}`,pO,mk.oP,'tot');add(`Under ${mk.tot}`,1-pO,mk.uP,'tot');}
+  const rk=t=>t==='play'?2:t==='lean'?1:0;const best=bets.filter(b=>b.tier!=='none').sort((x,y)=>rk(y.tier)-rk(x.tier)||y.e-x.e)[0]||null;
+  const propsH=tieToTeam(propModel(pr.LH,s.h,s.a,AGG,LS,pr.LA,MODEL,PRIOR),pr.ptsH),propsA=tieToTeam(propModel(pr.LA,s.a,s.h,AGG,LS,pr.LH,MODEL,PRIOR),pr.ptsA);
+  return {pr,pH,bets,best,v:best?best.tier:'pass',propsH,propsA,mk,S};}
+let RES=[];
+function render(){
+  RES=SLATE.map(s=>({s,a:analyse(s)}));
+  // slate-wide total lean (same idea as the critic): report it, don't hide it
+  const gaps=RES.filter(r=>r.a.mk.tot!=null).map(r=>r.a.pr.total-r.a.mk.tot).sort((x,y)=>x-y);const med=gaps.length?gaps[Math.floor(gaps.length/2)]:0;
+  const plays=RES.filter(r=>r.a.v==='play'),leans=RES.filter(r=>r.a.v==='lean');
+  document.getElementById('top').innerHTML=`<div class="panel"><div class="plabel">SLATE · ${esc(document.getElementById('dt').value)}</div>
+    <div class="stats"><div class="st"><div class="l">Games</div><div class="v">${RES.length}</div></div><div class="st"><div class="l">Plays</div><div class="v">${plays.length}</div></div><div class="st"><div class="l">Leans</div><div class="v">${leans.length}</div></div><div class="st"><div class="l">Typical total gap</div><div class="v">${sgn(med)}</div><div class="r">model − market</div></div></div>
+    ${[...plays,...leans].map(r=>`<div class="note ${r.a.v==='play'?'good':'amber'}"><b>${esc(r.a.best.label)} ${fmtAm(r.a.best.price)}</b> · ${esc(nick(r.s.an))} @ ${esc(nick(r.s.hn))} · model ${pct(r.a.best.p)} vs ${pct(r.a.best.i)} (${sgn(r.a.best.e*100)} pts)</div>`).join('')||'<div class="note">Nothing clears the bar today.</div>'}
+    ${Math.abs(med)>=3?`<div class="note amber">The model's totals run ${sgn(med)} pts vs the market across this slate. A whole slate leaning one way usually means the scoring level is off, so be wary of totals that only clear by about that much.</div>`:''}
+    <a class="btn" href="nba-critic.html">OPEN THE CRITIC &rarr;</a></div>`;
+  document.getElementById('out').innerHTML='<div class="section-title">GAMES</div>'+RES.map(({s,a})=>card(s,a)).join('');
+  saveOut();}
+function teamTable(s,a,side){
+  const tid=side==='h'?s.h:s.a;const rows=side==='h'?a.propsH:a.propsA;const L=side==='h'?a.pr.LH:a.pr.LA;const nm=side==='h'?s.hn:s.an;const n=pid=>esc(C.names[pid]||pid);
+  const out=L.filter(r=>r.min===0&&r.status).map(r=>`${n(r.pid)} (${esc(r.status)})`);
+  return `<div class="tw"><table><tr><th>${esc(nick(nm)).toUpperCase()}</th><th>Min</th><th>Net</th><th>Pts</th><th>Reb</th><th>Ast</th><th>3PM</th><th>Opp vs pos</th><th>Counterpart</th></tr>
+    ${rows.map(r=>`<tr><td>${n(r.pid)} <span class="dim">${r.pos}${r.status?' · '+esc(r.status):''}</span></td><td><input type="number" step="1" value="${Math.round(r.min)}" onchange="setMin('${s.eid}','${tid}','${r.pid}',this.value)"></td>
+      <td class="${r.net>=0?'pos':'neg'}">${sgn(r.net)}</td><td>${r.pts.toFixed(1)}</td><td>${r.reb.toFixed(1)}</td><td>${r.ast.toFixed(1)}</td><td>${r.tpm.toFixed(1)}</td>
+      <td class="${r.fPts>1.02?'pos':(r.fPts<.98?'neg':'dim')}">${sgn((r.fPts-1)*100,0)}%</td><td class="dim">${r.cp?n(r.cp):'—'}</td></tr>`).join('')}</table></div>
+    ${out.length?`<div class="note">Out: ${out.join(', ')}</div>`:''}`;}
+function card(s,a){
+  const mk=a.mk,pr=a.pr,b=a.best;const H=nick(s.hn),A=nick(s.an);
+  const allP=[...a.propsA.map(r=>({...r,t:A})),...a.propsH.map(r=>({...r,t:H}))].sort((x,y)=>y.min-x.min);
+  const tile=x=>`<div class="bet ${x.tier==='play'?'ok':(x.tier!=='none'?'lean':'')}"><div class="t">${esc(x.label)} ${fmtAm(x.price)}${x.nv?'<br><i>no real edge</i>':''}</div><div class="e ${x.e>=0?'pos':'neg'}">${sgn(x.e*100)}</div><div class="s">${pct(x.p)} vs ${pct(x.i)}</div></div>`;
+  return `<div class="card ${a.v==='play'?'play':''}"><div class="chead"><div><div class="cmatch">${esc(s.an)} @ ${esc(s.hn)}</div>
+      <div class="csub">Model ${pr.margin>=0?H+' by '+pr.margin.toFixed(1):A+' by '+(-pr.margin).toFixed(1)} · ${A} ${pr.ptsA.toFixed(1)} – ${H} ${pr.ptsH.toFixed(1)} · total ${pr.total.toFixed(1)}${s.b2b.h?` · ${H} B2B`:''}${s.b2b.a?` · ${A} B2B`:''}</div>
+      <div class="csub">Market ${mk.sH!=null?H+' '+sgn(mk.sH):'no spread'} · total ${mk.tot??'—'}</div></div>
+    <div class="verdict"><div class="k ${a.v}">${a.v.toUpperCase()}</div><div class="d">${b?`${esc(b.label)} ${fmtAm(b.price)}<br>${sgn(b.e*100)} pts`:'no side clears the bar'}</div></div></div>
+    ${a.bets.length?`<div class="bets">${a.bets.map(tile).join('')}</div>`:'<div class="note">No sportsbook lines on ESPN yet.</div>'}
+    ${s.actual?`<div class="note">Final ${A} ${s.actual.a} – ${H} ${s.actual.h} (model had ${pr.margin>=0?H:A} by ${Math.abs(pr.margin).toFixed(1)}, total ${pr.total.toFixed(1)}).</div>`:''}
+    <details><summary>Lineups, player ratings &amp; matchups</summary>${teamTable(s,a,'a')}${teamTable(s,a,'h')}
+      <div class="note">Min is projected minutes (edit to model a return or a minutes limit). Net is offence + defence in points per 48 above average. "Opp vs pos" is how much more (green) or less (red) the opponent allows to this position than league average.</div></details>
+    <details><summary>Price a player prop</summary>
+      <div class="g4 mt"><div><label>Player</label><select id="pp-${s.eid}" onchange="priceProp('${s.eid}')">${allP.map(r=>`<option value="${r.pid}">${esc(nick(C.names[r.pid]||r.pid))} (${esc(r.t)})</option>`).join('')}</select></div>
+        <div><label>Stat</label><select id="ps-${s.eid}" onchange="priceProp('${s.eid}')"><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="tpm">Threes</option><option value="pra">Pts+Reb+Ast</option><option value="pr">Pts+Reb</option><option value="pa">Pts+Ast</option></select></div>
+        <div><label>Line</label><input type="number" step="0.5" id="pl-${s.eid}" oninput="priceProp('${s.eid}')"></div>
+        <div><label>Over price</label><input type="number" id="po-${s.eid}" placeholder="-110" oninput="priceProp('${s.eid}')"></div></div>
+      <div id="pr-${s.eid}" class="note">Pick a player and type the line.</div></details></div>`;}
+function setMin(eid,tid,pid,val){OVR[eid]=OVR[eid]||{};OVR[eid][tid]=OVR[eid][tid]||{};if(val===''||isNaN(Number(val)))delete OVR[eid][tid][pid];else OVR[eid][tid][pid]=Number(val);store(OVRK,OVR);render();}
+function priceProp(eid){const r=RES.find(x=>x.s.eid===eid);if(!r)return;const pid=document.getElementById('pp-'+eid).value,stat=document.getElementById('ps-'+eid).value;
+  const L=Number(document.getElementById('pl-'+eid).value),pr=Number(document.getElementById('po-'+eid).value)||-110;const el=document.getElementById('pr-'+eid);
+  const row=[...r.a.propsH,...r.a.propsA].find(x=>x.pid===pid);if(!row){el.innerHTML='No projection for this player.';return;}
+  const mean=stat==='pra'?row.pts+row.reb+row.ast:stat==='pr'?row.pts+row.reb:stat==='pa'?row.pts+row.ast:row[stat];
+  if(!document.getElementById('pl-'+eid).value){el.className='note';el.innerHTML=`Projection: <b>${mean.toFixed(1)}</b> in ${row.min.toFixed(0)} minutes. Type the line to price it.`;return;}
+  const pO=propProb(row,stat,L),i=imp(pr),e=pO-i,eU=(1-pO)-(1-i);
+  el.className='note '+(Math.max(e,eU)>=.05?'good':'');
+  el.innerHTML=`Projection <b>${mean.toFixed(1)}</b> (${row.min.toFixed(0)} min). Over ${L}: <b>${pct(pO)}</b>, under ${pct(1-pO)}. At ${fmtAm(pr)} the over is ${sgn(e*100)} pts; fair over ${fmtAm(probToAm(pO))}, fair under ${fmtAm(probToAm(1-pO))}.${Math.max(e,eU)>=.05?` <b>Looks like value on the ${e>eU?'over':'under'}</b> (check the under's own price).`:''}`;}
+function saveOut(){let all=load(OUTK)||{};const d=document.getElementById('dt').value;all[d]={savedAt:new Date().toISOString(),games:{}};
+  for(const {s,a} of RES)all[d].games[s.eid]={hn:s.hn,an:s.an,pHome:a.pH,margin:a.pr.margin,total:a.pr.total,ptsH:a.pr.ptsH,ptsA:a.pr.ptsA};
+  const k=Object.keys(all).sort();while(k.length>10)delete all[k.shift()];store(OUTK,all);}
+
+// ---------- backtest ----------
+document.getElementById('btRun').onclick=async()=>{
+  const b=document.getElementById('btRun');b.disabled=true;setBar('btBar',0);document.getElementById('btOut').innerHTML='';
+  try{
+    const date=iso(new Date());C=await loadSeason(date,(p,t)=>{setBar('btBar',p*.5);if(t)setS('btSt',t);});
+    const all=Object.values(C.games).filter(g=>g.b).sort((x,y)=>x.d<y.d?-1:1);const warm=Number(document.getElementById('warm').value),every=Number(document.getElementById('refit').value);
+    if(all.length<warm+20){setS('btSt',`Only ${all.length} games so far; need at least ${warm+20} for this warm-up. Pick a smaller warm-up or wait a few days.`,true);b.disabled=false;return;}
+    LS=lastSeason();
+    // 1) tune prior strength on a coarse pass (every 3rd test game, refit each time)
+    const cands=[2,4,8,16];const tune={};
+    for(let ci=0;ci<cands.length;ci++){const L=cands[ci];let e=0,n=0;
+      for(let i=warm;i<all.length;i+=3){const g=all[i];const prev=all.slice(0,i).filter(x=>x.d<g.d);const agg=aggregate(prev);const pr=pid=>priorOf(pid,agg,LS);const Mx=fit(buildObs(prev,g.d,0),pr,L,null,25);
+        const sc=(own,opp,side)=>Mx.base+side*Mx.hca/2+own.reduce((s,[q,w])=>s+w*rating(Mx,q,pr).O,0)-opp.reduce((s,[q,w])=>s+w*rating(Mx,q,pr).D,0);
+        const lh=g.b.filter(r=>r[1]===g.h).map(r=>[r[0],r[3]/48]),la=g.b.filter(r=>r[1]===g.a).map(r=>[r[0],r[3]/48]);e+=Math.abs((g.hs-g.as)-(sc(lh,la,1)-sc(la,lh,-1)));n++;
+        if(n%10===0){setBar('btBar',.5+.25*(ci+n*3/(all.length-warm))/cands.length);setS('btSt',`Tuning prior strength ${L}...`);await tick();}}
+      tune[L]=e/Math.max(1,n);}
+    const lam=document.getElementById('lam').value==='auto'?Number(Object.keys(tune).sort((a,b)=>tune[a]-tune[b])[0]):Number(document.getElementById('lam').value);
+    const preds=[];let M=null,MP=null,fitDay=null;
+    const testIdx=[];for(let i=warm;i<all.length;i++)testIdx.push(i);
+    for(let k=0;k<testIdx.length;k++){const g=all[testIdx[k]];const prev=all.slice(0,testIdx[k]).filter(x=>x.d<g.d);
+      if(!M||daysBetween(fitDay,g.d)>=every){const agg=aggregate(prev);const prior=pid=>priorOf(pid,agg,LS);const obs=buildObs(prev,g.d,0);M=fit(obs,prior,lam,M,M?12:40);M.agg=agg;M.prior=prior;MP=fit(obs,prior,1e6,null,4);fitDay=g.d;
+        setBar('btBar',.75+.25*k/testIdx.length);setS('btSt',`Testing game ${k+1} of ${testIdx.length}...`);await tick();}
+      const last={};for(const x of prev){last[x.h]=x.d;last[x.a]=x.d;}const b2b={h:last[g.h]===addDays(g.d,-1),a:last[g.a]===addDays(g.d,-1)};
+      const lineupFrom=(tid)=>g.b.filter(r=>r[1]===tid).map(r=>[r[0],r[3]/48]);
+      const score=(Mx,own,opp,side,ob,oob)=>Mx.base+side*Mx.hca/2+B2B_OWN*ob+B2B_OPP*oob+own.reduce((s,[p,w])=>s+w*rating(Mx,p,M.prior).O,0)-opp.reduce((s,[p,w])=>s+w*rating(Mx,p,M.prior).D,0);
+      const lh=lineupFrom(g.h),la=lineupFrom(g.a);
+      const ph=score(M,lh,la,1,b2b.h?1:0,b2b.a?1:0),pa=score(M,la,lh,-1,b2b.a?1:0,b2b.h?1:0);
+      const qh=score(MP,lh,la,1,b2b.h?1:0,b2b.a?1:0),qa=score(MP,la,lh,-1,b2b.a?1:0,b2b.h?1:0);
+      preds.push({g,m:ph-pa,t:ph+pa,mp:qh-qa,tp:qh+qa});}
+    // results
+    const res=preds.map(p=>({...p,am:p.g.hs-p.g.as,at:p.g.hs+p.g.as}));
+    const sdM=Math.sqrt(res.reduce((s,r)=>s+(r.am-r.m)**2,0)/res.length),sdT=Math.sqrt(res.reduce((s,r)=>s+(r.at-r.t)**2,0)/res.length);
+    store(SIGK,{m:clamp(sdM,10,16),t:clamp(sdT,14,22),n:res.length,at:Date.now(),lam});
+    const acc=f=>res.filter(f).length/res.length;const mae=(f)=>res.reduce((s,r)=>s+Math.abs(f(r)),0)/res.length;
+    const ats=(edgeMin)=>{let w=0,l=0,p=0;for(const r of res){if(r.g.sp==null)continue;const e=r.m+r.g.sp;if(Math.abs(e)<edgeMin)continue;const c=r.am+r.g.sp;if(c===0){p++;continue;}if((e>0)===(c>0))w++;else l++;}return {w,l,p};};
+    const ou=(edgeMin)=>{let w=0,l=0,p=0;for(const r of res){if(r.g.tot==null)continue;const e=r.t-r.g.tot;if(Math.abs(e)<edgeMin)continue;if(r.at===r.g.tot){p++;continue;}if((e>0)===(r.at>r.g.tot))w++;else l++;}return {w,l,p};};
+    const roi=x=>x.w+x.l?((x.w*100/110-x.l)/(x.w+x.l)*100):0;const fmt=x=>`${x.w}-${x.l}${x.p?'-'+x.p:''}`;
+    const mktM=res.filter(r=>r.g.sp!=null),mktT=res.filter(r=>r.g.tot!=null);
+    const mktMae=mktM.length?mktM.reduce((s,r)=>s+Math.abs(r.am+r.g.sp),0)/mktM.length:null,mktTae=mktT.length?mktT.reduce((s,r)=>s+Math.abs(r.at-r.g.tot),0)/mktT.length:null;
+    const modMaeOnM=mktM.length?mktM.reduce((s,r)=>s+Math.abs(r.am-r.m),0)/mktM.length:null,modTaeOnT=mktT.length?mktT.reduce((s,r)=>s+Math.abs(r.at-r.t),0)/mktT.length:null;
+    const bins=[[.5,.6],[.6,.7],[.7,.8],[.8,1.01]].map(([lo,hi])=>{const xs=res.map(r=>({p:normCDF(r.m/sdM),w:r.am>0})).map(x=>x.p>=.5?x:{p:1-x.p,w:!x.w}).filter(x=>x.p>=lo&&x.p<hi);return {lo,hi,n:xs.length,exp:xs.length?xs.reduce((s,x)=>s+x.p,0)/xs.length:0,act:xs.length?xs.filter(x=>x.w).length/xs.length:0};});
+    const row=(k,v,n)=>`<tr><td>${k}</td><td>${v}</td><td class="dim">${n||''}</td></tr>`;
+    const a0=ats(0),a3=ats(3),o0=ou(0),o3=ou(4);
+    document.getElementById('btOut').innerHTML=`<div class="panel"><div class="plabel">RESULTS · ${res.length} GAMES TESTED</div>
+      <table><tr><th></th><th>Player model</th><th></th></tr>
+      ${row('Picked the winner',pct(acc(r=>(r.m>0)===(r.am>0))),`last-season/box priors only: ${pct(acc(r=>(r.mp>0)===(r.am>0)))}`)}
+      ${row('Margin error (avg)',mae(r=>r.am-r.m).toFixed(1)+' pts',`priors only: ${mae(r=>r.am-r.mp).toFixed(1)}${mktMae!=null?` · closing spread: ${mktMae.toFixed(1)} (model on same games ${modMaeOnM.toFixed(1)})`:''}`)}
+      ${row('Total error (avg)',mae(r=>r.at-r.t).toFixed(1)+' pts',`priors only: ${mae(r=>r.at-r.tp).toFixed(1)}${mktTae!=null?` · closing total: ${mktTae.toFixed(1)} (model on same games ${modTaeOnT.toFixed(1)})`:''}`)}
+      ${row('Against the spread, every game',fmt(a0),`${roi(a0).toFixed(1)}% ROI at -110 · ${a0.w+a0.l} graded`)}
+      ${row('Against the spread, 3+ pt edge',fmt(a3),`${roi(a3).toFixed(1)}% ROI`)}
+      ${row('Totals, every game',fmt(o0),`${roi(o0).toFixed(1)}% ROI`)}
+      ${row('Totals, 4+ pt edge',fmt(o3),`${roi(o3).toFixed(1)}% ROI`)}
+      ${row('Residual spread (σ)',`margin ${sdM.toFixed(1)} · total ${sdT.toFixed(1)}`,'saved and used for today\'s win and cover chances')}
+      </table>
+      <div class="note">Prior strength tested: ${Object.keys(tune).map(k=>`${k} → ${tune[k].toFixed(2)} pts avg margin error`).join(' · ')}. Using <b>${lam}</b>${document.getElementById('lam').value==='auto'?' (saved; the slate now uses it on Auto)':''}.</div>
+      <div class="plabel mt">CALIBRATION</div><table><tr><th>Model's chance</th><th>Games</th><th>Expected</th><th>Actual</th></tr>${bins.map(x=>`<tr><td>${(x.lo*100).toFixed(0)}–${Math.min(100,x.hi*100).toFixed(0)}%</td><td>${x.n}</td><td>${pct(x.exp,0)}</td><td>${x.n?pct(x.act,0):'—'}</td></tr>`).join('')}</table>
+      <div class="note">How to read this: break-even against the spread at -110 is 52.4%. Beating the closing line over a few hundred games is hard and would be a real edge; a smaller margin error than the closing spread would be remarkable. With under 200 graded games, a few points either way is still mostly luck. ${mktM.length?'':'ESPN had no stored closing lines for these games, so only accuracy is shown.'}</div></div>`;
+    setBar('btBar',1);setS('btSt',`Done. ${res.length} games tested out of sample.`);
+  }catch(err){setS('btSt','Something went wrong: '+err.message,true);}
+  b.disabled=false;};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+b.dataset.t));});
+['edgeT','injMode','ddW'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(SLATE.length)render();}));
+</script>
+</body>
+</html>
