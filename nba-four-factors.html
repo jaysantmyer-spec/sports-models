@@ -298,7 +298,7 @@ document.getElementById('run').addEventListener('click',async()=>{
     home.b2b=hB;away.b2b=aB;
     let actual=null;
     if(e.status.type.state==='post'){const hs=Number(H.score),as=Number(A.score);if(isFinite(hs)&&isFinite(as))actual={home:hs,away:as,total:hs+as,winner:hs>as?'home':'away'};}
-    slate.push({id:i,home,away,actual,ovr:{}});
+    slate.push({id:i,eid:String(e.id),date,home,away,actual,ovr:{}});
   }
   if(!slate.length){setS('No usable games.',true);btn.disabled=false;return;}
   setBar(1);setS(`${slate.length} game${slate.length===1?'':'s'} simulated.`);render();btn.disabled=false;
@@ -334,7 +334,8 @@ function render(){
   document.getElementById('score').innerHTML=gM?`<div class="scoreboard">
     <div class="sb"><div class="l">Moneyline</div><div class="v">${((cM/gM)*100).toFixed(0)}%</div><div class="r">${cM}/${gM}</div></div>
     <div class="sb"><div class="l">Total</div><div class="v">${gT?((cT/gT)*100).toFixed(0):'—'}%</div><div class="r">${cT}/${gT}</div></div></div>`:'';
-  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('');
+  document.getElementById('out').innerHTML='<div class="section-title">MATCHUPS</div>'+slate.map(card).join('')+'<a class="btn" style="display:block;text-align:center;text-decoration:none;" href="nba-critic.html">OPEN THE CRITIC &rarr;</a>';
+  saveFF();
   Object.keys(saved).forEach(k=>{const e=document.getElementById(k);if(e)e.value=saved[k];});
   slate.forEach(s=>{if(['oa','oh','ol'].some(k=>saved[`${k}-${s.id}`]))price(s.id);});
 }
@@ -390,6 +391,14 @@ function card(s){
         <button class="btn ghost" onclick="clearOvr(${s.id})">CLEAR OVERRIDES</button></div>
       <div class="work">Blended per-possession rates in play<br>${s.home.name.split(' ').pop()}: eFG <b>${(sim.efgA*100).toFixed(1)}%</b> &middot; TOV <b>${(sim.tovA*100).toFixed(1)}%</b> &middot; ORB <b>${(sim.orbA*100).toFixed(1)}%</b> &middot; FTr <b>${(sim.ftrA*100).toFixed(1)}%</b><br>${s.away.name.split(' ').pop()}: eFG <b>${(sim.efgB*100).toFixed(1)}%</b> &middot; TOV <b>${(sim.tovB*100).toFixed(1)}%</b> &middot; ORB <b>${(sim.orbB*100).toFixed(1)}%</b> &middot; FTr <b>${(sim.ftrB*100).toFixed(1)}%</b><br>Home court +${(c.cfg.hca*100).toFixed(1)}% eFG &middot; fatigue +${(c.cfg.fat*100).toFixed(1)}% by final possession &middot; whistle &times;${c.cfg.ref.toFixed(2)}</div>
     </div></div>`;
+}
+// Save this run for nba-critic.html, which uses it as a second, this-season-only opinion.
+function saveFF(){
+  if(!slate.length)return;let all={};try{all=JSON.parse(localStorage.getItem('nbaFFSlate_v1')||'{}')||{};}catch(e){}
+  const d=slate[0].date;all[d]={savedAt:new Date().toISOString(),games:{}};
+  for(const s of slate){const c=s._c||compute(s);all[d].games[s.eid]={hn:s.home.name,an:s.away.name,pHome:c.sim.pHome,margin:c.sim.margin,total:c.sim.total,ptsH:c.sim.ptsA,ptsA:c.sim.ptsB,manual:!!(s.home.manual||s.away.manual)};}
+  const keys=Object.keys(all).sort();while(keys.length>10)delete all[keys.shift()];
+  try{localStorage.setItem('nbaFFSlate_v1',JSON.stringify(all));}catch(e){}
 }
 function setOvr(id,key,val){const s=slate.find(x=>x.id===id);if(!s)return;if(val===''||val==null||(typeof val==='number'&&isNaN(val)))delete s.ovr[key];else s.ovr[key]=Number(val);render();}
 function clearOvr(id){const s=slate.find(x=>x.id===id);if(!s)return;s.ovr={};render();}

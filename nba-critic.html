@@ -40,7 +40,15 @@ input:focus,select:focus{border-color:var(--amber);}
 .note.good{border-left-color:var(--green);background:rgba(95,174,122,.09);color:#BFE3CB;}
 .note b{color:var(--chalk);}
 .card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
-.card.play{border-color:rgba(95,174,122,.55);}.card.flagged{border-color:rgba(192,67,58,.5);}
+.card.play{border-color:rgba(95,174,122,.55);}
+/* both models agree: gold glow */
+@keyframes goldPulse{0%,100%{box-shadow:0 0 6px 1px rgba(242,169,59,.35),inset 0 0 0 1px rgba(242,169,59,.55);}50%{box-shadow:0 0 18px 4px rgba(242,169,59,.6),inset 0 0 0 1px rgba(255,214,120,.9);}}
+.card.gold{border-color:#F2A93B;animation:goldPulse 2.4s ease-in-out infinite;background:linear-gradient(180deg,rgba(242,169,59,.10),var(--navy) 55%);}
+.plays .p.gold{border-left-color:#F2A93B;background:rgba(242,169,59,.14);animation:goldPulse 2.4s ease-in-out infinite;}
+.bets .bet.gold{border-color:#F2A93B;box-shadow:0 0 10px rgba(242,169,59,.45);}
+.goldtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#1A1400;background:linear-gradient(90deg,#F2A93B,#FFD678);border-radius:4px;padding:2px 6px;margin-top:4px;}
+@media (prefers-reduced-motion:reduce){.card.gold,.plays .p.gold{animation:none;box-shadow:0 0 12px 2px rgba(242,169,59,.5);}}
+.card.flagged{border-color:rgba(192,67,58,.5);}
 .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
 .cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
 .csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
@@ -76,7 +84,7 @@ details{margin-top:9px;}summary{font-size:11px;color:var(--dim);cursor:pointer;}
   <div id="top"></div>
   <div id="out"></div>
 
-  <p class="footnote">How it judges. Market win chance is the moneyline with the vig removed. Spread cover and over/under chances use the model's margin and total with its own fitted residual spreads (σ), so a 2-point gap matters less in a game with a wide σ. A side is a <b>play</b> when the model's chance beats the price's implied chance by at least your edge threshold, a <b>lean</b> at half of that. When the model and market disagree by more than 6 points of margin or 10 of total, the gap usually means the market has news the model doesn't (late scratches, rest, a trade), so the side is marked <b>check news</b> instead of play. A moneyline edge is ignored when the model and market agree on the margin within 1.5 pts, since it then comes only from how the model converts a margin into a win chance. Side edges that rest mostly on this season's first few games are downgraded a level, and a side is marked check news when the team the model likes lost key players since last season (or its opponent gained them). Line moves are measured from the first time the critic saw each game. The track record logs each game's pregame call and grades it from ESPN's final score. The optional Claude news check sends the game's numbers to Anthropic's API with web search, using your own key, and a red flag marks the game check news for 12 hours. Lines can be edited inside each card. This is a research tool, not betting advice.</p>
+  <p class="footnote">How it judges. Market win chance is the moneyline with the vig removed. Spread cover and over/under chances use the model's margin and total with its own fitted residual spreads (σ), so a 2-point gap matters less in a game with a wide σ. A side is a <b>play</b> when the model's chance beats the price's implied chance by at least your edge threshold, a <b>lean</b> at half of that. When the model and market disagree by more than 6 points of margin or 10 of total, the gap usually means the market has news the model doesn't (late scratches, rest, a trade), so the side is marked <b>check news</b> instead of play. A moneyline edge is ignored when the model and market agree on the margin within 1.5 pts, since it then comes only from how the model converts a margin into a win chance. Side edges that rest mostly on this season's first few games are downgraded a level, and a side is marked check news when the team the model likes lost key players since last season (or its opponent gained them). Line moves are measured from the first time the critic saw each game. When at least 5 games have totals and the model's typical (median) gap to the market is 2+ pts, every total is shifted by that slate-wide amount before pricing. Overs are downgraded when either team is missing 4+ pts of player value. If the Four Factors Simulator has been run for the date, plays it disagrees with drop a level. The track record logs each game's pregame call and grades it from ESPN's final score. The optional Claude news check sends the game's numbers to Anthropic's API with web search, using your own key, and a red flag marks the game check news for 12 hours. Lines can be edited inside each card. This is a research tool, not betting advice.</p>
 </div>
 
 <script>
@@ -119,6 +127,9 @@ function parseOdds(o,ha,aa){
   return (r.sH==null&&r.mlH==null&&r.tot==null)?null:r;
 }
 
+let FF=load('nbaFFSlate_v1')||{},PM=load('nbaPMSlate_v1')||{},TOT_BIAS=0,TOT_BIAS_N=0,FF_BIAS=0;
+// Second opinion: the Player Model when it has been run for the date, otherwise the Four Factors simulator.
+function second(date){const pm=(PM[date]||{}).games;if(pm&&Object.keys(pm).length)return {games:pm,name:'Player model',short:'Player model',src:'pm'};const ff=(FF[date]||{}).games;return {games:ff||{},name:'Four Factors simulator',short:'FF sim',src:'ff'};}
 let SNAP=null,MKT={},EDITS=load(EDIT_KEY)||{},FETCHED=null,OPEN=load(OPEN_KEY)||{},LOG=load(LOG_KEY)||{},NEWS=load(NEWS_KEY)||{};
 
 async function fetchMarket(){
@@ -155,12 +166,13 @@ function analyse(g){
   // market fair numbers
   let nvH=null;if(mk.mlH!=null&&mk.mlA!=null){const iH=imp(mk.mlH),iA=imp(mk.mlA);nvH=iH/(iH+iA);}
   else if(mk.sH!=null)nvH=normCDF(-mk.sH/g.sigM);
-  const mM=mk.sH!=null?-mk.sH:null;const dM=mM!=null?g.m-mM:null;const dT=mk.tot!=null?g.tot-mk.tot:null;
+  const gTot=g.tot-TOT_BIAS;
+  const mM=mk.sH!=null?-mk.sH:null;const dM=mM!=null?g.m-mM:null;const dT=mk.tot!=null?gTot-mk.tot:null;
   const bigM=dM!=null&&Math.abs(dM)>BIG_M,bigT=dT!=null&&Math.abs(dT)>BIG_T;
   const add=(label,p,price,kind,susp,side,line)=>{if(price==null||p==null)return;const i=imp(price);const edge=p-i;const ev=p*payout(price)-(1-p);bets.push({label,p,price,i,edge,ev,kind,susp,side,line,tier:edge>=T?'play':(edge>=T/2?'lean':'none')});};
   add(`${A} ML`,pA,mk.mlA,'ml',bigM,'away',null);add(`${H} ML`,pH,mk.mlH,'ml',bigM,'home',null);
   if(mk.sH!=null){const cH=normCDF((g.m+mk.sH)/g.sigM);const sA=-mk.sH;add(`${A} ${sgn(sA,1).replace('+0.0','PK')}`,1-cH,mk.sPA,'ats',bigM,'away',sA);add(`${H} ${sgn(mk.sH,1).replace('+0.0','PK')}`,cH,mk.sPH,'ats',bigM,'home',mk.sH);}
-  if(mk.tot!=null){const pO=1-normCDF((mk.tot-g.tot)/g.sigT);add(`Over ${mk.tot}`,pO,mk.oP,'tot',bigT,'over',mk.tot);add(`Under ${mk.tot}`,1-pO,mk.uP,'tot',bigT,'under',mk.tot);}
+  if(mk.tot!=null){const pO=1-normCDF((mk.tot-gTot)/g.sigT);add(`Over ${mk.tot}`,pO,mk.oP,'tot',bigT,'over',mk.tot);add(`Under ${mk.tot}`,1-pO,mk.uP,'tot',bigT,'under',mk.tot);}
   // When model and market agree on the margin, a moneyline "edge" only reflects how the model turns a
   // margin into a win chance (its residual spread), not a different view of the game. Don't play it.
   const sameView=dM!=null&&Math.abs(dM)<AGREE_M;const noView=[];
@@ -219,9 +231,9 @@ function analyse(g){
       if(ro.lost.length)parts.push('lost '+ro.lost.map(r=>`${esc(r.name)} (now ${esc(r.to)})`).join(', '));
       if(gone.length)parts.push('without '+gone.map(r=>esc(r.name)).join(', ')+' (no games this season, not on the injury report)');
       if(ro.gained.length)parts.push('added '+ro.gained.map(r=>`${esc(r.name)} (from ${esc(r.from)})`).join(', '));
-      notes.push([Math.abs(gainV-lostV)>=3?'red':'amber',`<b>${nm} roster changed since last season:</b> ${parts.join('; ')}. Last season is still most of this team's rating, so the model ${gainV>lostV?'likely underrates':'likely overrates'} them by part of that (${sgn(gainV-lostV)} pts of player value).`]);}}
+      notes.push(SNAP.settings.rosterAdj?['',`<b>${nm} roster changed since last season:</b> ${parts.join('; ')}. The Ensemble already moved this team's starting rating by ${sgn(gainV-lostV)} pts for these changes.`]:[Math.abs(gainV-lostV)>=3?'red':'amber',`<b>${nm} roster changed since last season:</b> ${parts.join('; ')}. Last season is still most of this team's rating, so the model ${gainV>lostV?'likely underrates':'likely overrates'} them by part of that (${sgn(gainV-lostV)} pts of player value).`]);}}
   // if the model likes a team that lost value (or fades one that gained), the side edge is suspect
-  if(dM!=null&&Math.abs(dM)>=AGREE_M){const fav=dM>0?'home':'away',opp=fav==='home'?'away':'home';
+  if(!SNAP.settings.rosterAdj&&dM!=null&&Math.abs(dM)>=AGREE_M){const fav=dM>0?'home':'away',opp=fav==='home'?'away':'home';
     if((rosterNet[fav]!=null&&rosterNet[fav]<=-2.5)||(rosterNet[opp]!=null&&rosterNet[opp]>=2.5))for(const b of bets)if((b.kind==='ats'||b.kind==='ml')&&b.side===fav){b.susp=true;b.roster=true;}}
   // 12. line movement since the critic first saw this game
   const o=OPEN[g.eid];if(o){const mv=[];
@@ -231,18 +243,35 @@ function analyse(g){
       mv.push(`total ${o.tot} → ${mk.tot} (${Math.abs(now)<Math.abs(was)?'toward the model':'away from the model'})`);}
     if(mv.length){const away=mv.some(x=>x.includes('away from'));notes.push([away?'amber':'',`<b>Line moved</b> since ${new Date(o.at).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})}: ${mv.join('; ')}.${away?' When the market moves away from the model, it often has news or sharper money the model doesn\'t.':''}`]);}}
 
+  // 13. Four Factors simulator (this season's box-score stats only) as a second opinion
+  const SEC=second(g.date||SNAP.date);const ffg=SEC.games;const ff=ffg&&ffg[g.eid]&&!ffg[g.eid].manual?ffg[g.eid]:null;let ffAgree=null;
+  if(ff){const ag=[],dis=[];
+    for(const b of bets){if(b.tier==='none')continue;let yes=null;
+      if((b.kind==='ats'||b.kind==='ml')&&mM!=null){const ffEdge=ff.margin-mM;yes=b.side==='home'?ffEdge>0:ffEdge<0;}
+      else if(b.kind==='ats'||b.kind==='ml'){yes=b.side==='home'?ff.pHome>=.5:ff.pHome<.5;}
+      else if(b.kind==='tot'){const ft=ff.total-FF_BIAS;yes=b.side==='over'?ft>mk.tot+1:ft<mk.tot-1;if(Math.abs(ft-mk.tot)<=1)yes=null;}
+      if(yes===true){b.ff='agree';ag.push(b.label);}else if(yes===false){b.ff='disagree';b.tier=b.tier==='play'?'lean':'none';dis.push(b.label);}}
+    const ffSide=`${ff.margin>=0?H+' by '+ff.margin.toFixed(1):A+' by '+(-ff.margin).toFixed(1)}, total ${(ff.total-FF_BIAS).toFixed(1)}${FF_BIAS?` after removing its slate-wide ${sgn(FF_BIAS)} lean`:''}`;
+    if(dis.length)notes.push(['amber',`<b>${SEC.name} disagrees</b> on ${dis.map(esc).join(', ')} (it has ${ffSide}). It ${SEC.src==='pm'?'builds each team from the players who will actually play':'uses only this season\'s stats'}, so it sees roster changes the Ensemble is slow on. Downgraded a level.`]);
+    else if(ag.length)notes.push(['good',`<b>${SEC.name} agrees</b> on ${ag.map(esc).join(', ')} (it has ${ffSide}). Two models built from different data pointing the same way.`]);
+    ffAgree=dis.length?'disagree':(ag.length?'agree':null);}
+  // 14. overs on short-handed teams: scorers missing that the model's totals don't fully remove
+  const outV=(inj,ro)=>(inj&&inj.total||0)+(ro&&!SNAP.settings.rosterAdj?[...ro.lost,...ro.absent.filter(r=>!injNames(inj).has(r.name))].reduce((t,r)=>t+r.v,0):0);
+  const depH=outV(g.injH,g.rosterH),depA=outV(g.injA,g.rosterA);
+  if(Math.max(depH,depA)>=4)for(const b of bets)if(b.kind==='tot'&&b.side==='over'&&b.tier!=='none'){b.tier=b.tier==='play'?'lean':'none';b.depleted=true;
+    notes.push(['amber',`<b>Over downgraded:</b> ${depH>=depA?H:A} is missing about ${Math.max(depH,depA).toFixed(1)} pts of player value. Overs on short-handed teams have been our most common loser, because the model only removes part of a missing scorer's points from the total.`]);break;}
   const nw=NEWS[g.eid];if(nw&&nw.verdict==='red_flag'&&Date.now()-nw.at<12*36e5){for(const b of bets)b.susp=true;notes.push(['red','Claude\'s news check raised a <b>red flag</b> (see below), so every side here is marked check news until you\'ve read it.']);}
   // a headline 'holds up' can't stand next to warnings that make its side suspect
   const favBet=bets.find(x=>x.kind==='ml'&&x.side===(favH?'home':'away'));const hi=notes.findIndex(n=>n[2]==='headline');
   if(hi>=0&&favBet&&(favBet.susp||favBet.noise))notes[hi]=['amber',`On paper the model's pick, <b>${esc(favN)}</b>, is ${sgn(favBet.edge*100)} pts better than its ${fmtAm(favBet.price)} price, but the warnings below say the model is probably missing something on this side. Don't treat it as an edge until they're cleared.`];
   // verdict
-  const ok=bets.filter(b=>b.tier!=='none').sort((a,b)=>b.edge-a.edge);const clean=ok.filter(b=>!b.susp),susp=ok.filter(b=>b.susp);
+  const rk=t=>t==='play'?2:(t==='lean'?1:0);const ok=bets.filter(b=>b.tier!=='none').sort((a,b)=>rk(b.tier)-rk(a.tier)||b.edge-a.edge);const clean=ok.filter(b=>!b.susp),susp=ok.filter(b=>b.susp);
   let v;if(clean.length&&clean[0].tier==='play')v={k:'play',t:'PLAY',best:clean[0]};
   else if(susp.length&&susp[0].tier==='play')v={k:'check',t:'CHECK NEWS',best:susp[0]};
   else if(clean.length)v={k:'lean',t:'LEAN',best:clean[0]};
   else v={k:'pass',t:'PASS',best:null};
   if(!bets.length)v={k:'pass',t:'NO LINES',best:null};
-  return {mk,nvH,mM,dM,dT,bets,notes,v,bigM,bigT};
+  return {mk,nvH,mM,dM,dT,bets,notes,v,bigM,bigT,ffAgree,ff,gTot};
 }
 
 function grade(g,a){
@@ -257,21 +286,22 @@ function grade(g,a){
   return `<div class="result">${out.join(' ')}</div>`;
 }
 
-function betCell(b){const cls=b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':'');const c=b.edge>=0?'pos':'neg';
-  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':(b.noise?'<br><i>small sample</i>':(b.roster?'<br><i>roster change</i>':''))}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
+function betCell(b){const cls=(b.ff==='agree'&&b.tier!=='none'&&!b.susp?'gold ':'')+(b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':''));const c=b.edge>=0?'pos':'neg';
+  return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':(b.ff==='disagree'?`<br><i>${second(SNAP.date).short} disagrees</i>`:(b.depleted?'<br><i>short-handed</i>':(b.noise?'<br><i>small sample</i>':(b.roster?'<br><i>roster change</i>':(b.ff==='agree'?'<br><i>both models agree</i>':'')))))}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
 
 function card(g,a){
   const H=nick(g.hn),A=nick(g.an),mk=a.mk;const b=a.v.best;
   const vd=b?`${esc(b.label)} ${fmtAm(b.price)}<br>${sgn(b.edge*100)} pts · EV ${sgn(b.ev*100,0)}¢/$1`:(a.v.t==='NO LINES'?'add lines below':'no side clears the bar');
   const row=(k,mv,mkv,gap)=>`<tr><td class="k2">${k}</td><td>${mv}</td><td>${mkv}</td><td class="${gap==null?'flat':(Math.abs(gap.v)<gap.small?'flat':'')}">${gap==null?'—':gap.s}</td></tr>`;
   const ed=EDITS[g.eid]||{};const inp=(k,lbl,val,step)=>`<div><label>${lbl}</label><input type="number" step="${step||1}" value="${ed[k]!=null?ed[k]:''}" placeholder="${val==null?'':val}" onchange="edit('${g.eid}','${k}',this.value)"></div>`;
-  return `<div class="card ${a.v.k==='play'?'play':(a.v.k==='check'?'flagged':'')}">
+  const gold=b&&b.ff==='agree'&&(a.v.k==='play'||a.v.k==='lean');
+  return `<div class="card ${gold?'gold':(a.v.k==='play'?'play':(a.v.k==='check'?'flagged':''))}">
     <div class="chead"><div><div class="cmatch">${esc(g.an)} @ ${esc(g.hn)}</div><div class="csub">Lines: ${mk.src?esc(mk.src)+(mk.provider?' · '+esc(mk.provider):''):'none found'}</div></div>
-      <div class="verdict"><div class="k ${a.v.k}">${a.v.t}</div><div class="d">${vd}</div></div></div>
+      <div class="verdict"><div class="k ${a.v.k}">${a.v.t}</div><div class="d">${vd}</div>${gold?'<div class="goldtag">★ BOTH MODELS AGREE</div>':''}</div></div>
     <table><tr><th></th><th>Model</th><th>Market</th><th>Gap</th></tr>
       ${row(`${H} margin`,sgn(g.m),a.mM!=null?sgn(a.mM):'—',a.dM!=null?{v:a.dM,s:sgn(a.dM),small:1.5}:null)}
       ${row(`${H} win`,pct(g.pE),a.nvH!=null?pct(a.nvH)+(mk.mlH==null?'*':''):'—',a.nvH!=null?{v:(g.pE-a.nvH)*100,s:sgn((g.pE-a.nvH)*100)+' pts',small:2}:null)}
-      ${row('Total',g.tot.toFixed(1),mk.tot!=null?mk.tot:'—',a.dT!=null?{v:a.dT,s:sgn(a.dT),small:2}:null)}
+      ${row(TOT_BIAS?'Total (adj.)':'Total',a.gTot.toFixed(1),mk.tot!=null?mk.tot:'—',a.dT!=null?{v:a.dT,s:sgn(a.dT),small:2}:null)}
     </table>
     ${a.bets.length?`<div class="bets">${a.bets.map(betCell).join('')}</div>`:''}
     ${a.notes.map(([c,t])=>`<div class="note ${c}">${t}</div>`).join('')}
@@ -302,7 +332,7 @@ function logSlate(res){let ch=false;
     if(!cur||(!cur.locked&&(!st||st==='pre'))){const b=a.v.best;
       LOG[g.eid]={date:g.date||SNAP.date,m:`${nick(g.an)} @ ${nick(g.hn)}`,tier:a.v.k,
         best:b?{label:b.label,kind:b.kind,side:b.side,line:b.line,price:b.price,p:b.p,edge:b.edge}:null,
-        pick:g.pE>=.5?'home':'away',news:NEWS[g.eid]?NEWS[g.eid].verdict:null,at:Date.now()};ch=true;}
+        pick:g.pE>=.5?'home':'away',ff:(a.v.best&&a.v.best.ff)||null,news:NEWS[g.eid]?NEWS[g.eid].verdict:null,at:Date.now()};ch=true;}
     const e=LOG[g.eid];if(e&&st&&st!=='pre'&&!e.locked){e.locked=true;ch=true;}
     if(e&&act&&!e.act){e.act=act;e.locked=true;ch=true;}}
   if(ch)store(LOG_KEY,LOG);}
@@ -316,6 +346,8 @@ async function gradeOld(){const need={};for(const id in LOG){const e=LOG[id];if(
 function trackRecord(){
   const rows=[['PLAY',e=>e.tier==='play'],['LEAN',e=>e.tier==='lean'],['CHECK NEWS',e=>e.tier==='check'],
     ['Moneylines (plays + leans)',e=>(e.tier==='play'||e.tier==='lean')&&e.best.kind==='ml'],['Spreads (plays + leans)',e=>(e.tier==='play'||e.tier==='lean')&&e.best.kind==='ats'],['Totals (plays + leans)',e=>(e.tier==='play'||e.tier==='lean')&&e.best.kind==='tot'],
+    ['Overs',e=>(e.tier==='play'||e.tier==='lean')&&e.best.side==='over'],['Unders',e=>(e.tier==='play'||e.tier==='lean')&&e.best.side==='under'],
+    ['Both models agreed',e=>e.ff==='agree'&&e.best],['Models disagreed',e=>e.ff==='disagree'&&e.best],
     ['Claude said holds',e=>e.news==='holds'&&e.best],['Claude flagged',e=>(e.news==='caution'||e.news==='red_flag')&&e.best]];
   const graded=Object.values(LOG).filter(e=>e.act);
   const line=(name,f)=>{let w=0,l=0,pu=0,u=0,n=0;for(const e of graded){if(!e.best||!f(e))continue;const r=settle(e.best,e.act);if(!r)continue;n++;
@@ -404,13 +436,26 @@ function newsBox(g){const n=NEWS[g.eid];const key=apiKey();if(!n&&!key)return ''
     <div style="font-size:10px;opacity:.7;margin-top:4px">Checked ${new Date(n.at).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})}</div></div>${btn}`;}
 
 let LAST=[];
+function slateTotalBias(){
+  const d=SNAP.games.map(g=>{const m=market(g);return m.tot!=null?g.tot-m.tot:null;}).filter(x=>x!=null);
+  TOT_BIAS_N=d.length;const srt=[...d].sort((x,y)=>x-y);const med=srt.length?(srt.length%2?srt[(srt.length-1)/2]:(srt[srt.length/2-1]+srt[srt.length/2])/2):0;
+  // a slate-wide lean the same way is the model's scoring level drifting, not many separate edges.
+  // The median (not the mean) so one or two real outliers don't drag every other game across the line.
+  TOT_BIAS=d.length>=5&&Math.abs(med)>=2?med:0;
+  const ffd=second(SNAP.date).games;const f=SNAP.games.map(g=>{const m=market(g),x=ffd[g.eid];return m.tot!=null&&x&&!x.manual?x.total-m.tot:null;}).filter(x=>x!=null).sort((x,y)=>x-y);
+  FF_BIAS=f.length>=3?(f.length%2?f[(f.length-1)/2]:(f[f.length/2-1]+f[f.length/2])/2):0;
+}
 function render(){
+  slateTotalBias();
   const res=SNAP.games.map(g=>({g,a:analyse(g)}));LAST=res;logSlate(res);
   const T=SNAP.settings.edgeT||.03;
   const plays=res.filter(r=>r.a.v.k==='play'),leans=res.filter(r=>r.a.v.k==='lean'),checks=res.filter(r=>r.a.v.k==='check');
   const dMs=res.map(r=>r.a.dM).filter(x=>x!=null),dTs=res.map(r=>r.a.dT).filter(x=>x!=null);
   const mae=a=>a.length?a.reduce((s,x)=>s+Math.abs(x),0)/a.length:null;const mM=mae(dMs),mT=mae(dTs);
   const slate=[];
+  if(TOT_BIAS)slate.push(['amber',`<b>Totals corrected by ${sgn(-TOT_BIAS)} pts.</b> Across ${TOT_BIAS_N} games the model's totals sit a typical ${Math.abs(TOT_BIAS).toFixed(1)} pts ${TOT_BIAS>0?'above':'below'} the market (median). A whole slate leaning one way is the model's scoring level being off, not ${TOT_BIAS_N} separate edges, so every total is shifted by that amount before pricing.`]);
+  {const SEC=second(SNAP.date);const ffd=SEC.games;const n=ffd?SNAP.games.filter(g=>ffd[g.eid]).length:0;
+   slate.push(n?['good',`${SEC.name} loaded for ${n} of ${SNAP.games.length} games as a second opinion. Gold = both models agree; plays it disagrees with drop a level.`]:['',`No second opinion for ${esc(SNAP.date)} yet. Run the <a href="nba-player-model.html">Player Model</a> (best) or the <a href="nba-four-factors.html">Four Factors Simulator</a> for this date, then come back: plays both models agree on glow gold.`]);}
   if(mM!=null)slate.push([mM<=2.5?'good':(mM<=4?'':'amber'),`On this slate the model sits <b>${mM.toFixed(1)} pts</b> from the market's spread on average${mT!=null?` and ${mT.toFixed(1)} from the total`:''}. Within about 2–3 pts is typical of a sound model; much more and the gaps are more likely model error than edge.`]);
   if(SNAP.live&&SNAP.live.share<.35)slate.push(['amber',`This season makes up only <b>${(SNAP.live.share*100).toFixed(0)}%</b> of each rating (about ${SNAP.live.perTeam.toFixed(1)} games a team), so the ratings are still mostly last season. Teams that changed a lot over the summer are where the model is weakest.`]);
   if(!SNAP.trained)slate.push(['red','The model was untrained when this slate ran, so every team rated zero (home court and rest only). Train it on last season before trusting any of these.']);
@@ -419,7 +464,7 @@ function render(){
   const age=(Date.now()-new Date(SNAP.savedAt))/36e5;if(age>12)slate.push(['amber',`This slate was run ${age<48?Math.round(age)+' hours':Math.round(age/24)+' days'} ago. Injuries and ratings may have moved; rerun the model for fresh numbers.`]);
   const noLines=res.filter(r=>!r.a.bets.length).length;if(noLines)slate.push(['amber',`${noLines} game${noLines>1?'s have':' has'} no sportsbook lines yet (ESPN posts them closer to game day). Type them in under <i>Edit lines</i>.`]);
 
-  const list=(arr,cls)=>arr.map(r=>`<div class="p ${cls}"><b>${esc(r.a.v.best.label)} ${fmtAm(r.a.v.best.price)}</b> · ${esc(nick(r.g.an))} @ ${esc(nick(r.g.hn))} · model ${pct(r.a.v.best.p)} vs ${pct(r.a.v.best.i)} implied (${sgn(r.a.v.best.edge*100)} pts)</div>`).join('');
+  const list=(arr,cls)=>[...arr].sort((x,y)=>(y.a.v.best.ff==='agree')-(x.a.v.best.ff==='agree')).map(r=>`<div class="p ${cls}${r.a.v.best.ff==='agree'?' gold':''}">${r.a.v.best.ff==='agree'?'★ ':''}<b>${esc(r.a.v.best.label)} ${fmtAm(r.a.v.best.price)}</b> · ${esc(nick(r.g.an))} @ ${esc(nick(r.g.hn))} · model ${pct(r.a.v.best.p)} vs ${pct(r.a.v.best.i)} implied (${sgn(r.a.v.best.edge*100)} pts)</div>`).join('');
   document.getElementById('top').innerHTML=`<div class="panel">
     <div class="plabel">SLATE VERDICT · ${esc(SNAP.date)}</div>
     <div class="stats"><div class="st"><div class="l">Games</div><div class="v">${res.length}</div></div><div class="st"><div class="l">Plays</div><div class="v">${plays.length}</div><div class="r">≥${(T*100).toFixed(0)} pts edge</div></div><div class="st"><div class="l">Leans</div><div class="v">${leans.length}</div></div><div class="st"><div class="l">Check news</div><div class="v">${checks.length}</div></div><div class="st"><div class="l">Avg gap vs line</div><div class="v">${mM!=null?mM.toFixed(1):'—'}</div><div class="r">pts of margin</div></div></div>
