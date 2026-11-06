@@ -87,23 +87,41 @@ function addDays(s,n){const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate
 let RT=load(RT_KEY),ADJ=load(ADJ_KEY)||{},SET=load(SET_KEY)||{n:10000,unc:2.5,injG:10},TEAMS=null,GAMES=null,RES=null;
 
 // ---------- data ----------
+// ESPN team ids are stable; this list is the fallback when the teams feed doesn't load.
+const TEAM_FALLBACK=[[1,'ATL','Atlanta Hawks'],[2,'BOS','Boston Celtics'],[3,'NO','New Orleans Pelicans'],[4,'CHI','Chicago Bulls'],[5,'CLE','Cleveland Cavaliers'],[6,'DAL','Dallas Mavericks'],
+  [7,'DEN','Denver Nuggets'],[8,'DET','Detroit Pistons'],[9,'GS','Golden State Warriors'],[10,'HOU','Houston Rockets'],[11,'IND','Indiana Pacers'],[12,'LAC','LA Clippers'],[13,'LAL','Los Angeles Lakers'],
+  [14,'MIA','Miami Heat'],[15,'MIL','Milwaukee Bucks'],[16,'MIN','Minnesota Timberwolves'],[17,'BKN','Brooklyn Nets'],[18,'NY','New York Knicks'],[19,'ORL','Orlando Magic'],[20,'PHI','Philadelphia 76ers'],
+  [21,'PHX','Phoenix Suns'],[22,'POR','Portland Trail Blazers'],[23,'SAC','Sacramento Kings'],[24,'SA','San Antonio Spurs'],[25,'OKC','Oklahoma City Thunder'],[26,'UTAH','Utah Jazz'],[27,'WSH','Washington Wizards'],
+  [28,'TOR','Toronto Raptors'],[29,'MEM','Memphis Grizzlies'],[30,'CHA','Charlotte Hornets']];
+function teamRec(id,ab,name,short){ab=ALIAS[ab]||ab;const div=Object.keys(DIV).find(k=>DIV[k].includes(ab));return {id:String(id),ab,name,short:short||name.split(' ').pop(),div,east:div?EAST.has(div):null};}
 async function loadTeams(){
-  const d=await getJSON(`${ESPN}/teams`);const list=((((d||{}).sports||[])[0]||{}).leagues||[{}])[0].teams||[];
-  const out={};for(const x of list){const t=x.team;if(!t)continue;let ab=String(t.abbreviation||'').toUpperCase();ab=ALIAS[ab]||ab;
-    const div=Object.keys(DIV).find(k=>DIV[k].includes(ab));out[String(t.id)]={id:String(t.id),ab,name:t.displayName,short:t.shortDisplayName||t.name,div,east:div?EAST.has(div):null};}
+  const out={};
+  for(const u of [`${ESPN}/teams`,`${ESPN}/teams?limit=50`]){
+    const d=await getJSON(u);const list=((((d||{}).sports||[])[0]||{}).leagues||[{}])[0].teams||[];
+    for(const x of list){const t=x.team;if(!t)continue;out[String(t.id)]=teamRec(t.id,String(t.abbreviation||'').toUpperCase(),t.displayName,t.shortDisplayName||t.name);}
+    if(Object.values(out).filter(t=>t.div).length>=30)return out;}
+  for(const [id,ab,name] of TEAM_FALLBACK)if(!out[String(id)]||!out[String(id)].div)out[String(id)]=teamRec(id,ab,(RT&&RT.names&&RT.names[String(id)])||name);
   return out;}
+function parseEvent(e,ev){const comp=(e.competitions||[])[0];if(!comp)return;const H=(comp.competitors||[]).find(x=>x.homeAway==='home'),A=(comp.competitors||[]).find(x=>x.homeAway==='away');if(!H||!A)return;
+  if(!TEAMS[String(H.team.id)]||!TEAMS[String(A.team.id)])return;               // skip exhibitions vs non-NBA teams
+  const st=(comp.status||e.status||{}).type||{};const sc=x=>{const v=x.score;if(v==null)return null;const n=Number(typeof v==='object'?(v.value??v.displayValue):v);return isFinite(n)?n:null;};
+  const fin=!!st.completed||st.state==='post';const nm=String(e.name||e.shortName||'');const stype=Number((e.season&&e.season.type)||(e.seasonType&&e.seasonType.id)||2);
+  if(stype&&stype!==2)return;                                                       // regular season only
+  if(/final/i.test(String((e.seasonType&&e.seasonType.name)||''))&&/cup/i.test(nm))return;
+  ev[String(e.id)]={id:String(e.id),date:String(e.date).slice(0,10),h:String(H.team.id),a:String(A.team.id),fin,hs:fin?sc(H):null,as:fin?sc(A):null};}
 function seasonYear(date){const y=Number(date.slice(0,4)),m=Number(date.slice(5,7));return m>=9?y+1:y;}
 async function loadSchedule(onProg){
   const today=todayET();const yr=seasonYear(today);const c=load(SCHED_KEY);
   if(c&&c.day===today&&c.yr===yr&&c.games&&c.games.length>1000)return c.games;
-  const ids=Object.keys(TEAMS);const ev={};let done=0;
+  const ids=Object.keys(TEAMS).filter(id=>TEAMS[id].div);const ev={};let done=0;
   await pool(ids,6,async id=>{const d=await getJSON(`${ESPN}/teams/${id}/schedule?season=${yr}&seasontype=2`);
-    for(const e of ((d&&d.events)||[])){const comp=(e.competitions||[])[0];if(!comp)continue;const H=comp.competitors.find(x=>x.homeAway==='home'),A=comp.competitors.find(x=>x.homeAway==='away');if(!H||!A)continue;
-      const st=(comp.status||e.status||{}).type||{};const sc=x=>{const v=x.score;if(v==null)return null;const n=Number(typeof v==='object'?(v.value??v.displayValue):v);return isFinite(n)?n:null;};
-      const fin=!!st.completed||st.state==='post';const nm=String(e.name||e.shortName||'');
-      if(/final/i.test(String((e.seasonType&&e.seasonType.name)||''))&&/cup/i.test(nm))continue;
-      ev[String(e.id)]={id:String(e.id),date:String(e.date).slice(0,10),h:String(H.team.id),a:String(A.team.id),fin,hs:fin?sc(H):null,as:fin?sc(A):null};}
-    done++;onProg(done/ids.length);});
+    for(const e of ((d&&d.events)||[]))parseEvent(e,ev);done++;onProg(.5*done/ids.length);});
+  if(Object.keys(ev).length<1000){                                                   // fallback 1: scoreboard by month
+    const months=[];for(let m=0;m<7;m++){const y=m<3?yr-1:yr,mo=((9+m)%12)+1;const first=`${y}${String(mo).padStart(2,'0')}01`,last=`${y}${String(mo).padStart(2,'0')}${new Date(Date.UTC(y,mo,0)).getUTCDate()}`;months.push(`${first}-${last}`);}
+    let k=0;await pool(months,3,async r=>{const d=await getJSON(`${ESPN}/scoreboard?dates=${r}&limit=1000`);for(const e of ((d&&d.events)||[]))parseEvent(e,ev);k++;onProg(.5+.2*k/months.length);});}
+  if(Object.keys(ev).length<1000){                                                   // fallback 2: one day at a time
+    const days=[];for(let d=new Date(Date.UTC(yr-1,9,15));d<=new Date(Date.UTC(yr,3,20));d.setUTCDate(d.getUTCDate()+1))days.push(d.toISOString().slice(0,10).replace(/-/g,''));
+    let k=0;await pool(days,8,async day=>{const d=await getJSON(`${ESPN}/scoreboard?dates=${day}`);for(const e of ((d&&d.events)||[]))parseEvent(e,ev);k++;if(k%10===0)onProg(.7+.3*k/days.length);});}
   const games=Object.values(ev).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:0);
   if(games.length>1000)store(SCHED_KEY,{day:today,yr,games});
   return games;}
@@ -175,7 +193,7 @@ function setAdj(id,k,v){ADJ[id]=ADJ[id]||{};if(v===''||isNaN(Number(v)))delete A
 async function run(){
   const b=document.getElementById('go');b.disabled=true;setBar(0);
   if(!GAMES){setS('Loading the full schedule from ESPN…');GAMES=await loadSchedule(p=>setBar(p*.4));
-    if(!GAMES||GAMES.length<1000){setS('Could not load the schedule from ESPN. Try again in a minute.',true);b.disabled=false;return;}}
+    if(!GAMES||GAMES.length<1000){setS(`Could not load the full schedule from ESPN (got ${GAMES?GAMES.length:0} games). Try again in a minute.`,true);GAMES=null;b.disabled=false;return;}}
   setS(`Simulating ${SET.n.toLocaleString()} seasons…`);
   simulate(p=>setBar(.4+.6*p),res=>{RES=res;setBar(1);setS(`${res.N.toLocaleString()} seasons simulated · ${res.games} games left on the schedule · ${res.at.toLocaleTimeString()}`);b.disabled=false;render();});}
 
