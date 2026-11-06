@@ -40,7 +40,15 @@ input:focus,select:focus{border-color:var(--amber);}
 .note.good{border-left-color:var(--green);background:rgba(95,174,122,.09);color:#BFE3CB;}
 .note b{color:var(--chalk);}
 .card{background:var(--navy);border:1px solid #263644;border-radius:10px;padding:13px 14px;margin-bottom:10px;}
-.card.play{border-color:rgba(95,174,122,.55);}.card.flagged{border-color:rgba(192,67,58,.5);}
+.card.play{border-color:rgba(95,174,122,.55);}
+/* both models agree: gold glow */
+@keyframes goldPulse{0%,100%{box-shadow:0 0 6px 1px rgba(242,169,59,.35),inset 0 0 0 1px rgba(242,169,59,.55);}50%{box-shadow:0 0 18px 4px rgba(242,169,59,.6),inset 0 0 0 1px rgba(255,214,120,.9);}}
+.card.gold{border-color:#F2A93B;animation:goldPulse 2.4s ease-in-out infinite;background:linear-gradient(180deg,rgba(242,169,59,.10),var(--navy) 55%);}
+.plays .p.gold{border-left-color:#F2A93B;background:rgba(242,169,59,.14);animation:goldPulse 2.4s ease-in-out infinite;}
+.bets .bet.gold{border-color:#F2A93B;box-shadow:0 0 10px rgba(242,169,59,.45);}
+.goldtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#1A1400;background:linear-gradient(90deg,#F2A93B,#FFD678);border-radius:4px;padding:2px 6px;margin-top:4px;}
+@media (prefers-reduced-motion:reduce){.card.gold,.plays .p.gold{animation:none;box-shadow:0 0 12px 2px rgba(242,169,59,.5);}}
+.card.flagged{border-color:rgba(192,67,58,.5);}
 .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
 .cmatch{font-size:13.5px;font-weight:600;line-height:1.35;}
 .csub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
@@ -276,7 +284,7 @@ function grade(g,a){
   return `<div class="result">${out.join(' ')}</div>`;
 }
 
-function betCell(b){const cls=b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':'');const c=b.edge>=0?'pos':'neg';
+function betCell(b){const cls=(b.ff==='agree'&&b.tier!=='none'&&!b.susp?'gold ':'')+(b.tier==='play'&&!b.susp?'ok':(b.tier!=='none'?'lean':''));const c=b.edge>=0?'pos':'neg';
   return `<div class="bet ${cls}"><div class="t">${esc(b.label)} ${fmtAm(b.price)}${b.noView?'<br><i>no real edge</i>':(b.ff==='disagree'?'<br><i>FF sim disagrees</i>':(b.depleted?'<br><i>short-handed</i>':(b.noise?'<br><i>small sample</i>':(b.roster?'<br><i>roster change</i>':(b.ff==='agree'?'<br><i>both models agree</i>':'')))))}</div><div class="e ${c}">${sgn(b.edge*100)}</div><div class="s">${pct(b.p)} vs ${pct(b.i)}</div></div>`;}
 
 function card(g,a){
@@ -284,9 +292,10 @@ function card(g,a){
   const vd=b?`${esc(b.label)} ${fmtAm(b.price)}<br>${sgn(b.edge*100)} pts · EV ${sgn(b.ev*100,0)}¢/$1`:(a.v.t==='NO LINES'?'add lines below':'no side clears the bar');
   const row=(k,mv,mkv,gap)=>`<tr><td class="k2">${k}</td><td>${mv}</td><td>${mkv}</td><td class="${gap==null?'flat':(Math.abs(gap.v)<gap.small?'flat':'')}">${gap==null?'—':gap.s}</td></tr>`;
   const ed=EDITS[g.eid]||{};const inp=(k,lbl,val,step)=>`<div><label>${lbl}</label><input type="number" step="${step||1}" value="${ed[k]!=null?ed[k]:''}" placeholder="${val==null?'':val}" onchange="edit('${g.eid}','${k}',this.value)"></div>`;
-  return `<div class="card ${a.v.k==='play'?'play':(a.v.k==='check'?'flagged':'')}">
+  const gold=b&&b.ff==='agree'&&(a.v.k==='play'||a.v.k==='lean');
+  return `<div class="card ${gold?'gold':(a.v.k==='play'?'play':(a.v.k==='check'?'flagged':''))}">
     <div class="chead"><div><div class="cmatch">${esc(g.an)} @ ${esc(g.hn)}</div><div class="csub">Lines: ${mk.src?esc(mk.src)+(mk.provider?' · '+esc(mk.provider):''):'none found'}</div></div>
-      <div class="verdict"><div class="k ${a.v.k}">${a.v.t}</div><div class="d">${vd}</div></div></div>
+      <div class="verdict"><div class="k ${a.v.k}">${a.v.t}</div><div class="d">${vd}</div>${gold?'<div class="goldtag">★ BOTH MODELS AGREE</div>':''}</div></div>
     <table><tr><th></th><th>Model</th><th>Market</th><th>Gap</th></tr>
       ${row(`${H} margin`,sgn(g.m),a.mM!=null?sgn(a.mM):'—',a.dM!=null?{v:a.dM,s:sgn(a.dM),small:1.5}:null)}
       ${row(`${H} win`,pct(g.pE),a.nvH!=null?pct(a.nvH)+(mk.mlH==null?'*':''):'—',a.nvH!=null?{v:(g.pE-a.nvH)*100,s:sgn((g.pE-a.nvH)*100)+' pts',small:2}:null)}
@@ -451,7 +460,7 @@ function render(){
   const age=(Date.now()-new Date(SNAP.savedAt))/36e5;if(age>12)slate.push(['amber',`This slate was run ${age<48?Math.round(age)+' hours':Math.round(age/24)+' days'} ago. Injuries and ratings may have moved; rerun the model for fresh numbers.`]);
   const noLines=res.filter(r=>!r.a.bets.length).length;if(noLines)slate.push(['amber',`${noLines} game${noLines>1?'s have':' has'} no sportsbook lines yet (ESPN posts them closer to game day). Type them in under <i>Edit lines</i>.`]);
 
-  const list=(arr,cls)=>arr.map(r=>`<div class="p ${cls}"><b>${esc(r.a.v.best.label)} ${fmtAm(r.a.v.best.price)}</b> · ${esc(nick(r.g.an))} @ ${esc(nick(r.g.hn))} · model ${pct(r.a.v.best.p)} vs ${pct(r.a.v.best.i)} implied (${sgn(r.a.v.best.edge*100)} pts)</div>`).join('');
+  const list=(arr,cls)=>[...arr].sort((x,y)=>(y.a.v.best.ff==='agree')-(x.a.v.best.ff==='agree')).map(r=>`<div class="p ${cls}${r.a.v.best.ff==='agree'?' gold':''}">${r.a.v.best.ff==='agree'?'★ ':''}<b>${esc(r.a.v.best.label)} ${fmtAm(r.a.v.best.price)}</b> · ${esc(nick(r.g.an))} @ ${esc(nick(r.g.hn))} · model ${pct(r.a.v.best.p)} vs ${pct(r.a.v.best.i)} implied (${sgn(r.a.v.best.edge*100)} pts)</div>`).join('');
   document.getElementById('top').innerHTML=`<div class="panel">
     <div class="plabel">SLATE VERDICT · ${esc(SNAP.date)}</div>
     <div class="stats"><div class="st"><div class="l">Games</div><div class="v">${res.length}</div></div><div class="st"><div class="l">Plays</div><div class="v">${plays.length}</div><div class="r">≥${(T*100).toFixed(0)} pts edge</div></div><div class="st"><div class="l">Leans</div><div class="v">${leans.length}</div></div><div class="st"><div class="l">Check news</div><div class="v">${checks.length}</div></div><div class="st"><div class="l">Avg gap vs line</div><div class="v">${mM!=null?mM.toFixed(1):'—'}</div><div class="r">pts of margin</div></div></div>
