@@ -127,7 +127,7 @@ function parseOdds(o,ha,aa){
   return (r.sH==null&&r.mlH==null&&r.tot==null)?null:r;
 }
 
-let FF=load('nbaFFSlate_v1')||{},TOT_BIAS=0,TOT_BIAS_N=0;
+let FF=load('nbaFFSlate_v1')||{},TOT_BIAS=0,TOT_BIAS_N=0,FF_BIAS=0;
 let SNAP=null,MKT={},EDITS=load(EDIT_KEY)||{},FETCHED=null,OPEN=load(OPEN_KEY)||{},LOG=load(LOG_KEY)||{},NEWS=load(NEWS_KEY)||{};
 
 async function fetchMarket(){
@@ -247,9 +247,9 @@ function analyse(g){
     for(const b of bets){if(b.tier==='none')continue;let yes=null;
       if((b.kind==='ats'||b.kind==='ml')&&mM!=null){const ffEdge=ff.margin-mM;yes=b.side==='home'?ffEdge>0:ffEdge<0;}
       else if(b.kind==='ats'||b.kind==='ml'){yes=b.side==='home'?ff.pHome>=.5:ff.pHome<.5;}
-      else if(b.kind==='tot'){yes=b.side==='over'?ff.total>mk.tot:ff.total<mk.tot;}
+      else if(b.kind==='tot'){const ft=ff.total-FF_BIAS;yes=b.side==='over'?ft>mk.tot+1:ft<mk.tot-1;if(Math.abs(ft-mk.tot)<=1)yes=null;}
       if(yes===true){b.ff='agree';ag.push(b.label);}else if(yes===false){b.ff='disagree';b.tier=b.tier==='play'?'lean':'none';dis.push(b.label);}}
-    const ffSide=`${ff.margin>=0?H+' by '+ff.margin.toFixed(1):A+' by '+(-ff.margin).toFixed(1)}, total ${ff.total.toFixed(1)}`;
+    const ffSide=`${ff.margin>=0?H+' by '+ff.margin.toFixed(1):A+' by '+(-ff.margin).toFixed(1)}, total ${(ff.total-FF_BIAS).toFixed(1)}${FF_BIAS?` after removing its slate-wide ${sgn(FF_BIAS)} lean`:''}`;
     if(dis.length)notes.push(['amber',`<b>Four Factors simulator disagrees</b> on ${dis.map(esc).join(', ')} (it has ${ffSide}). It uses only this season's stats, so it sees roster changes the Ensemble is slow on. Downgraded a level.`]);
     else if(ag.length)notes.push(['good',`<b>Four Factors simulator agrees</b> on ${ag.map(esc).join(', ')} (it has ${ffSide}). Two models built from different data pointing the same way.`]);
     ffAgree=dis.length?'disagree':(ag.length?'agree':null);}
@@ -440,6 +440,8 @@ function slateTotalBias(){
   // a slate-wide lean the same way is the model's scoring level drifting, not many separate edges.
   // The median (not the mean) so one or two real outliers don't drag every other game across the line.
   TOT_BIAS=d.length>=5&&Math.abs(med)>=2?med:0;
+  const ffd=(FF[SNAP.date]||{}).games||{};const f=SNAP.games.map(g=>{const m=market(g),x=ffd[g.eid];return m.tot!=null&&x&&!x.manual?x.total-m.tot:null;}).filter(x=>x!=null).sort((x,y)=>x-y);
+  FF_BIAS=f.length>=3?(f.length%2?f[(f.length-1)/2]:(f[f.length/2-1]+f[f.length/2])/2):0;
 }
 function render(){
   slateTotalBias();
