@@ -77,4 +77,6 @@ for n in notes:
 if card.empty:
     sys.exit(f"ESPN: none of the {len(lines)} bouts on {name} matched the fight history")
 pipeline.save_manual_card(card)
+for _, r in card.iterrows():
+    print(f"   {r['bout_order']:>2}. {r['f_1_name']} vs {r['f_2_name']} ({r['weight_class']}, {r['num_rounds']} rds)")
 print(f"ESPN card saved: {name} ({date}), {len(card)} of {len(lines)} bouts matched")
