@@ -50,11 +50,10 @@ jobs:
         working-directory: ufc
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python -m ufc_predictor cycle | tail -40
+        run: python -m ufc_predictor cycle
 
       - name: Backup - next card from ESPN
         id: espn
-        if: steps.cycle.outcome != 'success'
         continue-on-error: true
         working-directory: ufc
         run: python ../scripts/ufc_espn_card.py ../espn_debug.json

@@ -18,6 +18,16 @@ sys.path.insert(0, os.getcwd())
 from ufc_predictor import pipeline  # noqa: E402
 
 today = dt.date.today()
+
+# Nothing to do if the UFCStats scrape already found a card that hasn't happened.
+try:
+    import csv
+    with open("data/upcoming.csv", encoding="utf-8") as f:
+        if any(r.get("event_date", "")[:10] >= today.isoformat() for r in csv.DictReader(f)):
+            print("Upcoming card already on file, ESPN backup not needed")
+            sys.exit(0)
+except FileNotFoundError:
+    pass
 end = today + dt.timedelta(days=35)
 url = ("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"
        f"?dates={today:%Y%m%d}-{end:%Y%m%d}&limit=50")
