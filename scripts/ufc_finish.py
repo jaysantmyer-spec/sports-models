@@ -36,6 +36,16 @@ bar = (
     '&larr; Sports Models</a>'
     f'<span style="float:right;opacity:.6">Updated {html.escape(built)}</span></div>'
 )
+if future and "ESPN backup success" in status:
+    bar += (
+        '<div style="max-width:960px;margin:10px auto 0;padding:0 16px">'
+        '<div style="background:#FBF3DC;color:#7A5A0A;border-radius:10px;padding:10px 14px;'
+        'font:500 14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">'
+        'Card pulled from ESPN because UFCStats blocked the update. Fights since the '
+        'model\'s last data update may be missing, so a fighter coming off a recent '
+        'win or loss may be rated on older form. Fighters with no UFC history are left off.'
+        '</div></div>'
+    )
 if not future:
     last = max(dates).isoformat() if dates else "unknown"
     bar += (
