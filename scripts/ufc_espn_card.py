@@ -19,13 +19,19 @@ from ufc_predictor import pipeline  # noqa: E402
 
 today = dt.date.today()
 
-# Nothing to do if the UFCStats scrape already found a card that hasn't happened.
+# Drop cards that have already happened, so the page always shows the next one.
+# (ET date: the runner's clock is UTC, and Saturday cards end after midnight UTC.)
+today = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=5)).date()
 try:
-    import csv
-    with open("data/upcoming.csv", encoding="utf-8") as f:
-        if any(r.get("event_date", "")[:10] >= today.isoformat() for r in csv.DictReader(f)):
-            print("Upcoming card already on file, ESPN backup not needed")
-            sys.exit(0)
+    import pandas as pd
+    up = pd.read_csv("data/upcoming.csv")
+    keep = up[up["event_date"].astype(str).str[:10] >= today.isoformat()]
+    if len(keep) < len(up):
+        keep.to_csv("data/upcoming.csv", index=False)
+        print(f"Removed {len(up) - len(keep)} bouts from cards that already happened")
+    if len(keep):
+        print("Upcoming card already on file, ESPN backup not needed")
+        sys.exit(0)
 except FileNotFoundError:
     pass
 end = today + dt.timedelta(days=35)
